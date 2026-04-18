@@ -45,15 +45,17 @@
 
 ### Plans
 
-**Plans:** 7 plans in 7 waves
+**Plans:** 7 plans in 7 waves — ALL COMPLETE ✓
 
-- [ ] 01-00-PLAN.md — Wave 0: Database schema + Express setup
-- [ ] 01-01-PLAN.md — Wave 1: Backend auth utilities + middleware
-- [ ] 01-02-PLAN.md — Wave 2: Auth routes + admin seeding
-- [ ] 01-03a-PLAN.md — Wave 3: Frontend scaffolding + API client
-- [ ] 01-03b-PLAN.md — Wave 4: Pinia store + Login page
-- [ ] 01-04-PLAN.md — Wave 5: Vue Router + navigation guards
-- [ ] 01-05-PLAN.md — Wave 6: Dashboard page + logout
+- [x] 01-00-PLAN.md — Wave 0: Database schema + Express setup ✓
+- [x] 01-01-PLAN.md — Wave 1: Backend auth utilities + middleware ✓
+- [x] 01-02-PLAN.md — Wave 2: Auth routes + admin seeding ✓
+- [x] 01-03a-PLAN.md — Wave 3: Frontend scaffolding + API client ✓
+- [x] 01-03b-PLAN.md — Wave 4: Pinia store + Login page ✓
+- [x] 01-04-PLAN.md — Wave 5: Vue Router + navigation guards ✓
+- [x] 01-05-PLAN.md — Wave 6: Dashboard page + logout ✓
+
+**Verification:** `.planning/phases/01-认证与用户基础/01-VERIFICATION.md`
 
 ---
 
