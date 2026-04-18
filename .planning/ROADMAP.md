@@ -228,13 +228,14 @@ Phase 2          Phase 3
 
 ## Next Step
 
-**Phase 2: 选题管理与学生端** — Plans created, ready for execution
+**Phase 3: 文档生成与AI服务** — Ready for planning
 
 ```
-/gsd-execute-phase 2 — 执行选题管理与学生端阶段
+/gsd-discuss-phase 3 — 收集上下文，澄清方案（推荐）
+/gsd-plan-phase 3 — 直接创建执行计划
 ```
 
 ---
 
 *Roadmap updated: 2026-04-18*
-*Phase 2 plans: 8 plans across 8 waves*
+*Phase 2 complete: 8/8 plans executed, verified*
