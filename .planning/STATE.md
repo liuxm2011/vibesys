@@ -1,74 +1,37 @@
 # STATE.md: VibeCoding 教学实践平台
 
 **Updated:** 2026-04-18
-**Status:** Phase 2 In Progress
+**Status:** Phase 3 Ready to Start
 
 ## Project Reference
 
 See: .planning/PROJECT.md (updated 2026-04-18)
 
 **Core value:** 学生能够将模糊的想法转化为结构化文档，并利用AI工具高效完成软件开发
-**Current focus:** Phase 2 — 选题管理与学生端 (Plans created, ready for execution)
+**Current focus:** Phase 3 — 文档生成与AI服务 (Ready for discussion)
 
 ## Roadmap Progress
 
 | Phase | Status | Progress |
 |-------|--------|----------|
 | 1 | ✓ Complete | 100% |
-| 2 | ● In Progress | 75% |
+| 2 | ✓ Complete | 100% |
 | 3 | ○ Pending | 0% |
 | 4 | ○ Pending | 0% |
 | 5 | ○ Pending | 0% |
 
 ## Current Phase
 
-**Phase 2: 选题管理与学生端 — Plans Created**
+**Phase 3: 文档生成与AI服务 — Ready to Start**
 
-- Status: 8 plans created, ready for execution
-- Goal: 学生可以浏览选题池、选择选题创建项目、管理多个项目
-- Requirements: TOPIC-01~06, DASH-01~03 (TOPIC-06 deferred per D-02)
-- Context: `.planning/phases/02-选题管理与学生端/02-CONTEXT.md`
-
-### Key Decisions from Discussion
-
-1. 不是"锁定选题"而是"创建项目" — D-06
-2. 同一选题可被多次选择 — D-07
-3. 学生最多创建10个项目 — D-08
-4. 项目可删除，状态可更新 — D-09, D-10
-5. 自拟选题仅自己可用 — D-14
-6. 选题池：表格列表+侧边筛选栏 — D-16
-7. 项目列表嵌入Dashboard — D-18
-
-### Wave Structure
-
-| Wave | Plan | Objective | Autonomous |
-|------|------|-----------|------------|
-| 0 | 02-00 | Database schema extension | ✓ done |
-| 1 | 02-01 | Backend topics routes | ✓ done |
-| 2 | 02-02 | Backend projects routes | ✓ done |
-| 3 | 02-03 | Frontend topic store + API | yes |
-| 4 | 02-04 | Frontend project store + API | yes |
-| 5 | 02-05 | TopicPool.vue page | yes |
-| 6 | 02-06 | Dashboard project list | yes |
-| 7 | 02-07 | Router + navigation | yes |
-
-**Note:** Waves 1 and 2 can run in parallel (both depend only on Wave 0).
-
-### Wave Progress
-
-| Wave | Plan | Status | Commit |
-|------|------|--------|--------|
-| 0 | 02-00 | ✓ | ca4db55 |
-| 1 | 02-01 | ✓ | 13ea2bb, 9e24848, 86b9768, 469f4ae, 825f38a |
-| 2 | 02-02 | ✓ | ffef577 |
-| 3 | 02-03 | ✓ | bea713a |
-| 4 | 02-04 | ✓ | a91f006, 372e4f3, 8aabf15 |
-| 5 | 02-05 | ✓ | f0b3fe1, d56d461, b2acff1 |
-| 6 | 02-06 | ✓ | 9c7d013 |
+- Status: 0 plans executed, ready for planning
+- Goal: AI辅助生成PRD、前端文档、后端文档，学生可在线编辑
+- Requirements: DOC-01~08
+- Context: To be created during discussion phase
 
 ---
 
-## Completed Phase
+## Completed Phases
 
 **Phase 1: 认证与用户基础 — Complete**
 
@@ -89,6 +52,37 @@ See: .planning/PROJECT.md (updated 2026-04-18)
 | 4 | 01-03b | ✓ | f7c07aa |
 | 5 | 01-04 | ✓ | 2df2a16 |
 | 6 | 01-05 | ✓ | 3419daa |
+
+**Phase 2: 选题管理与学生端 — Complete**
+
+- Status: Complete (8 plans executed)
+- Goal: 学生可以浏览选题池、选择选题创建项目、管理多个项目
+- Requirements: TOPIC-01~06, DASH-01~03 (TOPIC-06 deferred per D-02)
+- Success Criteria: 4 criteria verified
+- Context: `.planning/phases/02-选题管理与学生端/02-CONTEXT.md`
+
+### Key Decisions from Discussion
+
+1. 不是"锁定选题"而是"创建项目" — D-06
+2. 同一选题可被多次选择 — D-07
+3. 学生最多创建10个项目 — D-08
+4. 项目可删除，状态可更新 — D-09, D-10
+5. 自拟选题仅自己可用 — D-14
+6. 选题池：表格列表+侧边筛选栏 — D-16
+7. 项目列表嵌入Dashboard — D-18
+
+### Wave Summary
+
+| Wave | Plan | Objective | Status | Commit |
+|------|------|-----------|--------|--------|
+| 0 | 02-00 | Database schema extension | ✓ | ca4db55 |
+| 1 | 02-01 | Backend topics routes | ✓ | 13ea2bb, 9e24848, 86b9768, 469f4ae, 825f38a |
+| 2 | 02-02 | Backend projects routes | ✓ | ffef577 |
+| 3 | 02-03 | Frontend topic store + API | ✓ | bea713a |
+| 4 | 02-04 | Frontend project store + API | ✓ | a91f006, 372e4f3, 8aabf15 |
+| 5 | 02-05 | TopicPool.vue page | ✓ | f0b3fe1, d56d461, b2acff1 |
+| 6 | 02-06 | Dashboard project list | ✓ | 9c7d013 |
+| 7 | 02-07 | Router + navigation | ✓ | 8ed49f1 |
 
 ## Session Memory
 
@@ -121,9 +115,9 @@ See: .planning/PROJECT.md (updated 2026-04-18)
 
 ## Next Action
 
-Continue Phase 2 Wave 7 (Router + navigation integration):
+Start Phase 3 (文档生成与AI服务):
 ```
-/gsd-execute-phase 2 --wave 7
+/gsd-discuss-phase 3
 ```
 
-*State updated: 2026-04-18 - Wave 6 complete (Dashboard project list)*
+*State updated: 2026-04-18 - Phase 2 complete (Router + navigation integration)*

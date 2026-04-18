@@ -65,7 +65,7 @@
 
 **Goal:** 学生可以浏览选题池、选择选题创建项目、管理多个项目。系统支持公共选题池和自拟选题，项目可删除和文档编辑。
 
-**Status:** In Progress (6/8 plans complete)
+**Status:** ✓ Complete (8/8 plans)
 
 ### Requirements Covered
 
@@ -96,7 +96,7 @@
 
 ### Plans
 
-**Plans:** 8 plans in 8 waves — 5 complete, 3 pending
+**Plans:** 8 plans in 8 waves — ALL COMPLETE ✓
 
 - [x] 02-00-PLAN.md — Wave 0: Database schema extension (Topic, Project models + enums) ✓
 - [x] 02-01-PLAN.md — Wave 1: Backend topics routes (list, detail, custom) ✓
@@ -105,7 +105,7 @@
 - [x] 02-04-PLAN.md — Wave 4: Frontend project store + API client ✓
 - [x] 02-05-PLAN.md — Wave 5: TopicPool.vue page (table + sidebar filter) ✓
 - [x] 02-06-PLAN.md — Wave 6: Dashboard.vue project list ✓
-- [ ] 02-07-PLAN.md — Wave 7: Router update + navigation integration
+- [x] 02-07-PLAN.md — Wave 7: Router update + navigation integration ✓
 
 **Context:** `.planning/phases/02-选题管理与学生端/02-CONTEXT.md`
 **Research:** `.planning/phases/02-选题管理与学生端/02-RESEARCH.md`
