@@ -1,0 +1,35 @@
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id        Int      @id @default(autoincrement())
+  studentId String   @unique                    // D-02: 登录账号
+  name      String                              // D-04: 姓名
+  major     String                              // D-04: 专业
+  grade     String                              // D-04: 年级
+  class     String                              // D-04: 班级
+  password  String                              // D-09: bcrypt hash
+  role      Role     @default(STUDENT)          // D-05: student/admin
+  status    Status   @default(ACTIVE)           // D-06: active/banned
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([studentId])
+  @@index([role])
+}
+
+enum Role {
+  STUDENT    // D-05
+  ADMIN      // D-05
+}
+
+enum Status {
+  ACTIVE     // D-06
+  BANNED     // D-06
+}
