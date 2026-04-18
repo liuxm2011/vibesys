@@ -20,6 +20,10 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  // Phase 2 relations
+  projects        Project[]       // D-06: User has many projects
+  customTopics    Topic[]         @relation("CustomTopic")  // D-14: User's custom topics
+
   @@index([studentId])
   @@index([role])
 }
@@ -32,4 +36,63 @@ enum Role {
 enum Status {
   ACTIVE     // D-06
   BANNED     // D-06
+}
+
+// Phase 2 enums (D-03, D-05, D-10)
+enum Domain {
+  SE  // 软件工程 (D-03)
+  BD  // 大数据 (D-03)
+}
+
+enum TopicType {
+  SYSTEM  // 系统预设 (D-05)
+  CUSTOM  // 学生自拟 (D-05)
+}
+
+enum ProjectStatus {
+  NOT_STARTED  // 未开始 (D-10)
+  IN_PROGRESS  // 进行中 (D-10)
+  COMPLETED    // 已完成 (D-10)
+}
+
+// Phase 2: Topic model (D-01, D-04)
+model Topic {
+  id              Int        @id @default(autoincrement())
+  title           String     // D-01: 标题
+  description     String     // D-01: 描述
+  background      String     @default("") // D-01: 背景
+  objectives      String     @default("") // D-01: 目标
+  domain          Domain     // D-03: 领域分类
+  techStack       Json       // D-04: 技术栈建议 (JSON array)
+  type            TopicType  @default(SYSTEM)  // D-05: 类型
+  creatorId       Int?       // D-14: 仅自定义选题有creator
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+
+  // Relations
+  creator         User?      @relation("CustomTopic", fields: [creatorId], references: [id])
+  projects        Project[]
+
+  @@index([domain])
+  @@index([type])
+  @@index([creatorId])
+}
+
+// Phase 2: Project model (D-10, D-11)
+model Project {
+  id              Int           @id @default(autoincrement())
+  userId          Int           // D-11: 关联学生
+  topicId         Int           // D-11: 关联选题
+  status          ProjectStatus @default(NOT_STARTED)  // D-10
+  documentsRef    Json?         // D-11: 已生成文档引用 (Phase 3 placeholder)
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  // Relations
+  user            User          @relation(fields: [userId], references: [id])
+  topic           Topic         @relation(fields: [topicId], references: [id])
+
+  @@index([userId])
+  @@index([status])
+  @@index([topicId])
 }
