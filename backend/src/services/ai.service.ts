@@ -57,7 +57,7 @@ class AIService {
 
     try {
       const { baseURL, apiKey } = this.getConfig();
-      for (let attempt = 0; attempt < 3; attempt += 1) {
+      for (let attempt = 0; attempt < 5; attempt += 1) {
         const data = await this.requestCompletion(baseURL, apiKey, messages);
         const choice = data.choices?.[0];
         const content = choice?.message?.content?.trim() || '';
@@ -75,7 +75,7 @@ class AIService {
         messages.push({ role: 'assistant', content });
         messages.push({
           role: 'user',
-          content: '继续输出剩余文档内容。不要重复已经写过的内容，不要添加说明，只直接续写 Markdown 正文。'
+          content: '文档尚未写完。请继续从下一个未完成的章节开始续写，保持 Markdown 格式一致。\n每个章节保持适当的详细程度，直接输出 Markdown 内容，不要添加任何说明。'
         });
       }
 
@@ -138,9 +138,9 @@ class AIService {
         model: 'minimax-m2-7',
         messages,
         temperature: 0.4,
-        max_tokens: 3072,
+        max_tokens: 10000,
       }),
-      signal: AbortSignal.timeout(60_000),
+      signal: AbortSignal.timeout(180_000),
     });
 
     if (!response.ok) {
