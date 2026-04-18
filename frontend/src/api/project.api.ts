@@ -1,5 +1,5 @@
 import { api } from '@/utils/request';
-import type { ProjectsResponse, CreateProjectInput, CreateProjectResponse, DeleteProjectResponse } from '@/types/project';
+import type { ProjectsResponse, CreateProjectResponse, DeleteProjectResponse } from '@/types/project';
 
 /**
  * Fetch user's projects list (DASH-01)
