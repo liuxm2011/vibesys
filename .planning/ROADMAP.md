@@ -9,7 +9,7 @@
 | # | Phase | Goal | Requirements | Success Criteria |
 |---|-------|------|--------------|-------------------|
 | 1 | 认证与用户基础 | 本地认证系统和用户数据模型 | AUTH-01~04 | 7 plans |
-| 2 | 选题管理与学生端 | 学生可以选题并管理项目 | TOPIC-01~06, DASH-01~03 | 4 criteria |
+| 2 | 选题管理与学生端 | 学生可以选题并管理项目 | TOPIC-01~06, DASH-01~03 | 8 plans |
 | 3 | 文档生成与AI服务 | AI辅助生成PRD和技术文档 | DOC-01~08 | 5 criteria |
 | 4 | 文档导出功能 | 完整文档包导出能力 | EXPORT-01~03 | 3 criteria |
 | 5 | 管理后台 | 管理员完整后台功能 | ADM-01~07 | 4 criteria |
@@ -23,6 +23,8 @@
 
 **Goal:** 建立本地认证系统和用户数据模型。用户通过学号登录平台，管理员可导入学生数据。
 
+**Status:** ✓ Complete
+
 ### Requirements Covered
 
 - AUTH-01: 本地认证登录（学号+密码）
@@ -32,10 +34,10 @@
 
 ### Success Criteria
 
-1. 用户可通过学号+密码成功登录并获取基本信息
-2. 登出后会话完全清除
-3. 刷新浏览器后无需重新登录
-4. 默认管理员账号可用：admin / admin123
+1. 用户可通过学号+密码成功登录并获取基本信息 ✓
+2. 登出后会话完全清除 ✓
+3. 刷新浏览器后无需重新登录 ✓
+4. 默认管理员账号可用：admin / admin123 ✓
 
 ### Implementation Notes
 
@@ -61,32 +63,53 @@
 
 ## Phase 2: 选题管理与学生端
 
-**Goal:** 学生可以浏览选题池、选择锁定、查看自己的项目
+**Goal:** 学生可以浏览选题池、选择选题创建项目、管理多个项目。系统支持公共选题池和自拟选题，项目可删除和文档编辑。
+
+**Status:** Planned (8 plans ready for execution)
 
 ### Requirements Covered
 
 - TOPIC-01: 选题池列表浏览
 - TOPIC-02: 领域分类展示
 - TOPIC-03: 选题详情查看
-- TOPIC-04: 选题锁定
+- TOPIC-04: 选题锁定 → 创建项目 (D-06修正)
 - TOPIC-05: 自拟选题提交
-- TOPIC-06: 难度级别标记
+- TOPIC-06: 难度级别标记 — **Deferred per D-02**
 - DASH-01: 项目列表查看
 - DASH-02: 项目状态查看
-- DASH-03: 已生成文档访问
+- DASH-03: 已生成文档访问 — **Phase 3 full implementation**
 
 ### Success Criteria
 
-1. 学生可浏览并筛选选题（按领域/难度）
-2. 选择选题后状态正确锁定
+1. 学生可浏览并筛选选题（按领域）
+2. 选择选题后项目创建成功
 3. 学生Dashboard正确展示当前项目状态
 4. 自拟选题可成功提交并创建项目
 
 ### Implementation Notes
 
-- 选题池数据表设计（含分类、难度字段）
+- 选题池数据表设计（含领域字段，无难度）
 - 项目状态枚举（未开始/进行中/已完成）
-- 学生端基础页面框架
+- 学生端基础页面框架（表格+侧边筛选）
+- 同一选题可多次选择（D-07）
+- 学生最多10个项目（D-08）
+
+### Plans
+
+**Plans:** 8 plans in 8 waves
+
+- [ ] 02-00-PLAN.md — Wave 0: Database schema extension (Topic, Project models + enums)
+- [ ] 02-01-PLAN.md — Wave 1: Backend topics routes (list, detail, custom)
+- [ ] 02-02-PLAN.md — Wave 2: Backend projects routes (create, list, delete)
+- [ ] 02-03-PLAN.md — Wave 3: Frontend topic store + API client
+- [ ] 02-04-PLAN.md — Wave 4: Frontend project store + API client
+- [ ] 02-05-PLAN.md — Wave 5: TopicPool.vue page (table + sidebar filter)
+- [ ] 02-06-PLAN.md — Wave 6: Dashboard.vue project list
+- [ ] 02-07-PLAN.md — Wave 7: Router update + navigation integration
+
+**Context:** `.planning/phases/02-选题管理与学生端/02-CONTEXT.md`
+**Research:** `.planning/phases/02-选题管理与学生端/02-RESEARCH.md`
+**UI-Spec:** `.planning/phases/02-选题管理与学生端/02-UI-SPEC.md`
 
 ---
 
@@ -183,7 +206,7 @@
 ## Dependency Graph
 
 ```
-Phase 1 (认证基础)
+Phase 1 (认证基础) ✓
     │
     ├──────────────────┐
     │                  │
@@ -205,13 +228,13 @@ Phase 2          Phase 3
 
 ## Next Step
 
-**Phase 1: 认证与用户基础** — 计划已创建，准备执行
+**Phase 2: 选题管理与学生端** — Plans created, ready for execution
 
 ```
-/gsd-execute-phase 1 — 执行认证与用户基础阶段
+/gsd-execute-phase 2 — 执行选题管理与学生端阶段
 ```
 
 ---
 
 *Roadmap updated: 2026-04-18*
-*Phase 1 plans revised: 7 plans across 7 waves*
+*Phase 2 plans: 8 plans across 8 waves*

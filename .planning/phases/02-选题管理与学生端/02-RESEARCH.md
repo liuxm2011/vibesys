@@ -932,17 +932,17 @@ async function deleteProject(id: number): Promise<void> {
 
 **If this table is empty:** All claims in this research were verified or cited.
 
-## Open Questions
+## Open Questions (RESOLVED)
 
-1. **TOPIC-06 vs D-02 Conflict**
+1. **TOPIC-06 vs D-02 Conflict** — RESOLVED: Follow D-02, TOPIC-06 deferred
    - What we know: REQUIREMENTS.md lists TOPIC-06 "选题显示难度级别标记"
    - What's unclear: D-02 explicitly states "无难度级别标记 — 学生自行判断复杂度"
-   - Recommendation: Follow D-02 (user decision), mark TOPIC-06 as deferred/out-of-scope for Phase 2
+   - Resolution: TOPIC-06 is deferred per user decision D-02. Students judge complexity themselves.
 
-2. **Project.documentsRef Schema**
+2. **Project.documentsRef Schema** — RESOLVED: Use `{}` placeholder, define in Phase 3
    - What we know: D-11 mentions "已生成文档引用", Phase 3 implements document generation
    - What's unclear: Exact JSON structure for documentsRef
-   - Recommendation: Use placeholder `{}` in Phase 2, define structure in Phase 3 research
+   - Resolution: Use placeholder `{}` in Phase 2, define structure in Phase 3 research.
 
 ## Environment Availability
 
