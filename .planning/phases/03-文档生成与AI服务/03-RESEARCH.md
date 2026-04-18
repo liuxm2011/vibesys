@@ -543,22 +543,22 @@ router.put('/:id', authMiddleware, async (req: Request, res: Response) => {
 
 **If this table has entries:** Some claims need user confirmation before execution — specifically MiniMax deployment details (endpoint, auth).
 
-## Open Questions
+## Open Questions (RESOLVED)
 
-1. **What is the actual MiniMax API endpoint provided by the school?**
+1. **What is the actual MiniMax API endpoint provided by the school?** → RESOLVED
    - What we know: MiniMax public API uses `/v1/text/chatcompletion_v2` or `/v1/chat/completions`
    - What's unclear: School's self-deployed version may use different endpoint path
-   - Recommendation: Add configurable `MINIMAX_ENDPOINT` env var; default to `/v1/chat/completions`
+   - **Resolution:** Add configurable `MINIMAX_ENDPOINT` env var; default to `/v1/chat/completions`. Executor will configure via backend/.env based on school IT deployment details.
 
-2. **Should existing projects (from Phase 2) get empty Document records created?**
+2. **Should existing projects (from Phase 2) get empty Document records created?** → RESOLVED
    - What we know: D-11 says each project has 3 documents
    - What's unclear: Phase 2 projects have `documentsRef: {}` placeholder
-   - Recommendation: Create empty Document records on first access (lazy creation) rather than migration
+   - **Resolution:** Lazy creation on first access. When user visits ProjectDetail page and documents don't exist, backend creates empty Document records with default content.
 
-3. **Real-time save vs manual save button preference?**
+3. **Real-time save vs manual save button preference?** → RESOLVED
    - What we know: D-12 says "实时保存" (real-time save)
    - What's unclear: Implementation detail (debounce interval, save indicator)
-   - Recommendation: 500ms debounce with "保存中..." indicator; also provide manual save button for explicit control
+   - **Resolution:** 500ms debounce auto-save with "保存中..." status indicator; also provide manual save button for explicit user control.
 
 ## Environment Availability
 
