@@ -6,6 +6,7 @@ import dotenv from 'dotenv';
 import { PrismaClient } from '@prisma/client';
 import authRoutes from './routes/auth.routes.js';
 import projectsRoutes from './routes/projects.routes.js';
+import topicsRoutes from './routes/topics.routes.js';
 
 dotenv.config();
 
@@ -29,6 +30,9 @@ app.get('/api/health', (req, res) => {
 
 // Auth routes (AUTH-01, AUTH-02, AUTH-03)
 app.use('/api/auth', authRoutes);
+
+// Topic routes (TOPIC-01, TOPIC-02, TOPIC-03, TOPIC-05)
+app.use('/api/topics', topicsRoutes);
 
 // Project routes (TOPIC-04, DASH-01, DASH-02)
 app.use('/api/projects', projectsRoutes);
