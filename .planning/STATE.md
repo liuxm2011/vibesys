@@ -1,7 +1,7 @@
 # STATE.md: VibeCoding 教学实践平台
 
 **Updated:** 2026-04-18
-**Status:** Phase 2 Planned
+**Status:** Phase 2 In Progress
 
 ## Project Reference
 
@@ -15,7 +15,7 @@ See: .planning/PROJECT.md (updated 2026-04-18)
 | Phase | Status | Progress |
 |-------|--------|----------|
 | 1 | ✓ Complete | 100% |
-| 2 | ● Planned | 40% |
+| 2 | ● In Progress | 50% |
 | 3 | ○ Pending | 0% |
 | 4 | ○ Pending | 0% |
 | 5 | ○ Pending | 0% |
@@ -44,7 +44,7 @@ See: .planning/PROJECT.md (updated 2026-04-18)
 | Wave | Plan | Objective | Autonomous |
 |------|------|-----------|------------|
 | 0 | 02-00 | Database schema extension | ✓ done |
-| 1 | 02-01 | Backend topics routes | pending |
+| 1 | 02-01 | Backend topics routes | ✓ done |
 | 2 | 02-02 | Backend projects routes | ✓ done |
 | 3 | 02-03 | Frontend topic store + API | yes |
 | 4 | 02-04 | Frontend project store + API | yes |
@@ -59,7 +59,7 @@ See: .planning/PROJECT.md (updated 2026-04-18)
 | Wave | Plan | Status | Commit |
 |------|------|--------|--------|
 | 0 | 02-00 | ✓ | ca4db55 |
-| 1 | 02-01 | pending | - |
+| 1 | 02-01 | ✓ | 13ea2bb, 9e24848, 86b9768, 469f4ae, 825f38a |
 | 2 | 02-02 | ✓ | ffef577 |
 
 ---
@@ -117,14 +117,14 @@ See: .planning/PROJECT.md (updated 2026-04-18)
 
 ## Next Action
 
-Execute Phase 2 Wave 1 (Backend Topics Routes):
-```
-/gsd-execute-phase 2 --wave 1
-```
-
-Or continue with Wave 3 (Frontend stores):
+Continue Phase 2 Wave 3 (Frontend topic store + API):
 ```
 /gsd-execute-phase 2 --wave 3
 ```
 
-*State updated: 2026-04-18 - Wave 2 complete (projects routes)*
+Or Wave 4 (Frontend project store + API):
+```
+/gsd-execute-phase 2 --wave 4
+```
+
+*State updated: 2026-04-18 - Wave 1 complete (topics routes)*
