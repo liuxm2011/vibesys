@@ -7,6 +7,14 @@
           <h1>VibeCoding 教学实践平台</h1>
         </div>
         <div class="header-right">
+          <el-button
+            type="primary"
+            size="small"
+            @click="router.push('/topics')"
+            class="nav-button"
+          >
+            选题管理
+          </el-button>
           <span class="user-info">
             {{ user?.name }} ({{ user?.role === 'ADMIN' ? '管理员' : '学生' }})
           </span>
@@ -202,6 +210,10 @@ async function handleDeleteProject(projectId: number): Promise<void> {
   display: flex;
   align-items: center;
   gap: 16px;
+}
+
+.nav-button {
+  margin-right: 8px;
 }
 
 .user-info {

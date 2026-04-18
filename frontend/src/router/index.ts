@@ -15,6 +15,12 @@ const routes: RouteRecordRaw[] = [
     meta: { requiresAuth: true }
   },
   {
+    path: '/topics',
+    name: 'TopicPool',
+    component: () => import('@/views/TopicPool.vue'),  // Created in Wave 5
+    meta: { requiresAuth: true }
+  },
+  {
     path: '/admin',
     name: 'Admin',
     component: () => import('@/views/Admin.vue'),  // Placeholder for Phase 5
