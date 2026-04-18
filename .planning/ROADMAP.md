@@ -8,7 +8,7 @@
 
 | # | Phase | Goal | Requirements | Success Criteria |
 |---|-------|------|--------------|-------------------|
-| 1 | 认证与用户基础 | 建立认证系统和用户模型 | AUTH-01~04 | 3 criteria |
+| 1 | 认证与用户基础 | 本地认证系统和用户数据模型 | AUTH-01~04 | 6 plans |
 | 2 | 选题管理与学生端 | 学生可以选题并管理项目 | TOPIC-01~06, DASH-01~03 | 4 criteria |
 | 3 | 文档生成与AI服务 | AI辅助生成PRD和技术文档 | DOC-01~08 | 5 criteria |
 | 4 | 文档导出功能 | 完整文档包导出能力 | EXPORT-01~03 | 3 criteria |
@@ -21,27 +21,38 @@
 
 ## Phase 1: 认证与用户基础
 
-**Goal:** 建立学校SSO认证集成和基础用户数据模型
+**Goal:** 建立本地认证系统和用户数据模型。用户通过学号登录平台，管理员可导入学生数据。
 
 ### Requirements Covered
 
-- AUTH-01: 学校统一认证登录
+- AUTH-01: 本地认证登录（学号+密码）
 - AUTH-02: 用户基本信息获取
 - AUTH-03: 安全登出
-- AUTH-04: 会话持久化
+- AUTH-04: 会话在浏览器刷新后保持有效
 
 ### Success Criteria
 
-1. 用户可通过学校SSO成功登录并获取基本信息
+1. 用户可通过学号+密码成功登录并获取基本信息
 2. 登出后会话完全清除
 3. 刷新浏览器后无需重新登录
+4. 默认管理员账号可用：admin / admin123
 
 ### Implementation Notes
 
-- 设计SSO适配层，支持CAS/OAuth等多种协议
-- JWT Token生成与验证机制
-- 完整数据库ER图设计（预留后续表结构）
-- **Pitfall Prevention:** SSO对接预留充足时间，准备临时认证备用方案
+- 本地认证替代SSO（D-01决策）
+- bcrypt密码加密，JWT Token存储在httpOnly Cookie
+- Pinia管理前端认证状态，Vue Router守卫保护路由
+
+### Plans
+
+**Plans:** 6 plans in 4 waves
+
+- [ ] 01-00-PLAN.md — Wave 0: Database schema + Express setup
+- [ ] 01-01-PLAN.md — Wave 1: Backend auth utilities + middleware
+- [ ] 01-02-PLAN.md — Wave 1: Auth routes + admin seeding
+- [ ] 01-03-PLAN.md — Wave 2: Frontend login + Pinia store
+- [ ] 01-04-PLAN.md — Wave 2: Vue Router + navigation guards
+- [ ] 01-05-PLAN.md — Wave 3: Dashboard page + logout
 
 ---
 
@@ -191,8 +202,13 @@ Phase 2          Phase 3
 
 ## Next Step
 
-**Phase 1: 认证与用户基础** — 建立学校SSO认证集成和基础用户数据模型
+**Phase 1: 认证与用户基础** — 计划已创建，准备执行
 
 ```
-/gsd-discuss-phase 1 — gather context and clarify approach
+/gsd-execute-phase 1 — 执行认证与用户基础阶段
 ```
+
+---
+
+*Roadmap updated: 2026-04-18*
+*Phase 1 plans created: 6 plans across 4 waves*
