@@ -4,6 +4,7 @@ import helmet from 'helmet';
 import cookieParser from 'cookie-parser';
 import dotenv from 'dotenv';
 import { PrismaClient } from '@prisma/client';
+import authRoutes from './routes/auth.routes.js';
 
 dotenv.config();
 
@@ -25,8 +26,8 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
-// Auth routes will be added in subsequent plan
-// app.use('/api/auth', authRoutes);
+// Auth routes (AUTH-01, AUTH-02, AUTH-03)
+app.use('/api/auth', authRoutes);
 
 // Error handling middleware
 app.use((err: Error, req: express.Request, res: express.Response, next: express.NextFunction) => {
