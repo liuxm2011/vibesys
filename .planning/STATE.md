@@ -15,7 +15,7 @@ See: .planning/PROJECT.md (updated 2026-04-18)
 | Phase | Status | Progress |
 |-------|--------|----------|
 | 1 | ✓ Complete | 100% |
-| 2 | ● In Progress | 62% |
+| 2 | ● In Progress | 75% |
 | 3 | ○ Pending | 0% |
 | 4 | ○ Pending | 0% |
 | 5 | ○ Pending | 0% |
@@ -63,6 +63,8 @@ See: .planning/PROJECT.md (updated 2026-04-18)
 | 2 | 02-02 | ✓ | ffef577 |
 | 3 | 02-03 | ✓ | bea713a |
 | 4 | 02-04 | ✓ | a91f006, 372e4f3, 8aabf15 |
+| 5 | 02-05 | ✓ | (pending) |
+| 6 | 02-06 | ✓ | 9c7d013 |
 
 ---
 
@@ -119,14 +121,9 @@ See: .planning/PROJECT.md (updated 2026-04-18)
 
 ## Next Action
 
-Continue Phase 2 Wave 5 (TopicPool.vue page):
+Continue Phase 2 Wave 7 (Router + navigation integration):
 ```
-/gsd-execute-phase 2 --wave 5
-```
-
-Or Wave 6 (Dashboard project list):
-```
-/gsd-execute-phase 2 --wave 6
+/gsd-execute-phase 2 --wave 7
 ```
 
-*State updated: 2026-04-18 - Waves 3-4 complete (frontend stores)*
+*State updated: 2026-04-18 - Wave 6 complete (Dashboard project list)*

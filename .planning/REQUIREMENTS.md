@@ -7,19 +7,19 @@
 
 ### Authentication
 
-- [ ] **AUTH-01**: 用户可通过学校统一认证系统登录
-- [ ] **AUTH-02**: 登录后获取用户基本信息（姓名、学号、院系）
-- [ ] **AUTH-03**: 用户可安全登出
-- [ ] **AUTH-04**: 会话在浏览器刷新后保持有效
+- [x] **AUTH-01**: 用户可通过学校统一认证系统登录 ✓ (Phase 1)
+- [x] **AUTH-02**: 登录后获取用户基本信息（姓名、学号、院系） ✓ (Phase 1)
+- [x] **AUTH-03**: 用户可安全登出 ✓ (Phase 1)
+- [x] **AUTH-04**: 会话在浏览器刷新后保持有效 ✓ (Phase 1)
 
 ### Topic Selection
 
-- [ ] **TOPIC-01**: 学生可浏览选题池列表
-- [ ] **TOPIC-02**: 选题按领域分类展示（软件工程/大数据）
-- [ ] **TOPIC-03**: 学生可查看选题详情（描述、技术栈建议）
-- [ ] **TOPIC-04**: 学生可选择并锁定一个选题
-- [ ] **TOPIC-05**: 学生可提交自拟选题（无需审核）
-- [ ] **TOPIC-06**: 选题显示难度级别标记
+- [x] **TOPIC-01**: 学生可浏览选题池列表 ✓ (Phase 2)
+- [x] **TOPIC-02**: 选题按领域分类展示（软件工程/大数据） ✓ (Phase 2)
+- [x] **TOPIC-03**: 学生可查看选题详情（描述、技术栈建议） ✓ (Phase 2)
+- [x] **TOPIC-04**: 学生可选择并锁定一个选题 ✓ (Phase 2)
+- [x] **TOPIC-05**: 学生可提交自拟选题（无需审核） ✓ (Phase 2)
+- [ ] **TOPIC-06**: 选题显示难度级别标记 — **Deferred per D-02**
 
 ### Document Generation
 
@@ -40,9 +40,9 @@
 
 ### User Dashboard
 
-- [ ] **DASH-01**: 学生可查看自己的项目列表
-- [ ] **DASH-02**: 学生可查看当前项目状态
-- [ ] **DASH-03**: 学生可访问已生成的文档
+- [x] **DASH-01**: 学生可查看自己的项目列表 ✓ (Phase 2 Wave 6)
+- [x] **DASH-02**: 学生可查看当前项目状态 ✓ (Phase 2 Wave 6)
+- [ ] **DASH-03**: 学生可访问已生成的文档 — **Phase 3 full implementation**
 
 ### Admin Management
 
@@ -90,16 +90,16 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| AUTH-01 | Phase 1 | Pending |
-| AUTH-02 | Phase 1 | Pending |
-| AUTH-03 | Phase 1 | Pending |
-| AUTH-04 | Phase 1 | Pending |
-| TOPIC-01 | Phase 2 | Pending |
-| TOPIC-02 | Phase 2 | Pending |
-| TOPIC-03 | Phase 2 | Pending |
-| TOPIC-04 | Phase 2 | Pending |
-| TOPIC-05 | Phase 2 | Pending |
-| TOPIC-06 | Phase 2 | Pending |
+| AUTH-01 | Phase 1 | ✓ Complete |
+| AUTH-02 | Phase 1 | ✓ Complete |
+| AUTH-03 | Phase 1 | ✓ Complete |
+| AUTH-04 | Phase 1 | ✓ Complete |
+| TOPIC-01 | Phase 2 | ✓ Complete |
+| TOPIC-02 | Phase 2 | ✓ Complete |
+| TOPIC-03 | Phase 2 | ✓ Complete |
+| TOPIC-04 | Phase 2 | ✓ Complete |
+| TOPIC-05 | Phase 2 | ✓ Complete |
+| TOPIC-06 | Phase 2 | Deferred |
 | DOC-01 | Phase 3 | Pending |
 | DOC-02 | Phase 3 | Pending |
 | DOC-03 | Phase 3 | Pending |
@@ -111,9 +111,9 @@ Which phases cover which requirements. Updated during roadmap creation.
 | EXPORT-01 | Phase 4 | Pending |
 | EXPORT-02 | Phase 4 | Pending |
 | EXPORT-03 | Phase 4 | Pending |
-| DASH-01 | Phase 2 | Pending |
-| DASH-02 | Phase 2 | Pending |
-| DASH-03 | Phase 2 | Pending |
+| DASH-01 | Phase 2 | ✓ Complete |
+| DASH-02 | Phase 2 | ✓ Complete |
+| DASH-03 | Phase 2 | Phase 3 |
 | ADM-01 | Phase 5 | Pending |
 | ADM-02 | Phase 5 | Pending |
 | ADM-03 | Phase 5 | Pending |
@@ -125,6 +125,10 @@ Which phases cover which requirements. Updated during roadmap creation.
 **Coverage:**
 - v1 requirements: 31 total
 - Mapped to phases: 31
+- Completed: 12
+- In Progress: 0
+- Deferred: 2 (TOPIC-06, DASH-03)
+- Pending: 17
 - Unmapped: 0 ✓
 
 ---
