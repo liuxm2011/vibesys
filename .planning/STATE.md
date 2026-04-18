@@ -15,7 +15,7 @@ See: .planning/PROJECT.md (updated 2026-04-18)
 | Phase | Status | Progress |
 |-------|--------|----------|
 | 1 | ✓ Complete | 100% |
-| 2 | ● Planned | 20% |
+| 2 | ● Planned | 40% |
 | 3 | ○ Pending | 0% |
 | 4 | ○ Pending | 0% |
 | 5 | ○ Pending | 0% |
@@ -43,9 +43,9 @@ See: .planning/PROJECT.md (updated 2026-04-18)
 
 | Wave | Plan | Objective | Autonomous |
 |------|------|-----------|------------|
-| 0 | 02-00 | Database schema extension | yes |
-| 1 | 02-01 | Backend topics routes | yes |
-| 2 | 02-02 | Backend projects routes | yes |
+| 0 | 02-00 | Database schema extension | ✓ done |
+| 1 | 02-01 | Backend topics routes | pending |
+| 2 | 02-02 | Backend projects routes | ✓ done |
 | 3 | 02-03 | Frontend topic store + API | yes |
 | 4 | 02-04 | Frontend project store + API | yes |
 | 5 | 02-05 | TopicPool.vue page | yes |
@@ -53,6 +53,14 @@ See: .planning/PROJECT.md (updated 2026-04-18)
 | 7 | 02-07 | Router + navigation | yes |
 
 **Note:** Waves 1 and 2 can run in parallel (both depend only on Wave 0).
+
+### Wave Progress
+
+| Wave | Plan | Status | Commit |
+|------|------|--------|--------|
+| 0 | 02-00 | ✓ | ca4db55 |
+| 1 | 02-01 | pending | - |
+| 2 | 02-02 | ✓ | ffef577 |
 
 ---
 
@@ -109,9 +117,14 @@ See: .planning/PROJECT.md (updated 2026-04-18)
 
 ## Next Action
 
-Execute Phase 2:
+Execute Phase 2 Wave 1 (Backend Topics Routes):
 ```
-/gsd-execute-phase 2
+/gsd-execute-phase 2 --wave 1
 ```
 
-*State updated: 2026-04-18 - Phase 2 plans created*
+Or continue with Wave 3 (Frontend stores):
+```
+/gsd-execute-phase 2 --wave 3
+```
+
+*State updated: 2026-04-18 - Wave 2 complete (projects routes)*
