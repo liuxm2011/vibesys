@@ -8,7 +8,7 @@
 
 | # | Phase | Goal | Requirements | Success Criteria |
 |---|-------|------|--------------|-------------------|
-| 1 | 认证与用户基础 | 本地认证系统和用户数据模型 | AUTH-01~04 | 6 plans |
+| 1 | 认证与用户基础 | 本地认证系统和用户数据模型 | AUTH-01~04 | 7 plans |
 | 2 | 选题管理与学生端 | 学生可以选题并管理项目 | TOPIC-01~06, DASH-01~03 | 4 criteria |
 | 3 | 文档生成与AI服务 | AI辅助生成PRD和技术文档 | DOC-01~08 | 5 criteria |
 | 4 | 文档导出功能 | 完整文档包导出能力 | EXPORT-01~03 | 3 criteria |
@@ -45,14 +45,15 @@
 
 ### Plans
 
-**Plans:** 6 plans in 4 waves
+**Plans:** 7 plans in 7 waves
 
 - [ ] 01-00-PLAN.md — Wave 0: Database schema + Express setup
 - [ ] 01-01-PLAN.md — Wave 1: Backend auth utilities + middleware
-- [ ] 01-02-PLAN.md — Wave 1: Auth routes + admin seeding
-- [ ] 01-03-PLAN.md — Wave 2: Frontend login + Pinia store
-- [ ] 01-04-PLAN.md — Wave 2: Vue Router + navigation guards
-- [ ] 01-05-PLAN.md — Wave 3: Dashboard page + logout
+- [ ] 01-02-PLAN.md — Wave 2: Auth routes + admin seeding
+- [ ] 01-03a-PLAN.md — Wave 3: Frontend scaffolding + API client
+- [ ] 01-03b-PLAN.md — Wave 4: Pinia store + Login page
+- [ ] 01-04-PLAN.md — Wave 5: Vue Router + navigation guards
+- [ ] 01-05-PLAN.md — Wave 6: Dashboard page + logout
 
 ---
 
@@ -211,4 +212,4 @@ Phase 2          Phase 3
 ---
 
 *Roadmap updated: 2026-04-18*
-*Phase 1 plans created: 6 plans across 4 waves*
+*Phase 1 plans revised: 7 plans across 7 waves*

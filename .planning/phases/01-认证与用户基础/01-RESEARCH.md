@@ -781,17 +781,19 @@ initAdmin()
 
 **Note:** Only 2 assumptions — most stack choices verified via Context7 and npm registry.
 
-## Open Questions
+## Open Questions (RESOLVED)
 
 1. **Database provisioning status**
    - What we know: MySQL is specified in tech stack, DATABASE_URL needed
    - What's unclear: Is MySQL already installed/provisioned? Local or cloud?
-   - Recommendation: Include database setup step in Wave 0 if not available
+   - **Resolution:** Plan 00 Task 02 creates .env with DATABASE_URL placeholder; executor will prompt user for MySQL connection details. If MySQL unavailable, fallback to SQLite via Prisma (dev only) is documented in RESEARCH.md Environment Availability section.
+   - Implementation: Plans include database setup step with user confirmation prompt.
 
 2. **HTTPS in development**
    - What we know: secure:true required for production cookies
    - What's unclear: Will development use HTTPS proxy or should we use secure:false in dev?
-   - Recommendation: Set secure based on NODE_ENV: `secure: process.env.NODE_ENV === 'production'`
+   - **Resolution:** Plan 02 Task 01 uses `secure: process.env.NODE_ENV === 'production'` — automatically adapts to environment. Development uses secure:false, production uses secure:true.
+   - Implementation: Code pattern verified in auth.routes.ts cookie configuration.
 
 ## Environment Availability
 
