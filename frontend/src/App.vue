@@ -1,42 +1,20 @@
-<script setup lang="ts">
-// Placeholder layout - will be replaced with router in Plan 04
-</script>
-
 <template>
-  <div class="app-container">
-    <el-container>
-      <el-main>
-        <div class="placeholder-content">
-          <h1>VibeCoding 教学实践平台</h1>
-          <p>前端项目搭建完成</p>
-          <p>登录功能将在后续计划中实现</p>
-        </div>
-      </el-main>
-    </el-container>
-  </div>
+  <router-view />
 </template>
 
-<style scoped>
-.app-container {
-  min-height: 100vh;
+<script setup lang="ts">
+// Root component - router-view handles all page rendering
+</script>
+
+<style>
+/* Global styles */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
 }
 
-.placeholder-content {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  min-height: 60vh;
-  text-align: center;
-}
-
-h1 {
-  color: #409eff;
-  margin-bottom: 20px;
-}
-
-p {
-  color: #666;
-  margin-bottom: 10px;
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
 }
 </style>
