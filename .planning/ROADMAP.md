@@ -1,0 +1,198 @@
+# Roadmap: VibeCoding 教学实践平台
+
+**Created:** 2026-04-18
+**Granularity:** Standard (5-8 phases)
+**Mode:** YOLO
+
+## Phase Overview
+
+| # | Phase | Goal | Requirements | Success Criteria |
+|---|-------|------|--------------|-------------------|
+| 1 | 认证与用户基础 | 建立认证系统和用户模型 | AUTH-01~04 | 3 criteria |
+| 2 | 选题管理与学生端 | 学生可以选题并管理项目 | TOPIC-01~06, DASH-01~03 | 4 criteria |
+| 3 | 文档生成与AI服务 | AI辅助生成PRD和技术文档 | DOC-01~08 | 5 criteria |
+| 4 | 文档导出功能 | 完整文档包导出能力 | EXPORT-01~03 | 3 criteria |
+| 5 | 管理后台 | 管理员完整后台功能 | ADM-01~07 | 4 criteria |
+
+**Total Phases:** 5
+**Requirements Mapped:** 31/31 ✓
+
+---
+
+## Phase 1: 认证与用户基础
+
+**Goal:** 建立学校SSO认证集成和基础用户数据模型
+
+### Requirements Covered
+
+- AUTH-01: 学校统一认证登录
+- AUTH-02: 用户基本信息获取
+- AUTH-03: 安全登出
+- AUTH-04: 会话持久化
+
+### Success Criteria
+
+1. 用户可通过学校SSO成功登录并获取基本信息
+2. 登出后会话完全清除
+3. 刷新浏览器后无需重新登录
+
+### Implementation Notes
+
+- 设计SSO适配层，支持CAS/OAuth等多种协议
+- JWT Token生成与验证机制
+- 完整数据库ER图设计（预留后续表结构）
+- **Pitfall Prevention:** SSO对接预留充足时间，准备临时认证备用方案
+
+---
+
+## Phase 2: 选题管理与学生端
+
+**Goal:** 学生可以浏览选题池、选择锁定、查看自己的项目
+
+### Requirements Covered
+
+- TOPIC-01: 选题池列表浏览
+- TOPIC-02: 领域分类展示
+- TOPIC-03: 选题详情查看
+- TOPIC-04: 选题锁定
+- TOPIC-05: 自拟选题提交
+- TOPIC-06: 难度级别标记
+- DASH-01: 项目列表查看
+- DASH-02: 项目状态查看
+- DASH-03: 已生成文档访问
+
+### Success Criteria
+
+1. 学生可浏览并筛选选题（按领域/难度）
+2. 选择选题后状态正确锁定
+3. 学生Dashboard正确展示当前项目状态
+4. 自拟选题可成功提交并创建项目
+
+### Implementation Notes
+
+- 选题池数据表设计（含分类、难度字段）
+- 项目状态枚举（未开始/进行中/已完成）
+- 学生端基础页面框架
+
+---
+
+## Phase 3: 文档生成与AI服务
+
+**Goal:** AI辅助生成PRD、前端文档、后端文档，学生可在线编辑
+
+**UI hint:** yes
+
+### Requirements Covered
+
+- DOC-01: PRD文档生成
+- DOC-02: 前端文档生成
+- DOC-03: 后端文档生成
+- DOC-04: AI内容填充
+- DOC-05: 在线编辑
+- DOC-06: 技术栈推荐
+- DOC-07: 技术栈修改
+- DOC-08: API配额提示
+
+### Success Criteria
+
+1. 点击生成按钮可正确调用AI API生成文档内容
+2. 生成的PRD包含项目概述、功能需求、技术建议等章节
+3. 技术栈推荐根据选题智能生成，学生可修改选择
+4. 文档在线编辑界面响应流畅
+5. API配额提示正确显示剩余次数
+
+### Implementation Notes
+
+- AI服务模块设计（Claude/OpenAI API调用）
+- Redis存储API调用计数
+- Prompt模板设计（软件工程/大数据领域特定）
+- Markdown编辑器集成
+- **Pitfall Prevention:** 设置用户每日API限额，监控成本
+
+---
+
+## Phase 4: 文档导出功能
+
+**Goal:** 学生可导出完整文档包用于外部AI工具
+
+### Requirements Covered
+
+- EXPORT-01: 文档包导出
+- EXPORT-02: 包含所有文档类型
+- EXPORT-03: 文件命名规范
+
+### Success Criteria
+
+1. 导出按钮生成包含PRD、前端、后端文档的压缩包
+2. 文件格式为Markdown，命名包含项目名和日期
+3. 导出过程流畅无阻塞
+
+### Implementation Notes
+
+- 文件打包服务
+- OSS临时存储或直接流式下载
+- 文件命名规范实现
+
+---
+
+## Phase 5: 管理后台
+
+**Goal:** 管理员完整后台管理功能
+
+**UI hint:** yes
+
+### Requirements Covered
+
+- ADM-01: 用户列表查看
+- ADM-02: 选题池管理
+- ADM-03: 使用统计
+- ADM-04: 公告配置
+- ADM-05: 使用指南配置
+- ADM-06: 用户封禁/解封
+- ADM-07: API调用统计
+
+### Success Criteria
+
+1. 管理员可完整管理选题池（增删改）
+2. 用户列表展示关键信息（姓名、学号、项目数）
+3. 使用统计仪表板展示关键指标
+4. 平台公告和指南可正确配置和展示
+
+### Implementation Notes
+
+- 管理后台独立路由和权限验证
+- 统计数据聚合查询设计
+- 公告和指南存储方案
+
+---
+
+## Dependency Graph
+
+```
+Phase 1 (认证基础)
+    │
+    ├──────────────────┐
+    │                  │
+    ▼                  ▼
+Phase 2          Phase 3
+(选题管理)       (文档生成)
+    │                  │
+    │                  │
+    ▼                  ▼
+    │            Phase 4 (导出)
+    │                  │
+    └──────────────────┘
+              │
+              ▼
+        Phase 5 (管理后台)
+```
+
+---
+
+## Next Step
+
+**Phase 1: 认证与用户基础** — 建立学校SSO认证集成和基础用户数据模型
+
+```
+/gsd-discuss-phase 1 — gather context and clarify approach
+```
