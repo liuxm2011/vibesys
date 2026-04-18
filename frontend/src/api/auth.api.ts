@@ -35,7 +35,7 @@ export async function loginApi(studentId: string, password: string): Promise<Log
  * @returns Success message
  */
 export async function logoutApi(): Promise<LogoutResponse> {
-  return api.post<LogoutResponse>('/api/auth/logout');
+  return api.post<LogoutResponse>('/api/auth/logout', {});
 }
 
 /**

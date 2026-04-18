@@ -1,5 +1,5 @@
 import { api } from '@/utils/request';
-import type { ProjectsResponse, CreateProjectResponse, DeleteProjectResponse } from '@/types/project';
+import type { ProjectsResponse, CreateProjectResponse, DeleteProjectResponse, UpdateTechStackResponse } from '@/types/project';
 
 /**
  * Fetch user's projects list (DASH-01)
@@ -25,4 +25,17 @@ export async function createProjectApi(topicId: number): Promise<CreateProjectRe
  */
 export async function deleteProjectApi(projectId: number): Promise<DeleteProjectResponse> {
   return api.delete<DeleteProjectResponse>(`/api/projects/${projectId}`);
+}
+
+/**
+ * Update project tech stack (DOC-07)
+ * @param projectId Project ID
+ * @param techStack New tech stack string
+ * @returns Updated project with tech stack
+ */
+export async function updateProjectTechStackApi(
+  projectId: number,
+  techStack: string
+): Promise<UpdateTechStackResponse> {
+  return api.put<UpdateTechStackResponse>(`/api/projects/${projectId}/techStack`, { techStack });
 }

@@ -162,4 +162,54 @@ router.delete('/:id', authMiddleware, async (req: Request, res: Response) => {
   }
 });
 
+/**
+ * PUT /api/projects/:id/techStack
+ * DOC-07: Modify tech stack selection
+ *
+ * Allows user to modify the tech stack from topic recommendation
+ * IDOR prevention: Only owner can modify
+ */
+router.put('/:id/techStack', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const userId = req.user!.userId;
+    const idParam = req.params.id;
+    const projectId = parseInt(Array.isArray(idParam) ? idParam[0] : idParam);
+    const { techStack } = req.body;
+
+    if (isNaN(projectId)) {
+      return res.status(400).json({ error: '无效的项目ID' });
+    }
+
+    // Validate techStack
+    if (!techStack || typeof techStack !== 'string') {
+      return res.status(400).json({ error: '请提供技术栈' });
+    }
+
+    // Reasonable length check
+    if (techStack.length > 500) {
+      return res.status(400).json({ error: '技术栈内容过长' });
+    }
+
+    // IDOR prevention: Verify ownership
+    const project = await prisma.project.findFirst({
+      where: { id: projectId, userId }
+    });
+
+    if (!project) {
+      return res.status(404).json({ error: '项目不存在或无权限访问' });
+    }
+
+    // Update tech stack
+    const updated = await prisma.project.update({
+      where: { id: projectId },
+      data: { techStack }
+    });
+
+    res.json({ project: { id: updated.id, techStack: updated.techStack } });
+  } catch (error) {
+    console.error('Tech stack update error:', error);
+    res.status(500).json({ error: '更新技术栈失败' });
+  }
+});
+
 export default router;

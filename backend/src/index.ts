@@ -7,6 +7,8 @@ import { PrismaClient } from '@prisma/client';
 import authRoutes from './routes/auth.routes.js';
 import projectsRoutes from './routes/projects.routes.js';
 import topicsRoutes from './routes/topics.routes.js';
+import aiRoutes from './routes/ai.routes.js';
+import documentsRoutes from './routes/documents.routes.js';
 
 dotenv.config();
 
@@ -36,6 +38,12 @@ app.use('/api/topics', topicsRoutes);
 
 // Project routes (TOPIC-04, DASH-01, DASH-02)
 app.use('/api/projects', projectsRoutes);
+
+// AI routes (DOC-04: Document generation)
+app.use('/api/ai', aiRoutes);
+
+// Document routes (DOC-01~03, DOC-05: Document CRUD)
+app.use('/api/documents', documentsRoutes);
 
 // Error handling middleware
 app.use((err: Error, req: express.Request, res: express.Response, next: express.NextFunction) => {

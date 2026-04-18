@@ -22,6 +22,9 @@ export async function request<T>(
 ): Promise<T> {
   const { method = 'GET', body, headers = {} } = options;
 
+  // Use port 3001 for backend (since 3000 is occupied)
+  const apiUrl = url.startsWith('/api') ? `http://localhost:3001${url}` : url;
+
   const fetchOptions: RequestInit = {
     method,
     headers: {
@@ -35,7 +38,7 @@ export async function request<T>(
     fetchOptions.body = JSON.stringify(body);
   }
 
-  const response = await fetch(url, fetchOptions);
+  const response = await fetch(apiUrl, fetchOptions);
 
   const data = await response.json();
 

@@ -1,14 +1,14 @@
 # STATE.md: VibeCoding 教学实践平台
 
 **Updated:** 2026-04-18
-**Status:** Phase 3 Ready to Start
+**Status:** Phase 3 Plans Created
 
 ## Project Reference
 
 See: .planning/PROJECT.md (updated 2026-04-18)
 
 **Core value:** 学生能够将模糊的想法转化为结构化文档，并利用AI工具高效完成软件开发
-**Current focus:** Phase 3 — 文档生成与AI服务 (Ready for discussion)
+**Current focus:** Phase 3 — 文档生成与AI服务 (Plans created, ready for execution)
 
 ## Roadmap Progress
 
@@ -16,18 +16,31 @@ See: .planning/PROJECT.md (updated 2026-04-18)
 |-------|--------|----------|
 | 1 | ✓ Complete | 100% |
 | 2 | ✓ Complete | 100% |
-| 3 | ○ Pending | 0% |
+| 3 | ○ Planned | 0% (7 plans ready) |
 | 4 | ○ Pending | 0% |
 | 5 | ○ Pending | 0% |
 
 ## Current Phase
 
-**Phase 3: 文档生成与AI服务 — Ready to Start**
+**Phase 3: 文档生成与AI服务 — Ready for Execution**
 
-- Status: 0 plans executed, ready for planning
+- Status: 7 plans created, 0 executed
 - Goal: AI辅助生成PRD、前端文档、后端文档，学生可在线编辑
-- Requirements: DOC-01~08
-- Context: To be created during discussion phase
+- Requirements: DOC-01~08 (DOC-08 adjusted per D-04)
+- Context: `.planning/phases/03-文档生成与AI服务/03-CONTEXT.md`
+- Research: `.planning/phases/03-文档生成与AI服务/03-RESEARCH.md`
+
+### Wave Summary (Plans Created)
+
+| Wave | Plan | Objective | Status |
+|------|------|-----------|--------|
+| 0 | 03-00 | Prisma schema extension (Document model + DocType enum) | Pending |
+| 1 | 03-01 | Backend AI service + prompt templates | Pending |
+| 1 | 03-02 | Backend document CRUD routes | Pending |
+| 2 | 03-03 | Frontend types + API + store | Pending |
+| 3 | 03-04 | UI components (MarkdownEditor, TechStackPanel, DocumentTabs) | Pending |
+| 4 | 03-05 | ProjectDetail page + router integration | Pending |
+| 5 | 03-06 | Human verification checkpoint | Pending |
 
 ---
 
@@ -90,34 +103,44 @@ See: .planning/PROJECT.md (updated 2026-04-18)
 
 - Platform: 学生自主创作平台（软件工程/大数据）
 - Roles: 学生 + 管理员（无教师角色）
-- AI Integration: 调用外部Claude/OpenAI API
+- AI Integration: 学校自部署MiniMax模型API（D-01 Phase 3）
 - Auth: 本地认证（学号+密码），替代学校SSO（D-01）
 - Deploy: 公有云（阿里云/腾讯云）
 
 ### Key Decisions Made
 
-1. 本地认证替代SSO — 简化实现（D-01）
-2. 学号作为登录账号，初始密码=学号（D-02）
-3. bcrypt密码加密，JWT 7天有效期，httpOnly Cookie（D-09, D-11, D-12）
-4. 默认管理员：admin / admin123（D-15, D-16）
-5. Pinia管理前端认证状态（D-18）
-6. Vue Router守卫保护路由（D-19）
-7. 选题无难度级别标记（D-02）
-8. 项目=选题实例，非锁定（D-06）
+1. 本地认证替代SSO — 简化实现（Phase 1 D-01）
+2. 学号作为登录账号，初始密码=学号（Phase 1 D-02）
+3. bcrypt密码加密，JWT 7天有效期，httpOnly Cookie（Phase 1 D-09, D-11, D-12）
+4. 默认管理员：admin / admin123（Phase 1 D-15, D-16）
+5. Pinia管理前端认证状态（Phase 1 D-18）
+6. Vue Router守卫保护路由（Phase 1 D-19）
+7. 选题无难度级别标记（Phase 2 D-02）
+8. 项目=选题实例，非锁定（Phase 2 D-06）
+9. 使用MiniMax API替代Claude/OpenAI（Phase 3 D-01）
+10. 无API配额限制（Phase 3 D-03, D-04）
+11. SE/BD领域差异化模板（Phase 3 D-08, D-09）
+12. Document表存储文档，每项目3个文档（Phase 3 D-10~13）
 
 ### Active Context
 
 - Tech stack: Vue 3 + Node.js + MySQL (backend), Vue 3 + Element Plus + Pinia (frontend)
 - Architecture: 前后端分离，JWT认证，httpOnly Cookie
 - Build order: 认证 → 选题 → 文档 → 导出 → 后台
+- MiniMax API: OpenAI SDK with custom baseURL (backend/src/services/ai.service.ts)
 
 ---
 
 ## Next Action
 
-Start Phase 3 (文档生成与AI服务):
+Execute Phase 3 Wave 0 (Prisma schema extension):
 ```
-/gsd-discuss-phase 3
+/gsd-execute-phase 3 --wave 0
 ```
 
-*State updated: 2026-04-18 - Phase 2 complete (Router + navigation integration)*
+Or execute full phase:
+```
+/gsd-execute-phase 3
+```
+
+*State updated: 2026-04-18 - Phase 3 plans created (7 plans in 6 waves)*

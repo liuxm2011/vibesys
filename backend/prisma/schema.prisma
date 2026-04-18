@@ -55,6 +55,13 @@ enum ProjectStatus {
   COMPLETED    // 已完成 (D-10)
 }
 
+// Phase 3 enums (D-13)
+enum DocType {
+  PRD        // 产品需求文档 (D-13)
+  FRONTEND   // 前端技术文档 (D-13)
+  BACKEND    // 后端技术文档 (D-13)
+}
+
 // Phase 2: Topic model (D-01, D-04)
 model Topic {
   id              Int        @id @default(autoincrement())
@@ -84,15 +91,33 @@ model Project {
   userId          Int           // D-11: 关联学生
   topicId         Int           // D-11: 关联选题
   status          ProjectStatus @default(NOT_STARTED)  // D-10
-  documentsRef    Json?         // D-11: 已生成文档引用 (Phase 3 placeholder)
+  techStack       String?       // D-07: 用户修改的技术栈 (DOC-07)
+  documentsRef    Json?         // D-11: 已生成文档引用 (Phase 2 placeholder - deprecated, use Document table)
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
 
   // Relations
   user            User          @relation(fields: [userId], references: [id])
   topic           Topic         @relation(fields: [topicId], references: [id])
+  documents       Document[]    // Phase 3: 文档关联
 
   @@index([userId])
   @@index([status])
   @@index([topicId])
+}
+
+// Phase 3: Document model (D-10~13)
+model Document {
+  id        Int       @id @default(autoincrement())
+  projectId Int       // D-10: 关联项目
+  docType   DocType   // D-13: 文档类型
+  content   String    @db.Text  // D-13: Markdown内容
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  // Relations
+  project   Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, docType])  // D-11: 每个项目每种类型只有一个文档
+  @@index([projectId])
 }

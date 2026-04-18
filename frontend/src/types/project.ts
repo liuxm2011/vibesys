@@ -44,3 +44,10 @@ export interface CreateProjectResponse {
 export interface DeleteProjectResponse {
   message: string;
 }
+
+export interface UpdateTechStackResponse {
+  project: {
+    id: number;
+    techStack: string;
+  };
+}

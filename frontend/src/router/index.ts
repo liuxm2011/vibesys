@@ -21,6 +21,12 @@ const routes: RouteRecordRaw[] = [
     meta: { requiresAuth: true }
   },
   {
+    path: '/projects/:id',
+    name: 'ProjectDetail',
+    component: () => import('@/views/ProjectDetail.vue'),  // Phase 3: Document editing
+    meta: { requiresAuth: true }
+  },
+  {
     path: '/admin',
     name: 'Admin',
     component: () => import('@/views/Admin.vue'),  // Placeholder for Phase 5

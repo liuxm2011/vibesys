@@ -1,4 +1,4 @@
-import type { Router } from 'vue-router';
+import type { Router, RouteLocationNormalized, RouteLocationRaw } from 'vue-router';
 import { useAuthStore } from '@/stores/auth.store';
 
 /**
@@ -6,7 +6,7 @@ import { useAuthStore } from '@/stores/auth.store';
  * @param router Vue Router instance
  */
 export function setupRouterGuards(router: Router): void {
-  router.beforeEach(async (to, from, next) => {
+  router.beforeEach(async (to: RouteLocationNormalized): Promise<RouteLocationRaw | boolean | void | undefined> => {
     const authStore = useAuthStore();
 
     // Check if route requires authentication
@@ -15,7 +15,6 @@ export function setupRouterGuards(router: Router): void {
 
     // Skip guard for public routes
     if (!requiresAuth) {
-      next();
       return;
     }
 
@@ -27,22 +26,25 @@ export function setupRouterGuards(router: Router): void {
     // Check authentication status
     if (!authStore.isAuthenticated) {
       // Redirect to login with return path (D-19)
-      next({
+      return {
         name: 'Login',
         query: { redirect: to.fullPath }
-      });
-      return;
+      };
     }
 
     // Check admin-only routes
     if (requiresAdmin && !authStore.isAdmin) {
       // Non-admin trying to access admin route
-      next({ name: 'Dashboard' });
-      return;
+      return { name: 'Dashboard' };
+    }
+
+    // Redirect admin away from dashboard to admin panel
+    if (to.name === 'Dashboard' && authStore.isAdmin) {
+      return { name: 'Admin' };
     }
 
     // All checks passed, proceed
-    next();
+    return;
   });
 
   // Optional: afterEach for analytics or logging

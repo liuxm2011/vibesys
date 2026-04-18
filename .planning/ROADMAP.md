@@ -10,7 +10,7 @@
 |---|-------|------|--------------|-------------------|
 | 1 | 认证与用户基础 | 本地认证系统和用户数据模型 | AUTH-01~04 | 7 plans |
 | 2 | 选题管理与学生端 | 学生可以选题并管理项目 | TOPIC-01~06, DASH-01~03 | 8 plans |
-| 3 | 文档生成与AI服务 | AI辅助生成PRD和技术文档 | DOC-01~08 | 5 criteria |
+| 3 | 文档生成与AI服务 | AI辅助生成PRD和技术文档 | DOC-01~08 | 7 plans |
 | 4 | 文档导出功能 | 完整文档包导出能力 | EXPORT-01~03 | 3 criteria |
 | 5 | 管理后台 | 管理员完整后台功能 | ADM-01~07 | 4 criteria |
 
@@ -115,7 +115,9 @@
 
 ## Phase 3: 文档生成与AI服务
 
-**Goal:** AI辅助生成PRD、前端文档、后端文档，学生可在线编辑
+**Goal:** AI辅助生成PRD、前端文档、后端文档，学生可在线编辑。系统调用自部署MiniMax API生成文档内容，支持软件工程和大数据两个领域的差异化模板。
+
+**Status:** ○ Ready for execution
 
 **UI hint:** yes
 
@@ -124,27 +126,45 @@
 - DOC-01: PRD文档生成
 - DOC-02: 前端文档生成
 - DOC-03: 后端文档生成
-- DOC-04: AI内容填充
-- DOC-05: 在线编辑
-- DOC-06: 技术栈推荐
-- DOC-07: 技术栈修改
-- DOC-08: API配额提示
+- DOC-04: AI根据选题内容填充文档初始内容
+- DOC-05: 学生可在线编辑修改文档内容
+- DOC-06: 学生可查看技术栈推荐方案
+- DOC-07: 学生可修改技术栈选择
+- DOC-08: API配额提示 — **Adjusted per D-04: Removed (self-deployed, no quota)**
 
 ### Success Criteria
 
-1. 点击生成按钮可正确调用AI API生成文档内容
-2. 生成的PRD包含项目概述、功能需求、技术建议等章节
-3. 技术栈推荐根据选题智能生成，学生可修改选择
-4. 文档在线编辑界面响应流畅
-5. API配额提示正确显示剩余次数
+1. 点击生成按钮可正确调用MiniMax API生成文档内容
+2. 生成的PRD包含项目概述、功能需求、技术建议、验收标准等章节（SE/BD差异化）
+3. 技术栈推荐从选题获取，学生可在项目详情页修改选择
+4. 文档在线编辑界面响应流畅（500ms自动保存）
+5. ~~API配额提示正确显示剩余次数~~ — Removed per D-04
 
 ### Implementation Notes
 
-- AI服务模块设计（Claude/OpenAI API调用）
-- Redis存储API调用计数
-- Prompt模板设计（软件工程/大数据领域特定）
-- Markdown编辑器集成
-- **Pitfall Prevention:** 设置用户每日API限额，监控成本
+- 使用学校自部署MiniMax模型API（D-01），通过OpenAI SDK with baseURL调用
+- 独立AI服务模块设计（D-02），便于未来扩展替换模型
+- 无API调用成本限制（D-03），自部署服务无需配额控制
+- Prompt模板设计（软件工程/大数据领域特定 - D-08/09）
+- vue-codemirror Markdown编辑器集成（DOC-05）
+- Document表存储文档内容（D-10~13），关联Project
+- 每个Project对应3个Document记录（PRD + FRONTEND + BACKEND）
+
+### Plans
+
+**Plans:** 7 plans in 6 waves
+
+- [ ] 03-00-PLAN.md — Wave 0: Prisma schema extension (Document model + DocType enum)
+- [ ] 03-01-PLAN.md — Wave 1: Backend AI service + prompt templates
+- [ ] 03-02-PLAN.md — Wave 1: Backend document CRUD routes (parallel with 01)
+- [ ] 03-03-PLAN.md — Wave 2: Frontend types + API clients + document store
+- [ ] 03-04-PLAN.md — Wave 3: UI components (MarkdownEditor, TechStackPanel, DocumentTabs)
+- [ ] 03-05-PLAN.md — Wave 4: ProjectDetail page integration + router
+- [ ] 03-06-PLAN.md — Wave 5: Human verification checkpoint
+
+**Context:** `.planning/phases/03-文档生成与AI服务/03-CONTEXT.md`
+**Research:** `.planning/phases/03-文档生成与AI服务/03-RESEARCH.md`
+**Validation:** `.planning/phases/03-文档生成与AI服务/03-VALIDATION.md`
 
 ---
 
@@ -212,7 +232,7 @@ Phase 1 (认证基础) ✓
     │                  │
     ▼                  ▼
 Phase 2          Phase 3
-(选题管理)       (文档生成)
+(选题管理) ✓     (文档生成) ○ Ready
     │                  │
     │                  │
     ▼                  ▼
@@ -228,14 +248,13 @@ Phase 2          Phase 3
 
 ## Next Step
 
-**Phase 3: 文档生成与AI服务** — Ready for planning
+**Phase 3: 文档生成与AI服务** — Plans created, ready for execution
 
 ```
-/gsd-discuss-phase 3 — 收集上下文，澄清方案（推荐）
-/gsd-plan-phase 3 — 直接创建执行计划
+/gsd-execute-phase 3 — Execute Wave 0 first (schema extension)
 ```
 
 ---
 
 *Roadmap updated: 2026-04-18*
-*Phase 2 complete: 8/8 plans executed, verified*
+*Phase 3 plans created: 7 plans in 6 waves*
