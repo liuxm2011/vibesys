@@ -5,6 +5,7 @@ import cookieParser from 'cookie-parser';
 import dotenv from 'dotenv';
 import { PrismaClient } from '@prisma/client';
 import authRoutes from './routes/auth.routes.js';
+import projectsRoutes from './routes/projects.routes.js';
 
 dotenv.config();
 
@@ -28,6 +29,9 @@ app.get('/api/health', (req, res) => {
 
 // Auth routes (AUTH-01, AUTH-02, AUTH-03)
 app.use('/api/auth', authRoutes);
+
+// Project routes (TOPIC-04, DASH-01, DASH-02)
+app.use('/api/projects', projectsRoutes);
 
 // Error handling middleware
 app.use((err: Error, req: express.Request, res: express.Response, next: express.NextFunction) => {
