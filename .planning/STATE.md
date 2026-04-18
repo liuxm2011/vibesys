@@ -1,28 +1,43 @@
 # STATE.md: VibeCoding 教学实践平台
 
 **Updated:** 2026-04-18
-**Status:** Phase 1 Complete
+**Status:** Phase 2 Context Ready
 
 ## Project Reference
 
 See: .planning/PROJECT.md (updated 2026-04-18)
 
 **Core value:** 学生能够将模糊的想法转化为结构化文档，并利用AI工具高效完成软件开发
-**Current focus:** Phase 2 — 选题管理与学生端 (Ready for planning)
+**Current focus:** Phase 2 — 选题管理与学生端 (Context gathered, ready for planning)
 
 ## Roadmap Progress
 
 | Phase | Status | Progress |
 |-------|--------|----------|
 | 1 | ✓ Complete | 100% |
-| 2 | ○ Pending | 0% |
+| 2 | ○ Context Ready | 10% |
 | 3 | ○ Pending | 0% |
 | 4 | ○ Pending | 0% |
 | 5 | ○ Pending | 0% |
 
 ## Current Phase
 
-**Phase 1: 认证与用户基础 — COMPLETE ✓**
+**Phase 2: 选题管理与学生端 — Context Ready**
+
+- Status: Context gathered (discuss-phase completed)
+- Goal: 学生可以浏览选题池、选择选题创建项目、管理多个项目
+- Requirements: TOPIC-01~06, DASH-01~03
+- Context: `.planning/phases/02-选题管理与学生端/02-CONTEXT.md`
+
+### Key Decisions from Discussion
+
+1. 不是"锁定选题"而是"创建项目" — D-06
+2. 同一选题可被多次选择 — D-07
+3. 学生最多创建10个项目 — D-08
+4. 项目可删除，状态可更新 — D-09, D-10
+5. 自拟选题仅自己可用 — D-14
+6. 选题池：表格列表+侧边筛选栏 — D-16
+7. 项目列表嵌入Dashboard — D-18
 
 - Status: Complete (7 plans executed)
 - Goal: 建立本地认证系统和用户数据模型（学号登录，管理员导入）
