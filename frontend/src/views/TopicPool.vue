@@ -83,7 +83,7 @@
                 :percentage="(projectStore.projectCount / 10) * 100"
                 :status="projectStore.maxProjectsReached ? 'exception' : ''"
                 :show-text="false"
-                stroke-width="8"
+                :stroke-width="8"
               />
               <p class="limit-hint" v-if="projectStore.maxProjectsReached">已达上限，请删除旧项目</p>
             </div>

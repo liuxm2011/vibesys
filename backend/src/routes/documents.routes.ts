@@ -3,6 +3,7 @@ import { DocType } from '@prisma/client';
 import { authMiddleware } from '../middleware/auth.middleware.js';
 import { checkBannedMiddleware } from '../middleware/ban.middleware.js';
 import { prisma } from '../index.js';
+import { getGenerationBlockedReason } from '../constants/document-generation.js';
 
 const router = Router();
 
@@ -154,6 +155,18 @@ router.post('/', authMiddleware, async (req: Request, res: Response) => {
 
     if (!project) {
       return res.status(404).json({ error: '项目不存在或无权限访问' });
+    }
+
+    const allDocs = await prisma.document.findMany({
+      where: { projectId: parsedProjectId }
+    });
+
+    const blockedReason = getGenerationBlockedReason(docType as DocType, allDocs);
+    if (blockedReason) {
+      return res.status(409).json({
+        error: blockedReason,
+        code: 'DOCUMENT_STAGE_BLOCKED'
+      });
     }
 
     // Try to create, handle unique constraint violation

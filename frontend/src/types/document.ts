@@ -45,6 +45,12 @@ export interface GenerateDocumentResponse {
   document: Document;
 }
 
+export interface GenerateDocumentStreamProgress {
+  phase: 'reasoning' | 'writing' | 'finalizing';
+  reasoningText: string;
+  contentText: string;
+}
+
 export interface UpdateTechStackRequest {
   techStack: string;
 }

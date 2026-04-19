@@ -1,5 +1,6 @@
 import { api } from '@/utils/request';
 import type {
+  DocType,
   DocumentsResponse,
   CreateDocumentResponse,
   UpdateDocumentResponse
@@ -32,7 +33,7 @@ export async function updateDocumentApi(id: number, content: string): Promise<Up
  */
 export async function createDocumentApi(
   projectId: number,
-  docType: 'PRD' | 'FRONTEND' | 'BACKEND'
+  docType: DocType
 ): Promise<CreateDocumentResponse> {
   return api.post<CreateDocumentResponse>('/api/documents', { projectId, docType });
 }

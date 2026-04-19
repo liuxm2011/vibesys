@@ -33,6 +33,27 @@ interface ChatCompletionResponse {
   }>;
 }
 
+interface StreamChunkChoice {
+  finish_reason?: string | null;
+  delta?: {
+    content?: string;
+    reasoning_content?: string;
+    reasoning_details?: Array<{
+      text?: string;
+    }>;
+  };
+}
+
+interface StreamChunkResponse {
+  choices?: StreamChunkChoice[];
+}
+
+export interface GenerationProgress {
+  phase: 'reasoning' | 'writing' | 'finalizing';
+  reasoningText: string;
+  contentText: string;
+}
+
 interface PendingRequest {
   promise: Promise<string>;
   timestamp: number;
@@ -138,6 +159,45 @@ class AIService {
     }
   }
 
+  async generateDocumentStream(
+    docType: DocType,
+    topicInfo: TopicInfo,
+    onProgress: (progress: GenerationProgress) => void
+  ): Promise<string> {
+    const config = this.getConfig();
+
+    if (config.mockMode) {
+      return this.streamMockDocument(docType, topicInfo, onProgress);
+    }
+
+    const cacheKey = this.generateCacheKey(docType, topicInfo);
+    const cached = this.resultCache.get(cacheKey);
+    if (cached && Date.now() - cached.timestamp < this.CACHE_TTL) {
+      onProgress({
+        phase: 'finalizing',
+        reasoningText: this.buildPreviewReasoningText('finalizing'),
+        contentText: this.cleanGeneratedContent(cached.content)
+      });
+      return cached.content;
+    }
+
+    const systemPrompt = this.getSystemPrompt(docType, topicInfo.domain);
+    const userPrompt = this.buildUserPrompt(docType, topicInfo);
+    const messages: Array<{ role: 'system' | 'user' | 'assistant'; content: string }> = [
+      { role: 'system', content: systemPrompt },
+      { role: 'user', content: userPrompt }
+    ];
+
+    const content = await this.executeStreamWithRetry(messages, onProgress);
+
+    this.resultCache.set(cacheKey, {
+      content,
+      timestamp: Date.now()
+    });
+
+    return content;
+  }
+
   /**
    * Execute AI request with retry logic
    */
@@ -177,6 +237,49 @@ class AIService {
     }
 
     return this.cleanGeneratedContent(contentParts.join('\n'));
+  }
+
+  private async executeStreamWithRetry(
+    messages: Array<{ role: 'system' | 'user' | 'assistant'; content: string }>,
+    onProgress: (progress: GenerationProgress) => void
+  ): Promise<string> {
+    const { baseURL, apiKey } = this.getConfig();
+    const maxAttempts = 3;
+    const contentParts: string[] = [];
+
+    for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
+      try {
+        const result = await this.requestStreamingCompletion(baseURL, apiKey, messages, onProgress);
+
+        const cleanedContent = result.contentText.trim();
+        if (!cleanedContent) {
+          break;
+        }
+
+        contentParts.push(cleanedContent);
+
+        if (result.finishReason !== 'length') {
+          break;
+        }
+
+        messages.push({ role: 'assistant', content: cleanedContent });
+        messages.push({
+          role: 'user',
+          content: '文档尚未写完。请继续从下一个未完成的章节开始续写，保持 Markdown 格式一致。\n每个章节保持适当的详细程度，直接输出 Markdown 内容，不要添加任何说明。'
+        });
+      } catch (error) {
+        if (attempt === maxAttempts - 1) throw error;
+        await new Promise(resolve => setTimeout(resolve, 1000 * (attempt + 1)));
+      }
+    }
+
+    const finalContent = this.cleanGeneratedContent(contentParts.join('\n'));
+    onProgress({
+      phase: 'finalizing',
+      reasoningText: this.buildPreviewReasoningText('finalizing'),
+      contentText: finalContent
+    });
+    return finalContent;
   }
 
   /**
@@ -272,6 +375,177 @@ ${baseInfo}${contextSection}
     return response.json() as Promise<ChatCompletionResponse>;
   }
 
+  private async requestStreamingCompletion(
+    baseURL: string,
+    apiKey: string,
+    messages: Array<{ role: 'system' | 'user' | 'assistant'; content: string }>,
+    onProgress: (progress: GenerationProgress) => void
+  ): Promise<{ reasoningText: string; contentText: string; finishReason: string | null }> {
+    const response = await fetch(`${baseURL}/chat/completions`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({
+        model: 'minimax-m2-7',
+        messages,
+        temperature: 0.7,
+        max_tokens: 16384,
+        stream: true,
+        reasoning_split: true
+      }),
+      signal: AbortSignal.timeout(this.REQUEST_TIMEOUT),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`MiniMax API request failed: ${response.status} ${errorText}`);
+    }
+
+    if (!response.body) {
+      throw new Error('MiniMax API stream is unavailable');
+    }
+
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+    let reasoningText = '';
+    let contentText = '';
+    let finishReason: string | null = null;
+    let lastEmitAt = 0;
+
+    const extractNextEventBlock = (): string | null => {
+      const match = buffer.match(/\r?\n\r?\n/);
+      if (!match || match.index === undefined) {
+        return null;
+      }
+
+      const block = buffer.slice(0, match.index).trim();
+      buffer = buffer.slice(match.index + match[0].length);
+      return block;
+    };
+
+    const emitProgress = (force = false): void => {
+      const now = Date.now();
+      if (!force && now - lastEmitAt < 120) {
+        return;
+      }
+
+      const previewContentText = this.extractPreviewContent(contentText);
+      const phase: GenerationProgress['phase'] = previewContentText
+        ? 'writing'
+        : reasoningText || contentText
+          ? 'reasoning'
+          : 'reasoning';
+
+      onProgress({
+        phase,
+        reasoningText: this.buildPreviewReasoningText(phase),
+        contentText: previewContentText
+      });
+      lastEmitAt = now;
+    };
+
+    const processEventBlock = (block: string): void => {
+      const dataLines = block
+        .split(/\r?\n/)
+        .filter(line => line.startsWith('data:'))
+        .map(line => line.slice(5).trim());
+
+      if (dataLines.length === 0) {
+        return;
+      }
+
+      const payload = dataLines.join('\n');
+      if (payload === '[DONE]') {
+        return;
+      }
+
+      const chunk = JSON.parse(payload) as StreamChunkResponse;
+      const choice = chunk.choices?.[0];
+      const delta = choice?.delta;
+
+      if (!delta) {
+        return;
+      }
+
+      const reasoningIncoming = this.extractReasoningText(delta);
+      const reasoningDelta = this.getNovelSuffix(reasoningText, reasoningIncoming);
+      if (reasoningDelta) {
+        reasoningText += reasoningDelta;
+      }
+
+      const contentIncoming = delta.content || '';
+      const contentDelta = this.getNovelSuffix(contentText, contentIncoming);
+      if (contentDelta) {
+        contentText += contentDelta;
+      }
+
+      if (choice?.finish_reason) {
+        finishReason = choice.finish_reason;
+      }
+
+      if (reasoningDelta || contentDelta) {
+        emitProgress();
+      }
+    };
+
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) {
+        break;
+      }
+
+      buffer += decoder.decode(value, { stream: true });
+      let block = extractNextEventBlock();
+
+      while (block !== null) {
+        if (block) {
+          processEventBlock(block);
+        }
+
+        block = extractNextEventBlock();
+      }
+    }
+
+    if (buffer.trim()) {
+      processEventBlock(buffer.trim());
+    }
+
+    emitProgress(true);
+
+    return {
+      reasoningText,
+      contentText,
+      finishReason
+    };
+  }
+
+  private extractReasoningText(delta: StreamChunkChoice['delta']): string {
+    const reasoningDetails = delta?.reasoning_details
+      ?.map(detail => detail.text || '')
+      .join('') || '';
+
+    return delta?.reasoning_content || reasoningDetails;
+  }
+
+  private getNovelSuffix(existing: string, incoming: string): string {
+    if (!incoming) {
+      return '';
+    }
+
+    if (!existing) {
+      return incoming;
+    }
+
+    if (incoming.startsWith(existing)) {
+      return incoming.slice(existing.length);
+    }
+
+    return incoming;
+  }
+
   private cleanGeneratedContent(content: string): string {
     const trimmed = content.trim();
     const firstHeadingIndex = trimmed.search(/^#\s+/m);
@@ -281,6 +555,38 @@ ${baseInfo}${contextSection}
     }
 
     return trimmed;
+  }
+
+  private extractPreviewContent(content: string): string {
+    const cleaned = this.cleanGeneratedContent(content);
+    const firstHeadingIndex = cleaned.search(/^#\s+/m);
+
+    if (firstHeadingIndex === -1) {
+      return '';
+    }
+
+    return cleaned.slice(firstHeadingIndex).trim();
+  }
+
+  private buildPreviewReasoningText(phase: GenerationProgress['phase']): string {
+    if (phase === 'reasoning') {
+      return [
+        '正在分析前置文档依赖与约束条件。',
+        '正在组织章节结构与输出顺序。'
+      ].join('\n');
+    }
+
+    if (phase === 'writing') {
+      return [
+        '正在输出正式文档内容。',
+        '正在补全当前章节细节并校正文档格式。'
+      ].join('\n');
+    }
+
+    return [
+      '正在整理最终文档结构。',
+      '正在执行一致性检查并准备写入项目空间。'
+    ].join('\n');
   }
 
   /**
@@ -574,6 +880,34 @@ ${topicInfo.techStack.map(tech => `- ${tech}`).join('\n')}
 `;
     }
     return '# 未知文档类型';
+  }
+
+  private async streamMockDocument(
+    docType: DocType,
+    topicInfo: TopicInfo,
+    onProgress: (progress: GenerationProgress) => void
+  ): Promise<string> {
+    const content = this.generateMockDocument(docType, topicInfo);
+    let streamedContent = '';
+
+    const chunks = content.match(/.{1,80}/gs) || [content];
+    for (const chunk of chunks) {
+      streamedContent += chunk;
+      onProgress({
+        phase: 'writing',
+        reasoningText: '',
+        contentText: streamedContent
+      });
+      await new Promise(resolve => setTimeout(resolve, 90));
+    }
+
+    onProgress({
+      phase: 'finalizing',
+      reasoningText: '',
+      contentText: streamedContent
+    });
+
+    return this.cleanGeneratedContent(streamedContent);
   }
 
   /**

@@ -1,9 +1,9 @@
 import { Router, Request, Response } from 'express';
-import { PrismaClient, Domain, TopicType } from '@prisma/client';
+import { Domain, TopicType } from '@prisma/client';
 import { authMiddleware } from '../middleware/auth.middleware.js';
+import { prisma } from '../index.js';
 
 const router = Router();
-const prisma = new PrismaClient();
 
 /**
  * GET /api/topics
@@ -44,7 +44,6 @@ router.get('/', authMiddleware, async (req: Request, res: Response) => {
     }));
 
     res.json({ topics: typedTopics });
-    await prisma.$disconnect();
   } catch (error) {
     console.error('Topics list error:', error);
     res.status(500).json({ error: '获取选题失败，请刷新页面重试' });
@@ -87,7 +86,6 @@ router.get('/:id', authMiddleware, async (req: Request, res: Response) => {
     };
 
     res.json({ topic: typedTopic });
-    await prisma.$disconnect();
   } catch (error) {
     console.error('Topic detail error:', error);
     res.status(500).json({ error: '获取选题详情失败' });
@@ -143,7 +141,6 @@ router.post('/custom', authMiddleware, async (req: Request, res: Response) => {
     });
 
     res.json({ topic: { ...topic, techStack: [] as string[] } });
-    await prisma.$disconnect();
   } catch (error) {
     console.error('Custom topic error:', error);
     res.status(500).json({ error: '服务器错误，请稍后重试' });

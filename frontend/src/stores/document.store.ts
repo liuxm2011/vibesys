@@ -1,8 +1,8 @@
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
 import { fetchDocumentsApi, updateDocumentApi, createDocumentApi } from '@/api/document.api';
-import { generateDocumentApi } from '@/api/ai.api';
-import type { Document, DocType } from '@/types/document';
+import { generateDocumentStreamApi } from '@/api/ai.api';
+import type { Document, DocType, GenerateDocumentStreamProgress } from '@/types/document';
 
 /**
  * Document Pinia store (DOC-01~05, D-12)
@@ -15,6 +15,8 @@ export const useDocumentStore = defineStore('document', () => {
   const techStack = ref<string[]>([]);
   const loading = ref(false);
   const generating = ref(false);  // For AI generation operations
+  const generatingDocType = ref<DocType | null>(null);
+  const generationPreviewLines = ref<string[]>([]);
   const saving = ref(false);      // For save operations
   const error = ref<string | null>(null);
 
@@ -87,6 +89,7 @@ export const useDocumentStore = defineStore('document', () => {
     error.value = null;
     currentProjectId.value = projectId;
     generating.value = false; // Reset generating on fresh fetch (D-12)
+    generatingDocType.value = null;
 
     try {
       const response = await fetchDocumentsApi(projectId);
@@ -161,10 +164,16 @@ export const useDocumentStore = defineStore('document', () => {
    */
   async function generateDocument(projectId: number, docType: DocType): Promise<boolean> {
     generating.value = true;
+    generatingDocType.value = docType;
+    generationPreviewLines.value = [];
     error.value = null;
 
     try {
-      const response = await generateDocumentApi(projectId, docType);
+      const response = await generateDocumentStreamApi(projectId, docType, {
+        onProgress(event) {
+          generationPreviewLines.value = buildPreviewLines(event);
+        }
+      });
       // Update local state
       const index = documents.value.findIndex(d => d.docType === docType);
       if (index !== -1) {
@@ -178,7 +187,38 @@ export const useDocumentStore = defineStore('document', () => {
       return false;
     } finally {
       generating.value = false;
+      generatingDocType.value = null;
+      generationPreviewLines.value = [];
     }
+  }
+
+  /**
+   * Check whether a specific document type is currently generating.
+   */
+  function isGeneratingDocument(docType: DocType): boolean {
+    return generating.value && generatingDocType.value === docType;
+  }
+
+  function buildPreviewLines(event: GenerateDocumentStreamProgress): string[] {
+    const reasoningSegments = splitPreviewSegments(event.reasoningText)
+      .slice(-2)
+      .map(segment => `思考 ${segment}`);
+    const contentSegments = splitPreviewSegments(event.contentText)
+      .slice(-2)
+      .map(segment => `输出 ${segment}`);
+
+    if (event.phase === 'finalizing') {
+      return ['正在整理最终文档结构并写入项目空间...', ...contentSegments].slice(-4);
+    }
+
+    return [...reasoningSegments, ...contentSegments].slice(-4);
+  }
+
+  function splitPreviewSegments(text: string): string[] {
+    return text
+      .split(/\r?\n|(?<=[。！？；])/)
+      .map(segment => segment.trim())
+      .filter(Boolean);
   }
 
   /**
@@ -199,6 +239,8 @@ export const useDocumentStore = defineStore('document', () => {
     techStack.value = [];
     loading.value = false;
     generating.value = false;
+    generatingDocType.value = null;
+    generationPreviewLines.value = [];
     saving.value = false;
     error.value = null;
   }
@@ -210,6 +252,8 @@ export const useDocumentStore = defineStore('document', () => {
     techStack,
     loading,
     generating,
+    generatingDocType,
+    generationPreviewLines,
     saving,
     error,
     // Computed
@@ -232,6 +276,7 @@ export const useDocumentStore = defineStore('document', () => {
     updateDocument,
     createDocument,
     generateDocument,
+    isGeneratingDocument,
     getDocumentByType,
     $reset
   };

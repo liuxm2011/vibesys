@@ -22,7 +22,7 @@
         <div class="header-right">
           <div class="ai-status" v-if="documentStore.generating">
             <el-icon class="is-loading"><Loading /></el-icon>
-            <span>AI 正在思考中...</span>
+            <span>{{ currentGeneratingLabel }}文档正在生成中...</span>
           </div>
           <el-button
             type="primary"
@@ -58,6 +58,12 @@
           >
             <template #prd="{ document }">
               <div v-if="document && document.content" class="document-wrapper">
+                <Transition name="generation-overlay-fade">
+                  <DocumentGenerationOverlay
+                    v-if="isGeneratingDoc('PRD')"
+                    :progress-lines="getGenerationPreviewLines('PRD')"
+                  />
+                </Transition>
                 <MarkdownEditor
                   :content="document.content"
                   :document-id="document.id"
@@ -65,16 +71,25 @@
                 />
               </div>
               <div v-else class="empty-doc-placeholder">
-                <el-empty description="PRD文档尚未生成">
-                  <el-button type="primary" @click="handleGenerateSingle('PRD')" :loading="documentStore.generating">
-                    立即生成 PRD
-                  </el-button>
-                </el-empty>
+                <DocumentEmptyState
+                  description="PRD文档尚未生成"
+                  button-label="立即生成 PRD"
+                  :generating="isGeneratingDoc('PRD')"
+                  :disabled="documentStore.generating && !isGeneratingDoc('PRD')"
+                  :progress-lines="getGenerationPreviewLines('PRD')"
+                  @generate="handleGenerateSingle('PRD')"
+                />
               </div>
             </template>
 
             <template #frontend="{ document }">
               <div v-if="document && document.content" class="document-wrapper">
+                <Transition name="generation-overlay-fade">
+                  <DocumentGenerationOverlay
+                    v-if="isGeneratingDoc('FRONTEND')"
+                    :progress-lines="getGenerationPreviewLines('FRONTEND')"
+                  />
+                </Transition>
                 <MarkdownEditor
                   :content="document.content"
                   :document-id="document.id"
@@ -82,16 +97,26 @@
                 />
               </div>
               <div v-else class="empty-doc-placeholder">
-                <el-empty description="前端文档尚未生成">
-                  <el-button type="primary" @click="handleGenerateSingle('FRONTEND')" :loading="documentStore.generating">
-                    立即生成前端文档
-                  </el-button>
-                </el-empty>
+                <DocumentEmptyState
+                  description="前端文档尚未生成"
+                  button-label="立即生成前端文档"
+                  :blocked-reason="getGenerateBlockedReason('FRONTEND')"
+                  :generating="isGeneratingDoc('FRONTEND')"
+                  :disabled="(documentStore.generating && !isGeneratingDoc('FRONTEND')) || !canGenerateDoc('FRONTEND')"
+                  :progress-lines="getGenerationPreviewLines('FRONTEND')"
+                  @generate="handleGenerateSingle('FRONTEND')"
+                />
               </div>
             </template>
 
             <template #backend="{ document }">
               <div v-if="document && document.content" class="document-wrapper">
+                <Transition name="generation-overlay-fade">
+                  <DocumentGenerationOverlay
+                    v-if="isGeneratingDoc('BACKEND')"
+                    :progress-lines="getGenerationPreviewLines('BACKEND')"
+                  />
+                </Transition>
                 <MarkdownEditor
                   :content="document.content"
                   :document-id="document.id"
@@ -99,16 +124,26 @@
                 />
               </div>
               <div v-else class="empty-doc-placeholder">
-                <el-empty description="后端文档尚未生成">
-                  <el-button type="primary" @click="handleGenerateSingle('BACKEND')" :loading="documentStore.generating">
-                    立即生成后端文档
-                  </el-button>
-                </el-empty>
+                <DocumentEmptyState
+                  description="后端文档尚未生成"
+                  button-label="立即生成后端文档"
+                  :blocked-reason="getGenerateBlockedReason('BACKEND')"
+                  :generating="isGeneratingDoc('BACKEND')"
+                  :disabled="(documentStore.generating && !isGeneratingDoc('BACKEND')) || !canGenerateDoc('BACKEND')"
+                  :progress-lines="getGenerationPreviewLines('BACKEND')"
+                  @generate="handleGenerateSingle('BACKEND')"
+                />
               </div>
             </template>
 
             <template #api="{ document }">
               <div v-if="document && document.content" class="document-wrapper">
+                <Transition name="generation-overlay-fade">
+                  <DocumentGenerationOverlay
+                    v-if="isGeneratingDoc('API')"
+                    :progress-lines="getGenerationPreviewLines('API')"
+                  />
+                </Transition>
                 <MarkdownEditor
                   :content="document.content"
                   :document-id="document.id"
@@ -116,16 +151,26 @@
                 />
               </div>
               <div v-else class="empty-doc-placeholder">
-                <el-empty description="API 文档尚未生成">
-                  <el-button type="primary" @click="handleGenerateSingle('API')" :loading="documentStore.generating">
-                    立即生成 API 文档
-                  </el-button>
-                </el-empty>
+                <DocumentEmptyState
+                  description="API 文档尚未生成"
+                  button-label="立即生成 API 文档"
+                  :blocked-reason="getGenerateBlockedReason('API')"
+                  :generating="isGeneratingDoc('API')"
+                  :disabled="(documentStore.generating && !isGeneratingDoc('API')) || !canGenerateDoc('API')"
+                  :progress-lines="getGenerationPreviewLines('API')"
+                  @generate="handleGenerateSingle('API')"
+                />
               </div>
             </template>
 
             <template #task="{ document }">
               <div v-if="document && document.content" class="document-wrapper">
+                <Transition name="generation-overlay-fade">
+                  <DocumentGenerationOverlay
+                    v-if="isGeneratingDoc('TASK')"
+                    :progress-lines="getGenerationPreviewLines('TASK')"
+                  />
+                </Transition>
                 <MarkdownEditor
                   :content="document.content"
                   :document-id="document.id"
@@ -133,16 +178,26 @@
                 />
               </div>
               <div v-else class="empty-doc-placeholder">
-                <el-empty description="任务清单尚未生成">
-                  <el-button type="primary" @click="handleGenerateSingle('TASK')" :loading="documentStore.generating">
-                    立即生成任务清单
-                  </el-button>
-                </el-empty>
+                <DocumentEmptyState
+                  description="任务清单尚未生成"
+                  button-label="立即生成任务清单"
+                  :blocked-reason="getGenerateBlockedReason('TASK')"
+                  :generating="isGeneratingDoc('TASK')"
+                  :disabled="(documentStore.generating && !isGeneratingDoc('TASK')) || !canGenerateDoc('TASK')"
+                  :progress-lines="getGenerationPreviewLines('TASK')"
+                  @generate="handleGenerateSingle('TASK')"
+                />
               </div>
             </template>
 
             <template #contextState="{ document }">
               <div v-if="document && document.content" class="document-wrapper">
+                <Transition name="generation-overlay-fade">
+                  <DocumentGenerationOverlay
+                    v-if="isGeneratingDoc('CONTEXT_STATE')"
+                    :progress-lines="getGenerationPreviewLines('CONTEXT_STATE')"
+                  />
+                </Transition>
                 <MarkdownEditor
                   :content="document.content"
                   :document-id="document.id"
@@ -150,16 +205,26 @@
                 />
               </div>
               <div v-else class="empty-doc-placeholder">
-                <el-empty description="状态追踪文档尚未生成">
-                  <el-button type="primary" @click="handleGenerateSingle('CONTEXT_STATE')" :loading="documentStore.generating">
-                    立即生成状态文档
-                  </el-button>
-                </el-empty>
+                <DocumentEmptyState
+                  description="状态追踪文档尚未生成"
+                  button-label="立即生成状态文档"
+                  :blocked-reason="getGenerateBlockedReason('CONTEXT_STATE')"
+                  :generating="isGeneratingDoc('CONTEXT_STATE')"
+                  :disabled="(documentStore.generating && !isGeneratingDoc('CONTEXT_STATE')) || !canGenerateDoc('CONTEXT_STATE')"
+                  :progress-lines="getGenerationPreviewLines('CONTEXT_STATE')"
+                  @generate="handleGenerateSingle('CONTEXT_STATE')"
+                />
               </div>
             </template>
 
             <template #agents="{ document }">
               <div v-if="document && document.content" class="document-wrapper">
+                <Transition name="generation-overlay-fade">
+                  <DocumentGenerationOverlay
+                    v-if="isGeneratingDoc('AGENTS')"
+                    :progress-lines="getGenerationPreviewLines('AGENTS')"
+                  />
+                </Transition>
                 <MarkdownEditor
                   :content="document.content"
                   :document-id="document.id"
@@ -167,11 +232,15 @@
                 />
               </div>
               <div v-else class="empty-doc-placeholder">
-                <el-empty description="AI 规则文档尚未生成">
-                  <el-button type="primary" @click="handleGenerateSingle('AGENTS')" :loading="documentStore.generating">
-                    立即生成规则文档
-                  </el-button>
-                </el-empty>
+                <DocumentEmptyState
+                  description="AI 规则文档尚未生成"
+                  button-label="立即生成规则文档"
+                  :blocked-reason="getGenerateBlockedReason('AGENTS')"
+                  :generating="isGeneratingDoc('AGENTS')"
+                  :disabled="(documentStore.generating && !isGeneratingDoc('AGENTS')) || !canGenerateDoc('AGENTS')"
+                  :progress-lines="getGenerationPreviewLines('AGENTS')"
+                  @generate="handleGenerateSingle('AGENTS')"
+                />
               </div>
             </template>
           </DocumentTabs>
@@ -200,7 +269,9 @@
               v-for="type in ALL_DOC_TYPES"
               :key="type"
               class="action-item"
-              :disabled="documentStore.generating"
+              :disabled="documentStore.generating || !canGenerateDoc(type)"
+              :title="getGenerateBlockedReason(type) || ''"
+              :loading="isGeneratingDoc(type)"
               @click="handleGenerateSingle(type)"
             >
               <el-icon><RefreshRight /></el-icon>
@@ -229,7 +300,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, nextTick } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import {
@@ -246,11 +317,19 @@ import { useProjectStore } from '@/stores/project.store';
 import { updateProjectTechStackApi, fetchProjectDetailApi } from '@/api/project.api';
 import JSZip from 'jszip';
 import { saveAs } from 'file-saver';
+import DocumentGenerationOverlay from '@/components/DocumentGenerationOverlay.vue';
 import DocumentTabs from '@/components/DocumentTabs.vue';
+import DocumentEmptyState from '@/components/DocumentEmptyState.vue';
 import MarkdownEditor from '@/components/MarkdownEditor.vue';
 import TechStackPanel from '@/components/TechStackPanel.vue';
 import type { DocType } from '@/types/document';
 import type { ProjectStatus } from '@/types/project';
+import {
+  DOC_GENERATION_ORDER,
+  DOC_TYPE_LABELS,
+  canGenerateDocument,
+  getGenerationBlockedReason
+} from '@/utils/document-generation';
 
 const route = useRoute();
 const router = useRouter();
@@ -269,7 +348,7 @@ const project = computed(() =>
 
 const exporting = ref(false);
 
-const ALL_DOC_TYPES: DocType[] = ['PRD', 'FRONTEND', 'BACKEND', 'API', 'TASK', 'CONTEXT_STATE', 'AGENTS'];
+const ALL_DOC_TYPES: DocType[] = DOC_GENERATION_ORDER;
 
 const allDocsGenerated = computed(() => {
   return ALL_DOC_TYPES.every(dt => {
@@ -277,6 +356,56 @@ const allDocsGenerated = computed(() => {
     return doc && doc.content.length > 0;
   });
 });
+
+const currentGeneratingLabel = computed(() => {
+  const docType = documentStore.generatingDocType;
+  return docType ? getDocTypeLabel(docType) : '当前';
+});
+
+const generationPreviewContent: Record<DocType, string[]> = {
+  PRD: [
+    '正在梳理用户角色、核心场景与需求边界...',
+    '正在拆分功能模块并补全验收标准...',
+    '正在整理优先级、约束条件与交付节奏...',
+    '正在优化章节层次与最终文档表达...'
+  ],
+  FRONTEND: [
+    '正在规划页面结构、导航关系与状态流转...',
+    '正在拆解组件层级与交互反馈细节...',
+    '正在整理界面风格、响应式与异常态处理...',
+    '正在汇总前端技术选型与实现建议...'
+  ],
+  BACKEND: [
+    '正在拆分服务边界、数据模型与职责分层...',
+    '正在梳理核心业务流程、权限控制与异常流...',
+    '正在补全数据库关系、事务与接口约束...',
+    '正在整合后端实现方案与交付结构...'
+  ],
+  API: [
+    '正在整理接口分组、调用顺序与鉴权策略...',
+    '正在补充请求参数、响应结构与错误码规范...',
+    '正在对齐前后端字段命名与状态含义...',
+    '正在完善接口示例与联调注意事项...'
+  ],
+  TASK: [
+    '正在拆解里程碑、任务依赖与执行顺序...',
+    '正在按角色分配开发项与验收责任...',
+    '正在补充风险点、回归检查与交付节点...',
+    '正在整理任务清单的可执行版本...'
+  ],
+  CONTEXT_STATE: [
+    '正在整理当前阶段成果、状态与阻塞项...',
+    '正在同步上下游依赖与待确认事项...',
+    '正在补全阶段结论、后续动作与追踪点...',
+    '正在汇总项目状态文档的持续更新内容...'
+  ],
+  AGENTS: [
+    '正在提炼编码约束、输出规则与协作边界...',
+    '正在整理生成顺序、修改原则与验证要求...',
+    '正在补全 AI 使用规范与禁止项说明...',
+    '正在收敛规则文档的最终结构...'
+  ]
+};
 
 onMounted(async () => {
   if (projectStore.projects.length === 0) {
@@ -298,19 +427,37 @@ async function handleDocumentSave(docId: number, content: string): Promise<void>
 }
 
 function getDocTypeLabel(type: DocType): string {
-  const labels: Record<DocType, string> = {
-    PRD: 'PRD',
-    FRONTEND: '前端',
-    BACKEND: '后端',
-    API: 'API',
-    TASK: '任务清单',
-    CONTEXT_STATE: '状态',
-    AGENTS: '规则'
-  };
-  return labels[type];
+  return DOC_TYPE_LABELS[type];
+}
+
+function getGenerateBlockedReason(docType: DocType): string | null {
+  return getGenerationBlockedReason(docType, documentStore.documents);
+}
+
+function canGenerateDoc(docType: DocType): boolean {
+  return canGenerateDocument(docType, documentStore.documents);
+}
+
+function isGeneratingDoc(docType: DocType): boolean {
+  return documentStore.isGeneratingDocument(docType);
+}
+
+function getGenerationPreviewLines(docType: DocType): string[] {
+  if (isGeneratingDoc(docType) && documentStore.generationPreviewLines.length > 0) {
+    return documentStore.generationPreviewLines;
+  }
+
+  return generationPreviewContent[docType];
 }
 
 async function handleGenerateSingle(docType: DocType): Promise<void> {
+  const blockedReason = getGenerateBlockedReason(docType);
+  if (blockedReason) {
+    documentStore.error = blockedReason;
+    ElMessage.warning(blockedReason);
+    return;
+  }
+
   const existingDoc = documentStore.getDocumentByType(docType);
   if (existingDoc && existingDoc.content.length > 0) {
     try {
@@ -323,6 +470,9 @@ async function handleGenerateSingle(docType: DocType): Promise<void> {
       return;
     }
   }
+
+  activeDocType.value = docType;
+  await nextTick();
 
   const success = await documentStore.generateDocument(projectId.value, docType);
   if (success) {
@@ -351,9 +501,11 @@ async function handleGenerateAll(): Promise<void> {
   }
 
   for (const docType of ALL_DOC_TYPES) {
+    activeDocType.value = docType;
+    await nextTick();
     const success = await documentStore.generateDocument(projectId.value, docType);
     if (!success) {
-      ElMessage.error(`${getDocTypeLabel(docType)}文档生成失败`);
+      ElMessage.error(documentStore.error || `${getDocTypeLabel(docType)}文档生成失败`);
       return;
     }
   }
@@ -535,6 +687,7 @@ function getStatusTagType(status: ProjectStatus | undefined): 'info' | 'warning'
 
 .document-wrapper {
   height: calc(100vh - 200px);
+  position: relative;
 }
 
 .empty-doc-placeholder {
@@ -542,6 +695,18 @@ function getStatusTagType(status: ProjectStatus | undefined): 'info' | 'warning'
   display: flex;
   align-items: center;
   justify-content: center;
+  padding: 32px 24px;
+}
+
+.generation-overlay-fade-enter-active,
+.generation-overlay-fade-leave-active {
+  transition: opacity 0.24s ease, transform 0.24s ease;
+}
+
+.generation-overlay-fade-enter-from,
+.generation-overlay-fade-leave-to {
+  opacity: 0;
+  transform: translateY(10px);
 }
 
 /* Sidebar Columns */
