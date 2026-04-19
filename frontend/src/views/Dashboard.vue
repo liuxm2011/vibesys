@@ -76,38 +76,9 @@
       <!-- Main Grid -->
       <el-main class="main-layout">
         <el-row :gutter="24">
-          <!-- Left Column: User Info & Quick Links -->
-          <el-col :span="6">
-            <el-card class="info-sidebar-card">
-              <template #header>
-                <div class="sidebar-header">
-                  <el-icon><InfoFilled /></el-icon>
-                  <span>个人信息</span>
-                </div>
-              </template>
-              <div class="info-list">
-                <div class="info-item">
-                  <span class="label">学号</span>
-                  <span class="value">{{ user?.studentId }}</span>
-                </div>
-                <div class="info-item">
-                  <span class="label">专业</span>
-                  <span class="value">{{ user?.major }}</span>
-                </div>
-                <div class="info-item">
-                  <span class="label">班级</span>
-                  <span class="value">{{ user?.grade }}级 {{ user?.class }}</span>
-                </div>
-                <div class="info-item">
-                  <span class="label">当前角色</span>
-                  <el-tag size="small" :type="isAdmin ? 'warning' : 'success'">
-                    {{ isAdmin ? '管理员' : '学生' }}
-                  </el-tag>
-                </div>
-              </div>
-            </el-card>
-
-            <el-card class="quick-links-card" v-if="isAdmin">
+          <!-- Left Column: Quick Links (Admin Only) -->
+          <el-col :span="6" v-if="isAdmin">
+            <el-card class="quick-links-card">
               <template #header>
                 <div class="sidebar-header">
                   <el-icon><Tools /></el-icon>
@@ -121,13 +92,10 @@
           </el-col>
 
           <!-- Right Column: Projects -->
-          <el-col :span="18">
+          <el-col :span="isAdmin ? 18 : 24">
             <div class="projects-section" v-if="!isAdmin">
               <div class="section-header">
                 <h3>我的项目列表</h3>
-                <el-button type="primary" link @click="router.push('/topics')">
-                  查看选题池 <el-icon><ArrowRight /></el-icon>
-                </el-button>
               </div>
 
               <!-- Project Cards Grid -->
