@@ -50,9 +50,18 @@
     <template #footer>
       <div class="dialog-footer">
         <el-button @click="handleClose" class="cancel-btn">返回列表</el-button>
-        <el-button type="primary" @click="handleSelect" :loading="loading" class="confirm-btn">
+        <el-button
+          v-if="!projectStore.hasSelectedTopic(topic?.id ?? 0)"
+          type="primary"
+          @click="handleSelect"
+          :loading="loading"
+          class="confirm-btn"
+        >
           确认选择此选题
         </el-button>
+        <el-tag v-else type="success" size="large" effect="light" class="confirm-btn selected-tag">
+          已选此题
+        </el-tag>
       </div>
     </template>
   </el-dialog>
@@ -60,6 +69,7 @@
 
 <script setup lang="ts">
 import { ref, watch } from 'vue';
+import { useRouter } from 'vue-router';
 import { ElMessage } from 'element-plus';
 import { useProjectStore } from '@/stores/project.store';
 import type { Topic } from '@/types/topic';
@@ -75,6 +85,7 @@ const emit = defineEmits<{
   (e: 'selected'): void;
 }>();
 
+const router = useRouter();
 const projectStore = useProjectStore();
 const loading = ref(false);
 
@@ -101,6 +112,11 @@ async function handleSelect(): Promise<void> {
   if (success) {
     ElMessage.success('项目创建成功');
     emit('selected');
+    // Navigate to the newly created project detail page
+    const newProject = projectStore.projects.find(p => p.topicId === props.topic?.id);
+    if (newProject) {
+      router.push(`/projects/${newProject.id}`);
+    }
     handleClose();
   } else {
     ElMessage.error(projectStore.error || '创建项目失败');
@@ -220,5 +236,14 @@ function handleClose(): void {
   background: linear-gradient(to right, #4f46e5, #7c3aed) !important;
   border: none !important;
   font-weight: 600;
+}
+
+.selected-tag {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: default;
 }
 </style>

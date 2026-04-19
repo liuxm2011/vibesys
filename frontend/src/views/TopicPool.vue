@@ -130,7 +130,17 @@
                 <el-button text @click="showDetail(topic)">
                   <el-icon><Reading /></el-icon>详情描述
                 </el-button>
+                <el-tag
+                  v-if="projectStore.hasSelectedTopic(topic.id)"
+                  type="success"
+                  size="small"
+                  effect="light"
+                  class="selected-tag"
+                >
+                  <el-icon><Check /></el-icon>已选此题
+                </el-tag>
                 <el-button
+                  v-else
                   type="primary"
                   @click="quickCreate(topic)"
                   :disabled="projectStore.maxProjectsReached"
@@ -172,7 +182,8 @@ import {
   EditPen,
   Search,
   Reading,
-  Plus
+  Plus,
+  Check
 } from '@element-plus/icons-vue';
 import { useAuthStore } from '@/stores/auth.store';
 import { useTopicStore } from '@/stores/topic.store';
@@ -224,6 +235,11 @@ async function quickCreate(topic: Topic): Promise<void> {
   const success = await projectStore.createProject(topic.id);
   if (success) {
     ElMessage.success('项目创建成功');
+    // Navigate to the newly created project detail page
+    const newProject = projectStore.projects.find(p => p.topicId === topic.id);
+    if (newProject) {
+      router.push(`/projects/${newProject.id}`);
+    }
   } else {
     ElMessage.error(projectStore.error || '创建项目失败');
   }
@@ -487,6 +503,10 @@ function handleCustomSubmitted(): void {
 }
 
 .select-btn {
+  border-radius: 8px;
+}
+
+.selected-tag {
   border-radius: 8px;
 }
 

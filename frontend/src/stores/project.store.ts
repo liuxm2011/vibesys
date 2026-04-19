@@ -3,6 +3,9 @@ import { ref, computed } from 'vue';
 import { fetchProjectsApi, createProjectApi, deleteProjectApi } from '@/api/project.api';
 import type { Project, ProjectStatus } from '@/types/project';
 
+// Cache TTL: 5 minutes
+const CACHE_TTL = 5 * 60 * 1000;
+
 /**
  * Project Pinia store (TOPIC-04, DASH-01, DASH-02, D-08, D-09)
  * Manages project list state and project operations
@@ -12,6 +15,7 @@ export const useProjectStore = defineStore('project', () => {
   const projects = ref<Project[]>([]);
   const loading = ref(false);
   const error = ref<string | null>(null);
+  const lastFetchedAt = ref<number | null>(null);
 
   // Computed: DASH-01 project count
   const projectCount = computed(() => projects.value.length);
@@ -33,16 +37,35 @@ export const useProjectStore = defineStore('project', () => {
   );
 
   /**
+   * Check if user has already created a project from a given topic
+   * @param topicId Topic ID to check
+   * @returns true if topic is already selected
+   */
+  function hasSelectedTopic(topicId: number): boolean {
+    return projects.value.some(p => p.topicId === topicId);
+  }
+
+  /**
    * Fetch user's projects (DASH-01)
+   * @param forceRefresh Force refresh even if cache is valid
    * @returns true on success, false on failure
    */
-  async function fetchProjects(): Promise<boolean> {
+  async function fetchProjects(forceRefresh = false): Promise<boolean> {
+    // Check cache validity
+    if (!forceRefresh && projects.value.length > 0 && lastFetchedAt.value) {
+      const now = Date.now();
+      if (now - lastFetchedAt.value < CACHE_TTL) {
+        return true; // Use cached data
+      }
+    }
+
     loading.value = true;
     error.value = null;
 
     try {
       const response = await fetchProjectsApi();
       projects.value = response.projects;
+      lastFetchedAt.value = Date.now(); // Update cache timestamp
       return true;
     } catch (e) {
       error.value = e instanceof Error ? e.message : '获取项目列表失败';
@@ -64,6 +87,7 @@ export const useProjectStore = defineStore('project', () => {
     try {
       const response = await createProjectApi(topicId);
       projects.value.unshift(response.project);  // Add to front (newest first)
+      lastFetchedAt.value = null; // Invalidate cache
       return true;
     } catch (e) {
       // Handle specific error messages from backend
@@ -91,6 +115,7 @@ export const useProjectStore = defineStore('project', () => {
       if (index !== -1) {
         projects.value.splice(index, 1);
       }
+      lastFetchedAt.value = null; // Invalidate cache
       return true;
     } catch (e) {
       error.value = e instanceof Error ? e.message : '删除项目失败';
@@ -158,6 +183,7 @@ export const useProjectStore = defineStore('project', () => {
     deleteProject,
     getStatusText,
     getStatusTagType,
+    hasSelectedTopic,
     $reset
   };
 });

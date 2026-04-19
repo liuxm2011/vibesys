@@ -1,8 +1,9 @@
 import { Router, Request, Response } from 'express';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '../index.js';
 import { comparePassword } from '../utils/password.utils.js';
 import { signToken, JwtPayload, getJwtExpirationMs } from '../utils/jwt.utils.js';
 import { authMiddleware } from '../middleware/auth.middleware.js';
+import { loginLimiter } from '../middleware/rate-limit.middleware.js';
 
 const router = Router();
 
@@ -11,7 +12,7 @@ const router = Router();
  * D-02: studentId as login account
  * D-20: Unified error message
  */
-router.post('/login', async (req: Request, res: Response) => {
+router.post('/login', loginLimiter, async (req: Request, res: Response) => {
   const { studentId, password } = req.body;
 
   // Input validation
@@ -20,16 +21,18 @@ router.post('/login', async (req: Request, res: Response) => {
   }
 
   try {
-    const prisma = new PrismaClient();
-
     const user = await prisma.user.findUnique({
       where: { studentId }
     });
 
-    // Unified error: don't reveal if user exists (D-20)
-    // Also check banned status (D-06)
-    if (!user || user.status === 'BANNED') {
+    // Check if user exists
+    if (!user) {
       return res.status(401).json({ error: '登录失败，请检查账号密码' });
+    }
+
+    // Check banned status (Phase 5: ADM-06)
+    if (user.status === 'BANNED') {
+      return res.status(403).json({ error: '账号已被封禁，请联系管理员' });
     }
 
     // Verify password (constant-time compare)
@@ -67,8 +70,6 @@ router.post('/login', async (req: Request, res: Response) => {
         class: user.class
       }
     });
-
-    await prisma.$disconnect();
   } catch (error) {
     console.error('Login error:', error);
     res.status(500).json({ error: '服务器错误' });
@@ -95,8 +96,6 @@ router.post('/logout', (req: Request, res: Response) => {
  */
 router.get('/profile', authMiddleware, async (req: Request, res: Response) => {
   try {
-    const prisma = new PrismaClient();
-
     const user = await prisma.user.findUnique({
       where: { id: req.user!.userId }
     });
@@ -113,8 +112,6 @@ router.get('/profile', authMiddleware, async (req: Request, res: Response) => {
       grade: user.grade,
       class: user.class
     });
-
-    await prisma.$disconnect();
   } catch (error) {
     console.error('Profile error:', error);
     res.status(500).json({ error: '服务器错误' });

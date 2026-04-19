@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { PrismaClient, ProjectStatus } from '@prisma/client';
 import { authMiddleware } from '../middleware/auth.middleware.js';
+import { checkBannedMiddleware } from '../middleware/ban.middleware.js';
 import { prisma } from '../index.js';
 
 const router = Router();
@@ -13,8 +14,9 @@ const router = Router();
  * D-08: Max 10 projects per user
  * D-10: Default status NOT_STARTED
  * D-11: Links user + topic
+ * Phase 5: ADM-06 - Check if user is banned
  */
-router.post('/', authMiddleware, async (req: Request, res: Response) => {
+router.post('/', authMiddleware, checkBannedMiddleware, async (req: Request, res: Response) => {
   const { topicId } = req.body;
 
   // Validate topicId
@@ -159,6 +161,45 @@ router.delete('/:id', authMiddleware, async (req: Request, res: Response) => {
   } catch (error) {
     console.error('Project delete error:', error);
     res.status(500).json({ error: '服务器错误，请稍后重试' });
+  }
+});
+
+/**
+ * GET /api/projects/:id
+ * Export-03: Get project detail with topic info for export filename
+ * IDOR prevention: Only owner can access
+ */
+router.get('/:id', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const userId = req.user!.userId;
+    const idParam = req.params.id;
+    const projectId = parseInt(Array.isArray(idParam) ? idParam[0] : idParam);
+
+    if (isNaN(projectId)) {
+      return res.status(400).json({ error: '无效的项目ID' });
+    }
+
+    // IDOR prevention: Verify ownership
+    const project = await prisma.project.findFirst({
+      where: { id: projectId, userId },
+      include: {
+        topic: {
+          select: {
+            title: true,
+            domain: true
+          }
+        }
+      }
+    });
+
+    if (!project) {
+      return res.status(404).json({ error: '项目不存在或无权限访问' });
+    }
+
+    res.json({ project });
+  } catch (error) {
+    console.error('Project detail error:', error);
+    res.status(500).json({ error: '获取项目详情失败' });
   }
 });
 

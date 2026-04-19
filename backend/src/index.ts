@@ -9,8 +9,28 @@ import projectsRoutes from './routes/projects.routes.js';
 import topicsRoutes from './routes/topics.routes.js';
 import aiRoutes from './routes/ai.routes.js';
 import documentsRoutes from './routes/documents.routes.js';
+import adminRoutes from './routes/admin.routes.js';
+import { generalLimiter } from './middleware/rate-limit.middleware.js';
 
 dotenv.config();
+
+// Validate required environment variables
+function validateEnvironment(): void {
+  const required = ['JWT_SECRET', 'DATABASE_URL'];
+  const missing = required.filter(key => !process.env[key]);
+
+  if (missing.length > 0) {
+    console.error(`FATAL: Missing required environment variables: ${missing.join(', ')}`);
+    process.exit(1);
+  }
+
+  // Warn about optional but recommended variables
+  if (!process.env.MINIMAX_API_KEY) {
+    console.warn('WARNING: MINIMAX_API_KEY not configured, AI features will not work');
+  }
+}
+
+validateEnvironment();
 
 export const prisma = new PrismaClient();
 export const app = express();
@@ -22,8 +42,11 @@ app.use(cors({
   credentials: true  // Required for httpOnly cookies (D-12)
 }));
 app.use(cookieParser());
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(express.json({ limit: '1mb' }));
+app.use(express.urlencoded({ extended: true, limit: '1mb' }));
+
+// Apply general rate limiter to all routes
+app.use(generalLimiter);
 
 // Health check route
 app.get('/api/health', (req, res) => {
@@ -44,6 +67,9 @@ app.use('/api/ai', aiRoutes);
 
 // Document routes (DOC-01~03, DOC-05: Document CRUD)
 app.use('/api/documents', documentsRoutes);
+
+// Admin routes (Phase 5: ADM-01~07)
+app.use('/api/admin', adminRoutes);
 
 // Error handling middleware
 app.use((err: Error, req: express.Request, res: express.Response, next: express.NextFunction) => {

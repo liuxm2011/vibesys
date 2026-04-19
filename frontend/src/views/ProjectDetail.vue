@@ -32,6 +32,14 @@
           >
             <el-icon><MagicStick /></el-icon>一键生成全部
           </el-button>
+          <el-button
+            class="export-btn"
+            :loading="exporting"
+            :disabled="!allDocsGenerated"
+            @click="handleExportDocuments"
+          >
+            <el-icon><Download /></el-icon>导出全部文档
+          </el-button>
         </div>
       </div>
     </el-header>
@@ -98,6 +106,74 @@
                 </el-empty>
               </div>
             </template>
+
+            <template #api="{ document }">
+              <div v-if="document && document.content" class="document-wrapper">
+                <MarkdownEditor
+                  :content="document.content"
+                  :document-id="document.id"
+                  @save="handleDocumentSave"
+                />
+              </div>
+              <div v-else class="empty-doc-placeholder">
+                <el-empty description="API 文档尚未生成">
+                  <el-button type="primary" @click="handleGenerateSingle('API')" :loading="documentStore.generating">
+                    立即生成 API 文档
+                  </el-button>
+                </el-empty>
+              </div>
+            </template>
+
+            <template #task="{ document }">
+              <div v-if="document && document.content" class="document-wrapper">
+                <MarkdownEditor
+                  :content="document.content"
+                  :document-id="document.id"
+                  @save="handleDocumentSave"
+                />
+              </div>
+              <div v-else class="empty-doc-placeholder">
+                <el-empty description="任务清单尚未生成">
+                  <el-button type="primary" @click="handleGenerateSingle('TASK')" :loading="documentStore.generating">
+                    立即生成任务清单
+                  </el-button>
+                </el-empty>
+              </div>
+            </template>
+
+            <template #contextState="{ document }">
+              <div v-if="document && document.content" class="document-wrapper">
+                <MarkdownEditor
+                  :content="document.content"
+                  :document-id="document.id"
+                  @save="handleDocumentSave"
+                />
+              </div>
+              <div v-else class="empty-doc-placeholder">
+                <el-empty description="状态追踪文档尚未生成">
+                  <el-button type="primary" @click="handleGenerateSingle('CONTEXT_STATE')" :loading="documentStore.generating">
+                    立即生成状态文档
+                  </el-button>
+                </el-empty>
+              </div>
+            </template>
+
+            <template #agents="{ document }">
+              <div v-if="document && document.content" class="document-wrapper">
+                <MarkdownEditor
+                  :content="document.content"
+                  :document-id="document.id"
+                  @save="handleDocumentSave"
+                />
+              </div>
+              <div v-else class="empty-doc-placeholder">
+                <el-empty description="AI 规则文档尚未生成">
+                  <el-button type="primary" @click="handleGenerateSingle('AGENTS')" :loading="documentStore.generating">
+                    立即生成规则文档
+                  </el-button>
+                </el-empty>
+              </div>
+            </template>
           </DocumentTabs>
         </el-card>
       </div>
@@ -121,14 +197,14 @@
           </template>
           <div class="action-list">
             <el-button
-              v-for="type in (['PRD', 'FRONTEND', 'BACKEND'] as DocType[])"
+              v-for="type in ALL_DOC_TYPES"
               :key="type"
               class="action-item"
               :disabled="documentStore.generating"
               @click="handleGenerateSingle(type)"
             >
               <el-icon><RefreshRight /></el-icon>
-              重新生成 {{ type === 'PRD' ? 'PRD' : type === 'FRONTEND' ? '前端' : '后端' }}
+              重新生成 {{ getDocTypeLabel(type) }}
             </el-button>
           </div>
         </el-card>
@@ -137,18 +213,18 @@
         <el-card class="help-card">
           <div class="help-info">
             <el-icon><InfoFilled /></el-icon>
-            <p>编辑器支持实时自动保存。生成的文档可以根据需要自行修改完善。</p>
+            <p>编辑器支持实时自动保存。生成的文档可以根据需要自行修改完善。全部 7 份文档生成后可导出 ZIP 包。</p>
           </div>
         </el-card>
       </div>
     </div>
 
     <!-- Global Error -->
-    <el-transition name="el-fade-in">
+    <Transition name="el-fade-in">
       <div v-if="documentStore.error" class="error-toast">
         <el-alert :title="documentStore.error" type="error" show-icon @close="documentStore.error = ''" />
       </div>
-    </el-transition>
+    </Transition>
   </div>
 </template>
 
@@ -162,11 +238,14 @@ import {
   MagicStick,
   Cpu,
   RefreshRight,
-  InfoFilled
+  InfoFilled,
+  Download
 } from '@element-plus/icons-vue';
 import { useDocumentStore } from '@/stores/document.store';
 import { useProjectStore } from '@/stores/project.store';
-import { updateProjectTechStackApi } from '@/api/project.api';
+import { updateProjectTechStackApi, fetchProjectDetailApi } from '@/api/project.api';
+import JSZip from 'jszip';
+import { saveAs } from 'file-saver';
 import DocumentTabs from '@/components/DocumentTabs.vue';
 import MarkdownEditor from '@/components/MarkdownEditor.vue';
 import TechStackPanel from '@/components/TechStackPanel.vue';
@@ -188,6 +267,17 @@ const project = computed(() =>
   projectStore.projects.find(p => p.id === projectId.value)
 );
 
+const exporting = ref(false);
+
+const ALL_DOC_TYPES: DocType[] = ['PRD', 'FRONTEND', 'BACKEND', 'API', 'TASK', 'CONTEXT_STATE', 'AGENTS'];
+
+const allDocsGenerated = computed(() => {
+  return ALL_DOC_TYPES.every(dt => {
+    const doc = documentStore.getDocumentByType(dt);
+    return doc && doc.content.length > 0;
+  });
+});
+
 onMounted(async () => {
   if (projectStore.projects.length === 0) {
     await projectStore.fetchProjects();
@@ -207,6 +297,19 @@ async function handleDocumentSave(docId: number, content: string): Promise<void>
   }
 }
 
+function getDocTypeLabel(type: DocType): string {
+  const labels: Record<DocType, string> = {
+    PRD: 'PRD',
+    FRONTEND: '前端',
+    BACKEND: '后端',
+    API: 'API',
+    TASK: '任务清单',
+    CONTEXT_STATE: '状态',
+    AGENTS: '规则'
+  };
+  return labels[type];
+}
+
 async function handleGenerateSingle(docType: DocType): Promise<void> {
   const existingDoc = documentStore.getDocumentByType(docType);
   if (existingDoc && existingDoc.content.length > 0) {
@@ -223,15 +326,14 @@ async function handleGenerateSingle(docType: DocType): Promise<void> {
 
   const success = await documentStore.generateDocument(projectId.value, docType);
   if (success) {
-    ElMessage.success('文档生成成功');
+    ElMessage.success(`${getDocTypeLabel(docType)}文档生成成功`);
   } else {
     ElMessage.error(documentStore.error || '生成失败');
   }
 }
 
 async function handleGenerateAll(): Promise<void> {
-  const docTypes: DocType[] = ['PRD', 'FRONTEND', 'BACKEND'];
-  const hasContent = docTypes.some(dt => {
+  const hasContent = ALL_DOC_TYPES.some(dt => {
     const doc = documentStore.getDocumentByType(dt);
     return doc && doc.content.length > 0;
   });
@@ -248,14 +350,61 @@ async function handleGenerateAll(): Promise<void> {
     }
   }
 
-  for (const docType of docTypes) {
+  for (const docType of ALL_DOC_TYPES) {
     const success = await documentStore.generateDocument(projectId.value, docType);
     if (!success) {
-      ElMessage.error(`${docType}文档生成失败`);
+      ElMessage.error(`${getDocTypeLabel(docType)}文档生成失败`);
       return;
     }
   }
-  ElMessage.success('全部文档生成成功');
+  ElMessage.success('全部 7 份文档生成成功');
+}
+
+async function handleExportDocuments(): Promise<void> {
+  const docs = documentStore.documents.filter(d => d.content && d.content.length > 0);
+  if (docs.length === 0) {
+    ElMessage.warning('暂无可导出的文档内容');
+    return;
+  }
+
+  exporting.value = true;
+  try {
+    const detail = await fetchProjectDetailApi(projectId.value);
+    const projectName = detail.project.topic.title;
+
+    const dateStr = new Date().toISOString().split('T')[0];
+    const safeName = projectName.replace(/[<>:"/\\|?*\x00-\x1f]/g, '_');
+    const fileName = `${safeName}_${dateStr}.zip`;
+
+    const zip = new JSZip();
+
+    const filenameMap: Record<DocType, string> = {
+      PRD: 'PRD.md',
+      FRONTEND: 'Frontend.md',
+      BACKEND: 'Backend.md',
+      API: 'API.md',
+      TASK: 'task.md',
+      CONTEXT_STATE: 'context_state.md',
+      AGENTS: 'AGENTS.md'
+    };
+
+    docs.forEach(doc => {
+      const filename = filenameMap[doc.docType];
+      if (filename && doc.content) {
+        zip.file(filename, doc.content);
+      }
+    });
+
+    const blob = await zip.generateAsync({ type: 'blob' });
+    saveAs(blob, fileName);
+
+    ElMessage.success('文档导出成功');
+  } catch (error) {
+    console.error('Export error:', error);
+    ElMessage.error('导出失败，请重试');
+  } finally {
+    exporting.value = false;
+  }
 }
 
 async function handleTechStackUpdate(techStack: string): Promise<void> {
@@ -356,6 +505,18 @@ function getStatusTagType(status: ProjectStatus | undefined): 'info' | 'warning'
   border-radius: 10px;
 }
 
+.export-btn {
+  border-radius: 10px;
+  border-color: #d1d5db;
+  color: #374151;
+}
+
+.export-btn:hover {
+  border-color: #9ca3af;
+  color: #1f2937;
+  background-color: #f9fafb;
+}
+
 /* Layout */
 .detail-layout {
   max-width: 1400px;
@@ -401,16 +562,19 @@ function getStatusTagType(status: ProjectStatus | undefined): 'info' | 'warning'
 .action-list {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 8px;
+  max-height: 380px;
+  overflow-y: auto;
 }
 
 .action-item {
   width: 100%;
   margin-left: 0 !important;
   justify-content: flex-start;
-  height: 44px;
+  height: 40px;
   border-radius: 10px;
   padding-left: 16px;
+  font-size: 13px;
 }
 
 .help-card {

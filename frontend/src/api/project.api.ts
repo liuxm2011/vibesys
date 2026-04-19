@@ -28,6 +28,27 @@ export async function deleteProjectApi(projectId: number): Promise<DeleteProject
 }
 
 /**
+ * Fetch project detail by ID (Export-03)
+ * @param projectId Project ID to fetch detail for
+ * @returns Project detail with topic info
+ */
+export async function fetchProjectDetailApi(projectId: number): Promise<{
+  project: {
+    id: number;
+    status: string;
+    techStack: string | null;
+    createdAt: string;
+    updatedAt: string;
+    topic: {
+      title: string;
+      domain: string;
+    };
+  };
+}> {
+  return api.get(`/api/projects/${projectId}`);
+}
+
+/**
  * Update project tech stack (DOC-07)
  * @param projectId Project ID
  * @param techStack New tech stack string

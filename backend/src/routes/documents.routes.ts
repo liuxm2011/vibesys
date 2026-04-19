@@ -1,12 +1,13 @@
 import { Router, Request, Response } from 'express';
 import { DocType } from '@prisma/client';
 import { authMiddleware } from '../middleware/auth.middleware.js';
+import { checkBannedMiddleware } from '../middleware/ban.middleware.js';
 import { prisma } from '../index.js';
 
 const router = Router();
 
 // Valid DocType values for validation
-const validDocTypes: DocType[] = ['PRD', 'FRONTEND', 'BACKEND'];
+const validDocTypes: DocType[] = ['PRD', 'FRONTEND', 'BACKEND', 'API', 'TASK', 'CONTEXT_STATE', 'AGENTS'];
 
 /**
  * GET /api/documents/:projectId
@@ -70,7 +71,7 @@ router.get('/:projectId', authMiddleware, async (req: Request, res: Response) =>
  * IDOR prevention: Only owner can update
  * DOS prevention: Content size limit 100KB
  */
-router.put('/:id', authMiddleware, async (req: Request, res: Response) => {
+router.put('/:id', authMiddleware, checkBannedMiddleware, async (req: Request, res: Response) => {
   const idParam = req.params.id;
   const documentId = parseInt(Array.isArray(idParam) ? idParam[0] : idParam);
   const { content } = req.body;

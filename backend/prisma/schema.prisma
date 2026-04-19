@@ -1,5 +1,5 @@
 datasource db {
-  provider = "mysql"
+  provider = "sqlite"
   url      = env("DATABASE_URL")
 }
 
@@ -57,9 +57,13 @@ enum ProjectStatus {
 
 // Phase 3 enums (D-13)
 enum DocType {
-  PRD        // 产品需求文档 (D-13)
-  FRONTEND   // 前端技术文档 (D-13)
-  BACKEND    // 后端技术文档 (D-13)
+  PRD           // 产品需求文档 (D-13)
+  FRONTEND      // 前端技术文档 (D-13)
+  BACKEND       // 后端技术文档 (D-13)
+  API           // API 接口契约文档
+  TASK          // 开发任务清单
+  CONTEXT_STATE // 项目状态追踪文档
+  AGENTS        // AI 编码规则文档
 }
 
 // Phase 2: Topic model (D-01, D-04)
@@ -111,7 +115,7 @@ model Document {
   id        Int       @id @default(autoincrement())
   projectId Int       // D-10: 关联项目
   docType   DocType   // D-13: 文档类型
-  content   String    @db.Text  // D-13: Markdown内容
+  content   String   // D-13: Markdown内容
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
 
@@ -120,4 +124,15 @@ model Document {
 
   @@unique([projectId, docType])  // D-11: 每个项目每种类型只有一个文档
   @@index([projectId])
+}
+
+// Phase 5: System configuration model
+model SystemConfig {
+  id          Int      @id @default(autoincrement())
+  key         String   @unique  // "announcement" | "guide"
+  value       String   // JSON string or plain text
+  description String?  // Optional description for admin reference
+  updatedAt   DateTime @updatedAt
+
+  @@index([key])
 }

@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue';
-import { Files, Monitor, Cpu } from '@element-plus/icons-vue';
-import type { Document, DocType } from '@/types/document';
+import { Link, List, Document as DocumentIcon, Reading, Files, Monitor, Cpu } from '@element-plus/icons-vue';
+import type { Document as DocModel, DocType } from '@/types/document';
 
 interface Props {
-  documents: Document[];
+  documents: DocModel[];
   activeDocType: DocType;
   generating?: boolean;
 }
@@ -23,7 +23,7 @@ watch(() => props.activeDocType, (newType) => {
   activeTab.value = newType;
 });
 
-function getDocument(docType: DocType): Document | undefined {
+function getDocument(docType: DocType): DocModel | undefined {
   return props.documents.find(d => d.docType === docType);
 }
 
@@ -79,6 +79,62 @@ function handleTabChange(tabName: any): void {
         </template>
         <div class="tab-content">
           <slot name="backend" :document="getDocument('BACKEND')" />
+        </div>
+      </el-tab-pane>
+
+      <el-tab-pane name="API">
+        <template #label>
+          <div class="tab-label">
+            <el-icon><Link /></el-icon>
+            <span>API</span>
+            <div v-if="!hasContent('API')" class="status-dot empty"></div>
+            <div v-else class="status-dot success"></div>
+          </div>
+        </template>
+        <div class="tab-content">
+          <slot name="api" :document="getDocument('API')" />
+        </div>
+      </el-tab-pane>
+
+      <el-tab-pane name="TASK">
+        <template #label>
+          <div class="tab-label">
+            <el-icon><List /></el-icon>
+            <span>任务清单</span>
+            <div v-if="!hasContent('TASK')" class="status-dot empty"></div>
+            <div v-else class="status-dot success"></div>
+          </div>
+        </template>
+        <div class="tab-content">
+          <slot name="task" :document="getDocument('TASK')" />
+        </div>
+      </el-tab-pane>
+
+      <el-tab-pane name="CONTEXT_STATE">
+        <template #label>
+          <div class="tab-label">
+            <el-icon><DocumentIcon /></el-icon>
+            <span>状态</span>
+            <div v-if="!hasContent('CONTEXT_STATE')" class="status-dot empty"></div>
+            <div v-else class="status-dot success"></div>
+          </div>
+        </template>
+        <div class="tab-content">
+          <slot name="contextState" :document="getDocument('CONTEXT_STATE')" />
+        </div>
+      </el-tab-pane>
+
+      <el-tab-pane name="AGENTS">
+        <template #label>
+          <div class="tab-label">
+            <el-icon><Reading /></el-icon>
+            <span>规则</span>
+            <div v-if="!hasContent('AGENTS')" class="status-dot empty"></div>
+            <div v-else class="status-dot success"></div>
+          </div>
+        </template>
+        <div class="tab-content">
+          <slot name="agents" :document="getDocument('AGENTS')" />
         </div>
       </el-tab-pane>
     </el-tabs>

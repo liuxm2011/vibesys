@@ -3,7 +3,7 @@
  * Phase 3: Document model matching backend schema
  */
 
-export type DocType = 'PRD' | 'FRONTEND' | 'BACKEND';
+export type DocType = 'PRD' | 'FRONTEND' | 'BACKEND' | 'API' | 'TASK' | 'CONTEXT_STATE' | 'AGENTS';
 
 export interface Document {
   id: number;

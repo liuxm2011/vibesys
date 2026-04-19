@@ -60,7 +60,7 @@
             </div>
           </el-form>
 
-          <el-transition name="el-fade-in">
+          <Transition name="el-fade-in">
             <el-alert
               v-if="error"
               :title="error"
@@ -69,7 +69,7 @@
               :closable="false"
               class="error-alert"
             />
-          </el-transition>
+          </Transition>
 
           <div class="login-hint">
             <el-icon><InfoFilled /></el-icon>

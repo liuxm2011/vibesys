@@ -28,9 +28,15 @@ const routes: RouteRecordRaw[] = [
   },
   {
     path: '/admin',
-    name: 'Admin',
-    component: () => import('@/views/Admin.vue'),  // Placeholder for Phase 5
-    meta: { requiresAuth: true, requiresAdmin: true }
+    component: () => import('@/views/admin/AdminLayout.vue'),
+    meta: { requiresAuth: true, requiresAdmin: true },
+    children: [
+      { path: '', name: 'Admin', redirect: '/admin/users' },
+      { path: 'users', name: 'AdminUsers', component: () => import('@/views/admin/UserManagement.vue') },
+      { path: 'topics', name: 'AdminTopics', component: () => import('@/views/admin/TopicManagement.vue') },
+      { path: 'stats', name: 'AdminStats', component: () => import('@/views/admin/Statistics.vue') },
+      { path: 'config', name: 'AdminConfig', component: () => import('@/views/admin/SystemConfig.vue') }
+    ]
   },
   {
     path: '/',

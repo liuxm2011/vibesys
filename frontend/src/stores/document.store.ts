@@ -44,6 +44,39 @@ export const useDocumentStore = defineStore('document', () => {
     backendDocument.value && backendDocument.value.content.length > 0
   );
 
+  // New document types
+  const apiDocument = computed(() =>
+    documents.value.find(d => d.docType === 'API')
+  );
+
+  const taskDocument = computed(() =>
+    documents.value.find(d => d.docType === 'TASK')
+  );
+
+  const contextStateDocument = computed(() =>
+    documents.value.find(d => d.docType === 'CONTEXT_STATE')
+  );
+
+  const agentsDocument = computed(() =>
+    documents.value.find(d => d.docType === 'AGENTS')
+  );
+
+  const hasAPI = computed(() =>
+    apiDocument.value && apiDocument.value.content.length > 0
+  );
+
+  const hasTask = computed(() =>
+    taskDocument.value && taskDocument.value.content.length > 0
+  );
+
+  const hasContextState = computed(() =>
+    contextStateDocument.value && contextStateDocument.value.content.length > 0
+  );
+
+  const hasAgents = computed(() =>
+    agentsDocument.value && agentsDocument.value.content.length > 0
+  );
+
   /**
    * Fetch documents for a project (DOC-01~03)
    * @param projectId Project ID
@@ -183,9 +216,17 @@ export const useDocumentStore = defineStore('document', () => {
     prdDocument,
     frontendDocument,
     backendDocument,
+    apiDocument,
+    taskDocument,
+    contextStateDocument,
+    agentsDocument,
     hasPRD,
     hasFrontend,
     hasBackend,
+    hasAPI,
+    hasTask,
+    hasContextState,
+    hasAgents,
     // Actions
     fetchDocuments,
     updateDocument,
