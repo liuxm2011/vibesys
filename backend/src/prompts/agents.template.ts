@@ -11,6 +11,12 @@ export function getAgentsPromptTemplate(domain: Domain): string {
   return `
 # AGENTS.md — ${domainLabel}项目 AI 编码规则文档
 
+## 最高优先规则
+1. 在开始任何编码、拆任务、写实现或调用外部 AI 工具之前，必须先审核全部 7 份项目文档：PRD.md、Frontend.md、Backend.md、API.md、task.md、context_state.md、AGENTS.md。
+2. 只要任意文档中存在“审核修订记录”或“审核修订”内容，必须先依据这些修订记录重新编排、整合并规划相关文档内容，确保文档结构、术语、接口、任务顺序和执行约束已经吸收修订结果。
+3. 完成上述整理前，不得直接进入编码阶段，也不得忽略修订记录继续实现。
+4. 当用户在 AI 编程工具中输入“了解项目规则，查看 AGENTS.md 文档”时，必须立即先执行本规则，再开始后续编码引导。
+
 ## 项目概述
 从 PRD 中提取项目背景、目标和核心价值定位。
 
@@ -80,13 +86,14 @@ export function getAgentsPromptTemplate(domain: Domain): string {
 7. AGENTS.md — 本文件（AI 编码规则）
 
 ## 执行流程
-1. 首先阅读 PRD.md 了解项目需求
-2. 阅读 Frontend.md 和 Backend.md 了解技术方案
-3. 阅读 API.md 了解接口契约
-4. 阅读 task.md 了解任务清单
-5. 阅读 context_state.md 了解当前进度
-6. 按照任务清单顺序执行开发任务
-7. 每完成一个任务，立即更新 context_state.md
+1. 首先执行“最高优先规则”，检查全部 7 份文档中的审核修订记录并先完成文档重整
+2. 阅读 PRD.md 了解项目需求
+3. 阅读 Frontend.md 和 Backend.md 了解技术方案
+4. 阅读 API.md 了解接口契约
+5. 阅读 task.md 了解任务清单
+6. 阅读 context_state.md 了解当前进度
+7. 按照任务清单顺序执行开发任务
+8. 每完成一个任务，立即更新 context_state.md
 
 ---
 

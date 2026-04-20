@@ -39,6 +39,7 @@ export interface UpdateDocumentResponse {
 export interface GenerateDocumentRequest {
   projectId: number;
   docType: DocType;
+  forceRegenerate?: boolean;
 }
 
 export interface GenerateDocumentResponse {
@@ -61,3 +62,26 @@ export interface UpdateTechStackResponse {
     techStack: string;
   };
 }
+
+export interface ReviewIssue {
+  id: number;
+  severity: 'critical' | 'warning' | 'suggestion';
+  category: 'prd_vs_frontend' | 'prd_vs_backend' | 'backend_vs_api' | 'frontend_vs_api' | 'overall';
+  title: string;
+  description: string;
+  affectedDocTypes: DocType[];
+  suggestion: string;
+}
+
+export interface ReviewResult {
+  issues: ReviewIssue[];
+  summary: string;
+}
+
+export interface ReviewDocumentsResponse {
+  review?: ReviewResult;
+  documents?: Document[];
+  success?: boolean;
+}
+
+export type ReviewStatus = 'idle' | 'reviewing' | 'reviewed' | 'fixing' | 'fixed';

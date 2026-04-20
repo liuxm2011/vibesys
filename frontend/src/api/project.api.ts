@@ -1,5 +1,11 @@
 import { api } from '@/utils/request';
-import type { ProjectsResponse, CreateProjectResponse, DeleteProjectResponse, UpdateTechStackResponse } from '@/types/project';
+import type {
+  ProjectsResponse,
+  CreateProjectResponse,
+  DeleteProjectResponse,
+  UpdateTechStackResponse,
+  ProjectDetail
+} from '@/types/project';
 
 /**
  * Fetch user's projects list (DASH-01)
@@ -32,19 +38,7 @@ export async function deleteProjectApi(projectId: number): Promise<DeleteProject
  * @param projectId Project ID to fetch detail for
  * @returns Project detail with topic info
  */
-export async function fetchProjectDetailApi(projectId: number): Promise<{
-  project: {
-    id: number;
-    status: string;
-    techStack: string | null;
-    createdAt: string;
-    updatedAt: string;
-    topic: {
-      title: string;
-      domain: string;
-    };
-  };
-}> {
+export async function fetchProjectDetailApi(projectId: number): Promise<{ project: ProjectDetail }> {
   return api.get(`/api/projects/${projectId}`);
 }
 

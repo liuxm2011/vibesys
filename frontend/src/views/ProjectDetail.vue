@@ -280,6 +280,13 @@
           </div>
         </el-card>
 
+        <!-- Expert Review Panel -->
+        <ExpertReviewPanel
+          v-if="documentStore.allDocsGenerated"
+          :project-id="projectId"
+          @fixed="handleReviewFixed"
+        />
+
         <!-- Help Info -->
         <el-card class="help-card">
           <div class="help-info">
@@ -322,6 +329,7 @@ import DocumentTabs from '@/components/DocumentTabs.vue';
 import DocumentEmptyState from '@/components/DocumentEmptyState.vue';
 import MarkdownEditor from '@/components/MarkdownEditor.vue';
 import TechStackPanel from '@/components/TechStackPanel.vue';
+import ExpertReviewPanel from '@/components/ExpertReviewPanel.vue';
 import type { DocType } from '@/types/document';
 import type { ProjectStatus } from '@/types/project';
 import {
@@ -412,9 +420,27 @@ onMounted(async () => {
     await projectStore.fetchProjects();
   }
   if (projectId.value) {
-    const success = await documentStore.fetchDocuments(projectId.value);
-    if (!success) {
+    const documentsPromise = documentStore.fetchDocuments(projectId.value);
+    const detailPromise = fetchProjectDetailApi(projectId.value)
+      .then(detail => {
+        documentStore.hydrateReviewState(
+          detail.project.reviewStatus,
+          detail.project.reviewResult
+        );
+        return true;
+      })
+      .catch(() => false);
+
+    const [documentsSuccess, detailSuccess] = await Promise.all([
+      documentsPromise,
+      detailPromise
+    ]);
+
+    if (!documentsSuccess) {
       ElMessage.error(documentStore.error || '获取文档失败');
+    }
+    if (!detailSuccess) {
+      ElMessage.warning('项目审核状态恢复失败，已使用当前页面默认状态');
     }
   }
 });
@@ -459,6 +485,7 @@ async function handleGenerateSingle(docType: DocType): Promise<void> {
   }
 
   const existingDoc = documentStore.getDocumentByType(docType);
+  const forceRegenerate = Boolean(existingDoc?.content.trim());
   if (existingDoc && existingDoc.content.length > 0) {
     try {
       await ElMessageBox.confirm(
@@ -474,7 +501,9 @@ async function handleGenerateSingle(docType: DocType): Promise<void> {
   activeDocType.value = docType;
   await nextTick();
 
-  const success = await documentStore.generateDocument(projectId.value, docType);
+  const success = await documentStore.generateDocument(projectId.value, docType, {
+    forceRegenerate
+  });
   if (success) {
     ElMessage.success(`${getDocTypeLabel(docType)}文档生成成功`);
   } else {
@@ -501,15 +530,24 @@ async function handleGenerateAll(): Promise<void> {
   }
 
   for (const docType of ALL_DOC_TYPES) {
+    const forceRegenerate = Boolean(documentStore.getDocumentByType(docType)?.content.trim());
     activeDocType.value = docType;
     await nextTick();
-    const success = await documentStore.generateDocument(projectId.value, docType);
+    const success = await documentStore.generateDocument(projectId.value, docType, {
+      forceRegenerate
+    });
     if (!success) {
       ElMessage.error(documentStore.error || `${getDocTypeLabel(docType)}文档生成失败`);
       return;
     }
   }
   ElMessage.success('全部 7 份文档生成成功');
+}
+
+function handleReviewFixed(fixedDocTypes: DocType[]): void {
+  if (fixedDocTypes.length > 0) {
+    activeDocType.value = fixedDocTypes[0];
+  }
 }
 
 async function handleExportDocuments(): Promise<void> {

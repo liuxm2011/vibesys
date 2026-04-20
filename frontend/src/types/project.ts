@@ -2,9 +2,11 @@
  * Type definitions for Project (D-10, D-11)
  */
 
+import type { ReviewResult } from './document';
 import type { Domain, TopicType } from './topic';
 
 export type ProjectStatus = 'NOT_STARTED' | 'IN_PROGRESS' | 'COMPLETED';
+export type PersistedReviewStatus = 'NONE' | 'PENDING_FIX' | 'ACCEPTED' | 'DISCARDED';
 
 /**
  * Minimal topic info included in project response
@@ -24,9 +26,25 @@ export interface Project {
   topicId: number;
   status: ProjectStatus;
   documentsRef: Record<string, any> | null;
+  reviewStatus?: PersistedReviewStatus;
+  reviewResult?: ReviewResult | null;
   createdAt: string;
   updatedAt: string;
   topic: ProjectTopic;
+}
+
+export interface ProjectDetail {
+  id: number;
+  status: ProjectStatus;
+  techStack: string | null;
+  reviewStatus: PersistedReviewStatus;
+  reviewResult: ReviewResult | null;
+  createdAt: string;
+  updatedAt: string;
+  topic: {
+    title: string;
+    domain: Domain;
+  };
 }
 
 export interface ProjectsResponse {

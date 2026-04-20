@@ -196,7 +196,12 @@ router.get('/:id', authMiddleware, async (req: Request, res: Response) => {
       return res.status(404).json({ error: '项目不存在或无权限访问' });
     }
 
-    res.json({ project });
+    res.json({
+      project: {
+        ...project,
+        reviewResult: project.reviewResult as Record<string, unknown> | null
+      }
+    });
   } catch (error) {
     console.error('Project detail error:', error);
     res.status(500).json({ error: '获取项目详情失败' });

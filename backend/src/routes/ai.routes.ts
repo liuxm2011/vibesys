@@ -1,5 +1,5 @@
 import { Router, Request, Response } from 'express';
-import { DocType } from '@prisma/client';
+import { DocType, Prisma } from '@prisma/client';
 import { authMiddleware } from '../middleware/auth.middleware.js';
 import { checkBannedMiddleware } from '../middleware/ban.middleware.js';
 import { prisma } from '../index.js';
@@ -23,7 +23,7 @@ const validDocTypes: DocType[] = ['PRD', 'FRONTEND', 'BACKEND', 'API', 'TASK', '
  * Timeout: 30s for AI generation
  */
 router.post('/generate', authMiddleware, checkBannedMiddleware, async (req: Request, res: Response) => {
-  const { projectId, docType } = req.body;
+  const { projectId, docType, forceRegenerate } = req.body;
 
   // Validate projectId
   if (!projectId) {
@@ -100,6 +100,8 @@ router.post('/generate', authMiddleware, checkBannedMiddleware, async (req: Requ
     const content = await aiService.generateDocument(docType as DocType, {
       ...topicInfo,
       previousDocs
+    }, {
+      bypassCache: forceRegenerate === true
     });
 
     // D-12: Create or update document record (single version, overwrite)
@@ -155,7 +157,7 @@ router.post('/generate', authMiddleware, checkBannedMiddleware, async (req: Requ
 });
 
 router.post('/generate/stream', authMiddleware, checkBannedMiddleware, async (req: Request, res: Response) => {
-  const { projectId, docType } = req.body;
+  const { projectId, docType, forceRegenerate } = req.body;
 
   if (!projectId) {
     return res.status(400).json({ error: '请提供项目ID' });
@@ -237,6 +239,8 @@ router.post('/generate/stream', authMiddleware, checkBannedMiddleware, async (re
       previousDocs
     }, progress => {
       sendEvent('progress', progress);
+    }, {
+      bypassCache: forceRegenerate === true
     });
 
     const document = await prisma.document.upsert({
@@ -294,6 +298,166 @@ router.post('/generate/stream', authMiddleware, checkBannedMiddleware, async (re
     }
 
     res.status(500).json({ error: '文档生成失败，请稍后重试' });
+  }
+});
+
+/**
+ * POST /api/ai/review
+ * Expert Panel Review: cross-document alignment review and fix
+ *
+ * Request body: { projectId, mode: 'review' | 'fix' | 'discard' }
+ * mode='review': analyze all 7 documents for alignment issues
+ * mode='fix': apply targeted fixes to affected documents based on prior review results
+ * mode='discard': discard persisted review results
+ */
+router.post('/review', authMiddleware, checkBannedMiddleware, async (req: Request, res: Response) => {
+  const { projectId, mode } = req.body;
+
+  if (!projectId) {
+    return res.status(400).json({ error: '请提供项目ID' });
+  }
+
+  const parsedProjectId = parseInt(projectId);
+  if (isNaN(parsedProjectId)) {
+    return res.status(400).json({ error: '无效的项目ID' });
+  }
+
+  if (!mode || !['review', 'fix', 'discard'].includes(mode)) {
+    return res.status(400).json({ error: 'mode 参数必须为 review、fix 或 discard' });
+  }
+
+  try {
+    const userId = req.user!.userId;
+
+    const project = await prisma.project.findFirst({
+      where: { id: parsedProjectId, userId },
+      include: {
+        topic: {
+          select: {
+            title: true,
+            description: true,
+            background: true,
+            objectives: true,
+            domain: true,
+            techStack: true
+          }
+        }
+      }
+    });
+
+    if (!project) {
+      return res.status(404).json({ error: '项目不存在或无权限访问' });
+    }
+
+    const topicInfo = {
+      title: project.topic.title,
+      description: project.topic.description,
+      domain: project.topic.domain,
+      objectives: project.topic.objectives || project.topic.background,
+      techStack: project.topic.techStack as string[]
+    };
+
+    const allDocs = await prisma.document.findMany({
+      where: { projectId: parsedProjectId }
+    });
+
+    const docsMap: Record<string, string> = {};
+    for (const doc of allDocs) {
+      docsMap[doc.docType] = doc.content || '';
+    }
+
+    if (mode === 'review') {
+      const reviewResult = await aiService.reviewDocuments(topicInfo, docsMap);
+
+      await prisma.project.update({
+        where: { id: parsedProjectId },
+        data: {
+          reviewStatus: 'PENDING_FIX',
+          reviewResult: reviewResult as unknown as object
+        }
+      });
+
+      return res.json({ review: reviewResult });
+    }
+
+    if (mode === 'discard') {
+      await prisma.project.update({
+        where: { id: parsedProjectId },
+        data: {
+          reviewStatus: 'DISCARDED',
+          reviewResult: Prisma.JsonNull
+        }
+      });
+
+      return res.json({ success: true });
+    }
+
+    // mode === 'fix'
+    if (!project.reviewResult || !Array.isArray((project.reviewResult as any)?.issues)) {
+      return res.status(409).json({ error: '请先执行审核，再应用修复' });
+    }
+
+    const reviewResult = project.reviewResult as unknown as {
+      issues: Array<{ affectedDocTypes: string[] }>;
+    };
+
+    const affectedTypes = new Set<string>();
+    for (const issue of reviewResult.issues) {
+      for (const t of issue.affectedDocTypes) {
+        affectedTypes.add(t);
+      }
+    }
+
+    const affectedDocs: Record<string, string> = {};
+    for (const docType of affectedTypes) {
+      if (docsMap[docType]) {
+        affectedDocs[docType] = docsMap[docType];
+      }
+    }
+
+    if (Object.keys(affectedDocs).length === 0) {
+      return res.status(400).json({ error: '没有需要修复的文档' });
+    }
+
+    const fixedDocs = await aiService.fixDocuments(topicInfo, affectedDocs, reviewResult as any);
+
+    const updatedDocuments = [];
+    for (const [docType, content] of fixedDocs) {
+      const document = await prisma.document.upsert({
+        where: {
+          projectId_docType: {
+            projectId: parsedProjectId,
+            docType: docType as DocType
+          }
+        },
+        update: { content },
+        create: {
+          projectId: parsedProjectId,
+          docType: docType as DocType,
+          content
+        }
+      });
+      updatedDocuments.push(document);
+    }
+
+    await prisma.project.update({
+      where: { id: parsedProjectId },
+      data: { reviewStatus: 'ACCEPTED' }
+    });
+
+    return res.json({ documents: updatedDocuments });
+  } catch (error) {
+    console.error('AI review error:', error);
+    const actionLabel = mode === 'fix' ? '修复' : '审核';
+
+    if (error instanceof Error) {
+      if (error.message.includes('timeout')) {
+        return res.status(504).json({ error: `${actionLabel}超时，请稍后重试` });
+      }
+      return res.status(500).json({ error: `${actionLabel}失败: ${error.message}` });
+    }
+
+    res.status(500).json({ error: `${actionLabel}失败，请稍后重试` });
   }
 });
 

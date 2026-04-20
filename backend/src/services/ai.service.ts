@@ -6,6 +6,10 @@ import { getBackendPromptTemplate } from '../prompts/backend.template.js';
 import { getAPIPromptTemplate } from '../prompts/api.template.js';
 import { getTaskPromptTemplate } from '../prompts/task.template.js';
 import { getContextStatePromptTemplate } from '../prompts/context_state.template.js';
+import {
+  getReviewSystemPrompt,
+  buildReviewUserPrompt
+} from '../prompts/review.template.js';
 import { getAgentsPromptTemplate } from '../prompts/agents.template.js';
 
 /**
@@ -54,9 +58,28 @@ export interface GenerationProgress {
   contentText: string;
 }
 
+interface GenerationOptions {
+  bypassCache?: boolean;
+}
+
 interface PendingRequest {
   promise: Promise<string>;
   timestamp: number;
+}
+
+export interface ReviewIssue {
+  id: number;
+  severity: 'critical' | 'warning' | 'suggestion';
+  category: 'prd_vs_frontend' | 'prd_vs_backend' | 'backend_vs_api' | 'frontend_vs_api' | 'overall';
+  title: string;
+  description: string;
+  affectedDocTypes: DocType[];
+  suggestion: string;
+}
+
+export interface ReviewResult {
+  issues: ReviewIssue[];
+  summary: string;
 }
 
 interface CachedResult {
@@ -64,7 +87,80 @@ interface CachedResult {
   timestamp: number;
 }
 
-class AIService {
+export class AIService {
+  private readonly AGENTS_AUDIT_REWRITE_PRIORITY_SECTION = `## 最高优先规则
+
+1. 在开始任何编码、拆任务、写实现或调用外部 AI 工具之前，必须先审核全部 7 份项目文档：PRD.md、Frontend.md、Backend.md、API.md、task.md、context_state.md、AGENTS.md。
+2. 只要任意文档中存在“审核修订记录”或“审核修订”内容，必须先依据这些修订记录重新编排、整合并规划相关文档内容，确保文档结构、术语、接口、任务顺序和执行约束已经吸收修订结果。
+3. 完成上述整理前，不得直接进入编码阶段，也不得忽略修订记录继续实现。
+4. 当用户在 AI 编程工具中输入“了解项目规则，查看 AGENTS.md 文档”时，必须立即先执行本规则，再开始后续编码引导。`;
+
+  private readonly AGENTS_CLAUDE_GUIDELINES_SECTION = `## CLAUDE.md
+
+Behavioral guidelines to reduce common LLM coding mistakes. Merge with project-specific instructions as needed.
+
+Tradeoff: These guidelines bias toward caution over speed. For trivial tasks, use judgment.
+
+### 1. Think Before Coding
+
+Don't assume. Don't hide confusion. Surface tradeoffs.
+
+Before implementing:
+
+- State your assumptions explicitly. If uncertain, ask.
+- If multiple interpretations exist, present them - don't pick silently.
+- If a simpler approach exists, say so. Push back when warranted.
+- If something is unclear, stop. Name what's confusing. Ask.
+
+### 2. Simplicity First
+
+Minimum code that solves the problem. Nothing speculative.
+
+- No features beyond what was asked.
+- No abstractions for single-use code.
+- No "flexibility" or "configurability" that wasn't requested.
+- No error handling for impossible scenarios.
+- If you write 200 lines and it could be 50, rewrite it.
+- Ask yourself: "Would a senior engineer say this is overcomplicated?" If yes, simplify.
+
+### 3. Surgical Changes
+
+Touch only what you must. Clean up only your own mess.
+
+When editing existing code:
+
+- Don't "improve" adjacent code, comments, or formatting.
+- Don't refactor things that aren't broken.
+- Match existing style, even if you'd do it differently.
+- If you notice unrelated dead code, mention it - don't delete it.
+
+When your changes create orphans:
+
+- Remove imports/variables/functions that YOUR changes made unused.
+- Don't remove pre-existing dead code unless asked.
+
+The test: Every changed line should trace directly to the user's request.
+
+### 4. Goal-Driven Execution
+
+Define success criteria. Loop until verified.
+
+Transform tasks into verifiable goals:
+
+- "Add validation" -> "Write tests for invalid inputs, then make them pass"
+- "Fix the bug" -> "Write a test that reproduces it, then make it pass"
+- "Refactor X" -> "Ensure tests pass before and after"
+
+For multi-step tasks, state a brief plan:
+
+1. [Step] -> verify: [check]
+2. [Step] -> verify: [check]
+3. [Step] -> verify: [check]
+
+Strong success criteria let you loop independently. Weak criteria ("make it work") require constant clarification.
+
+These guidelines are working if: fewer unnecessary changes in diffs, fewer rewrites due to overcomplication, and clarifying questions come before implementation rather than after mistakes.`;
+
   // Request deduplication map: cacheKey -> pending promise
   private pendingRequests = new Map<string, PendingRequest>();
 
@@ -78,8 +174,21 @@ class AIService {
    * Generate cache key from docType and topic info
    */
   private generateCacheKey(docType: DocType, topicInfo: TopicInfo): string {
-    const payload = `${docType}:${topicInfo.title}:${topicInfo.domain}`;
-    return crypto.createHash('md5').update(payload).digest('hex');
+    const payload = {
+      docType,
+      title: topicInfo.title,
+      description: topicInfo.description,
+      domain: topicInfo.domain,
+      objectives: topicInfo.objectives,
+      techStack: [...topicInfo.techStack].sort(),
+      previousDocs: Object.entries(topicInfo.previousDocs || {})
+        .sort(([left], [right]) => left.localeCompare(right))
+    };
+
+    return crypto
+      .createHash('md5')
+      .update(JSON.stringify(payload))
+      .digest('hex');
   }
 
   private getConfig() {
@@ -101,30 +210,34 @@ class AIService {
    */
   async generateDocument(
     docType: DocType,
-    topicInfo: TopicInfo
+    topicInfo: TopicInfo,
+    options: GenerationOptions = {}
   ): Promise<string> {
     const config = this.getConfig();
 
     // Mock mode for development/testing when API is unavailable
     if (config.mockMode) {
       console.log('[AI Mock] Generating mock document for', docType);
-      return this.generateMockDocument(docType, topicInfo);
+      return this.postProcessGeneratedContent(docType, this.generateMockDocument(docType, topicInfo));
     }
 
     const cacheKey = this.generateCacheKey(docType, topicInfo);
+    const bypassCache = options.bypassCache === true;
 
-    // 1. Check result cache
-    const cached = this.resultCache.get(cacheKey);
-    if (cached && Date.now() - cached.timestamp < this.CACHE_TTL) {
-      console.log('[AI Cache] Hit for', cacheKey);
-      return cached.content;
-    }
+    if (!bypassCache) {
+      // 1. Check result cache
+      const cached = this.resultCache.get(cacheKey);
+      if (cached && Date.now() - cached.timestamp < this.CACHE_TTL) {
+        console.log('[AI Cache] Hit for', cacheKey);
+        return this.postProcessGeneratedContent(docType, cached.content);
+      }
 
-    // 2. Check pending request (deduplication)
-    const pending = this.pendingRequests.get(cacheKey);
-    if (pending && Date.now() - pending.timestamp < 60_000) {
-      console.log('[AI Dedup] Reusing pending request for', cacheKey);
-      return pending.promise;
+      // 2. Check pending request (deduplication)
+      const pending = this.pendingRequests.get(cacheKey);
+      if (pending && Date.now() - pending.timestamp < 60_000) {
+        console.log('[AI Dedup] Reusing pending request for', cacheKey);
+        return pending.promise;
+      }
     }
 
     // 3. Execute new request
@@ -135,7 +248,8 @@ class AIService {
       { role: 'user', content: userPrompt }
     ];
 
-    const requestPromise = this.executeWithRetry(messages);
+    const requestPromise = this.executeWithRetry(messages)
+      .then(content => this.postProcessGeneratedContent(docType, content));
 
     // Record pending request
     this.pendingRequests.set(cacheKey, {
@@ -162,23 +276,38 @@ class AIService {
   async generateDocumentStream(
     docType: DocType,
     topicInfo: TopicInfo,
-    onProgress: (progress: GenerationProgress) => void
+    onProgress: (progress: GenerationProgress) => void,
+    options: GenerationOptions = {}
   ): Promise<string> {
     const config = this.getConfig();
 
     if (config.mockMode) {
-      return this.streamMockDocument(docType, topicInfo, onProgress);
+      const content = await this.streamMockDocument(docType, topicInfo, onProgress);
+      const finalized = this.postProcessGeneratedContent(docType, content);
+      if (finalized !== content) {
+        onProgress({
+          phase: 'finalizing',
+          reasoningText: this.buildPreviewReasoningText('finalizing'),
+          contentText: finalized
+        });
+      }
+      return finalized;
     }
 
     const cacheKey = this.generateCacheKey(docType, topicInfo);
-    const cached = this.resultCache.get(cacheKey);
-    if (cached && Date.now() - cached.timestamp < this.CACHE_TTL) {
-      onProgress({
-        phase: 'finalizing',
-        reasoningText: this.buildPreviewReasoningText('finalizing'),
-        contentText: this.cleanGeneratedContent(cached.content)
-      });
-      return cached.content;
+    const bypassCache = options.bypassCache === true;
+
+    if (!bypassCache) {
+      const cached = this.resultCache.get(cacheKey);
+      if (cached && Date.now() - cached.timestamp < this.CACHE_TTL) {
+        const finalizedCached = this.postProcessGeneratedContent(docType, cached.content);
+        onProgress({
+          phase: 'finalizing',
+          reasoningText: this.buildPreviewReasoningText('finalizing'),
+          contentText: finalizedCached
+        });
+        return finalizedCached;
+      }
     }
 
     const systemPrompt = this.getSystemPrompt(docType, topicInfo.domain);
@@ -189,13 +318,22 @@ class AIService {
     ];
 
     const content = await this.executeStreamWithRetry(messages, onProgress);
+    const finalized = this.postProcessGeneratedContent(docType, content);
+
+    if (finalized !== content) {
+      onProgress({
+        phase: 'finalizing',
+        reasoningText: this.buildPreviewReasoningText('finalizing'),
+        contentText: finalized
+      });
+    }
 
     this.resultCache.set(cacheKey, {
-      content,
+      content: finalized,
       timestamp: Date.now()
     });
 
-    return content;
+    return finalized;
   }
 
   /**
@@ -555,6 +693,75 @@ ${baseInfo}${contextSection}
     }
 
     return trimmed;
+  }
+
+  private postProcessGeneratedContent(docType: DocType, content: string): string {
+    const cleaned = this.cleanGeneratedContent(content);
+
+    if (docType !== 'AGENTS') {
+      return cleaned;
+    }
+
+    return this.mergeAgentsRequiredSections(cleaned);
+  }
+
+  private mergeAgentsRequiredSections(content: string): string {
+    if (!content) {
+      return content;
+    }
+
+    let nextContent = this.mergeAgentsPriorityRule(content);
+    nextContent = this.mergeAgentsClaudeGuidelines(nextContent);
+    return nextContent;
+  }
+
+  private mergeAgentsPriorityRule(content: string): string {
+    if (/^##\s+最高优先规则\b/m.test(content) || /审核修订记录/.test(content) && /了解项目规则，查看 AGENTS\.md 文档/.test(content)) {
+      return content;
+    }
+
+    const firstHeadingMatch = content.match(/^#\s+.*$/m);
+    if (!firstHeadingMatch || firstHeadingMatch.index === undefined) {
+      return `${this.AGENTS_AUDIT_REWRITE_PRIORITY_SECTION}\n\n${content}`.trim();
+    }
+
+    const headingEnd = firstHeadingMatch.index + firstHeadingMatch[0].length;
+    const before = content.slice(0, headingEnd).trimEnd();
+    const after = content.slice(headingEnd).trimStart();
+    return `${before}\n\n${this.AGENTS_AUDIT_REWRITE_PRIORITY_SECTION}\n\n${after}`.trim();
+  }
+
+  private mergeAgentsClaudeGuidelines(content: string): string {
+    const priorityRuleIndex = content.indexOf(this.AGENTS_AUDIT_REWRITE_PRIORITY_SECTION);
+
+    if (/^##\s+CLAUDE\.md\b/m.test(content) || /Behavioral guidelines to reduce common LLM coding mistakes\./.test(content)) {
+      return content;
+    }
+
+    const anchors = [
+      /^##\s+ContextState 更新规则\b/m,
+      /^##\s+文档引用\b/m,
+      /^##\s+执行流程\b/m
+    ];
+
+    for (const anchor of anchors) {
+      const match = anchor.exec(content);
+      if (!match || match.index === undefined) {
+        continue;
+      }
+
+      const before = content.slice(0, match.index).trimEnd();
+      const after = content.slice(match.index).trimStart();
+      return `${before}\n\n${this.AGENTS_CLAUDE_GUIDELINES_SECTION}\n\n${after}`.trim();
+    }
+
+    if (priorityRuleIndex >= 0) {
+      const afterPriority = content.slice(priorityRuleIndex + this.AGENTS_AUDIT_REWRITE_PRIORITY_SECTION.length).trimStart();
+      const beforePriority = content.slice(0, priorityRuleIndex + this.AGENTS_AUDIT_REWRITE_PRIORITY_SECTION.length).trimEnd();
+      return `${beforePriority}\n\n${this.AGENTS_CLAUDE_GUIDELINES_SECTION}\n\n${afterPriority}`.trim();
+    }
+
+    return `${content.trimEnd()}\n\n${this.AGENTS_CLAUDE_GUIDELINES_SECTION}\n`.trim();
   }
 
   private extractPreviewContent(content: string): string {
@@ -1013,6 +1220,311 @@ ${getAgentsPromptTemplate(domain)}
 - 不要输出思考过程、解释、备注、前言或后记
 - ContextState 更新规则部分必须清晰明确
 - 这是 AI Coding 工具的主要参考文档`;
+  }
+
+  /**
+   * Review all documents for cross-document alignment
+   */
+  async reviewDocuments(
+    topicInfo: TopicInfo,
+    allDocs: Record<string, string>
+  ): Promise<ReviewResult> {
+    const config = this.getConfig();
+
+    if (config.mockMode) {
+      return this.generateMockReviewResult();
+    }
+
+    const systemPrompt = getReviewSystemPrompt(topicInfo.domain);
+    const userPrompt = buildReviewUserPrompt(topicInfo, allDocs);
+    const messages = [
+      { role: 'system' as const, content: systemPrompt },
+      { role: 'user' as const, content: userPrompt }
+    ];
+
+    const rawContent = await this.executeWithRetry(messages);
+    return this.parseReviewResult(rawContent);
+  }
+
+  /**
+   * Fix affected documents based on review findings
+   */
+  async fixDocuments(
+    topicInfo: TopicInfo,
+    affectedDocs: Record<string, string>,
+    findings: ReviewResult
+  ): Promise<Map<string, string>> {
+    const results = new Map<string, string>();
+
+    for (const [docType, fullContent] of Object.entries(affectedDocs)) {
+      const docFindings: ReviewResult = {
+        issues: findings.issues.filter(issue => issue.affectedDocTypes.includes(docType as DocType)),
+        summary: findings.summary
+      };
+
+      if (docFindings.issues.length === 0) {
+        results.set(docType, this.postProcessGeneratedContent(docType as DocType, fullContent));
+        continue;
+      }
+
+      const fixedContent = this.applyDeterministicReviewFixes(
+        docType as DocType,
+        fullContent,
+        docFindings
+      );
+      results.set(docType, this.postProcessGeneratedContent(docType as DocType, fixedContent));
+    }
+
+    return results;
+  }
+
+  private parseReviewResult(rawContent: string): ReviewResult {
+    const jsonMatch = rawContent.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) {
+      return { issues: [], summary: '审核完成，未发现明显问题。' };
+    }
+
+    try {
+      const parsed = JSON.parse(jsonMatch[0]) as Partial<ReviewResult>;
+      return {
+        issues: Array.isArray(parsed.issues) ? parsed.issues.map((issue, i) => ({
+          id: issue.id ?? (i + 1),
+          severity: (issue.severity as ReviewIssue['severity']) ?? 'suggestion',
+          category: (issue.category as ReviewIssue['category']) ?? 'overall',
+          title: issue.title ?? '未命名问题',
+          description: issue.description ?? '',
+          affectedDocTypes: Array.isArray(issue.affectedDocTypes) ? issue.affectedDocTypes : [],
+          suggestion: issue.suggestion ?? ''
+        })) : [],
+        summary: typeof parsed.summary === 'string' ? parsed.summary : '审核完成。'
+      };
+    } catch {
+      return { issues: [], summary: '审核结果解析失败，请重试。' };
+    }
+  }
+
+  private generateMockReviewResult(): ReviewResult {
+    return {
+      issues: [
+        {
+          id: 1,
+          severity: 'warning',
+          category: 'prd_vs_frontend',
+          title: 'Mock模式：PRD与前端文档对齐检查',
+          description: '此为Mock模式生成的示例审核结果。配置有效API密钥后将生成真实审核。',
+          affectedDocTypes: ['PRD', 'FRONTEND'],
+          suggestion: '在前端文档中补充PRD提到的用户管理模块设计'
+        }
+      ],
+      summary: 'Mock模式审核完成。整体文档结构较为完整，建议检查各文档间的模块命名一致性。'
+    };
+  }
+
+  private generateMockFixedDocument(docType: string, original: string, _findings: ReviewResult): string {
+    const timestamp = new Date().toLocaleString('zh-CN');
+    return `${original}\n\n---\n\n*注：此为Mock模式生成的修复版本，时间 ${timestamp}。*`;
+  }
+
+  private applyDeterministicReviewFixes(
+    docType: DocType,
+    originalContent: string,
+    findings: ReviewResult
+  ): string {
+    const content = this.cleanGeneratedContent(originalContent);
+    const groupedNotes = new Map<string, string[]>();
+    const fallbackNotes: string[] = [];
+
+    for (const issue of findings.issues) {
+      const note = this.buildReviewIssueNote(issue);
+      if (content.includes(note)) {
+        continue;
+      }
+
+      const targetHeading = this.findReviewTargetHeading(content, docType, issue.category);
+      if (!targetHeading) {
+        fallbackNotes.push(note);
+        continue;
+      }
+
+      const current = groupedNotes.get(targetHeading) || [];
+      current.push(note);
+      groupedNotes.set(targetHeading, current);
+    }
+
+    let nextContent = content;
+    for (const [targetHeading, notes] of groupedNotes) {
+      nextContent = this.insertReviewNotesIntoSection(nextContent, targetHeading, notes);
+    }
+
+    if (fallbackNotes.length > 0) {
+      nextContent = this.appendGlobalReviewNotes(nextContent, fallbackNotes);
+    }
+
+    return nextContent;
+  }
+
+  private buildReviewIssueNote(issue: ReviewIssue): string {
+    const severityLabels: Record<ReviewIssue['severity'], string> = {
+      critical: '严重',
+      warning: '警告',
+      suggestion: '建议'
+    };
+
+    const categoryLabels: Record<ReviewIssue['category'], string> = {
+      prd_vs_frontend: 'PRD vs 前端',
+      prd_vs_backend: 'PRD vs 后端',
+      backend_vs_api: '后端 vs API',
+      frontend_vs_api: '前端 vs API',
+      overall: '整体一致性'
+    };
+
+    const detail = issue.suggestion || issue.description || issue.title;
+    return `- [${severityLabels[issue.severity]}][${categoryLabels[issue.category]}] ${issue.title}：${detail}`;
+  }
+
+  private findReviewTargetHeading(
+    content: string,
+    docType: DocType,
+    category: ReviewIssue['category']
+  ): string | null {
+    const candidates = this.getReviewHeadingCandidates(docType, category);
+    const lines = content.split(/\r?\n/);
+
+    for (const candidate of candidates) {
+      const match = lines.find(line => this.normalizeHeadingLine(line) === candidate);
+      if (match) {
+        return match;
+      }
+    }
+
+    return null;
+  }
+
+  private getReviewHeadingCandidates(
+    docType: DocType,
+    category: ReviewIssue['category']
+  ): string[] {
+    const byDocType: Record<DocType, string[]> = {
+      PRD: ['## 功能需求', '### 功能模块划分', '### 详细功能列表', '## 项目概述'],
+      FRONTEND: ['## 核心组件设计', '## 页面设计', '## 状态管理', '## API 对接', '## API对接'],
+      BACKEND: ['## API设计', '## 数据库设计', '## 核心业务流程', '## 安全设计'],
+      API: ['## 接口列表', '## API设计', '## 认证与鉴权', '## 数据模型', '## 错误码'],
+      TASK: ['## 开发任务清单', '## 任务拆解', '## 里程碑', '## 模块任务'],
+      CONTEXT_STATE: ['## 当前状态', '## 待办事项', '## 风险与阻塞', '## 下一步计划'],
+      AGENTS: ['## 执行流程', '## 规则', '## 输出约束', '## ContextState 更新规则']
+    };
+
+    const byCategory: Partial<Record<ReviewIssue['category'], string[]>> = {
+      prd_vs_frontend: ['## 功能需求', '## 核心组件设计', '## 页面设计'],
+      prd_vs_backend: ['## 功能需求', '## API设计', '## 数据库设计'],
+      backend_vs_api: ['## API设计', '## 接口列表', '## 数据模型'],
+      frontend_vs_api: ['## API 对接', '## API对接', '## 接口列表', '## 状态管理'],
+      overall: ['## 项目概述', '## 当前状态', '## 规则']
+    };
+
+    return Array.from(new Set([
+      ...(byCategory[category] || []),
+      ...byDocType[docType]
+    ])).map(candidate => this.normalizeHeadingLine(candidate));
+  }
+
+  private insertReviewNotesIntoSection(content: string, targetHeading: string, notes: string[]): string {
+    const lines = content.split(/\r?\n/);
+    const startIndex = lines.findIndex(line => this.normalizeHeadingLine(line) === this.normalizeHeadingLine(targetHeading));
+    if (startIndex === -1) {
+      return content;
+    }
+
+    const headingLevelMatch = lines[startIndex].match(/^(#{1,6})\s+/);
+    if (!headingLevelMatch) {
+      return content;
+    }
+
+    const headingLevel = headingLevelMatch[1].length;
+    let endIndex = lines.length;
+
+    for (let index = startIndex + 1; index < lines.length; index += 1) {
+      const match = lines[index].match(/^(#{1,6})\s+/);
+      if (match && match[1].length <= headingLevel) {
+        endIndex = index;
+        break;
+      }
+    }
+
+    const sectionLines = lines.slice(startIndex, endIndex);
+    const normalizedSection = sectionLines.join('\n');
+    const uniqueNotes = notes.filter(note => !normalizedSection.includes(note));
+
+    if (uniqueNotes.length === 0) {
+      return content;
+    }
+
+    const blockTitle = headingLevel < 6
+      ? `${'#'.repeat(headingLevel + 1)} 审核修订`
+      : `${'#'.repeat(headingLevel)} 审核修订`;
+    const existingBlockIndex = sectionLines.findIndex(line => this.normalizeHeadingLine(line) === this.normalizeHeadingLine(blockTitle));
+
+    let updatedSectionLines: string[];
+    if (existingBlockIndex >= 0) {
+      const insertionIndex = this.findReviewBlockEnd(sectionLines, existingBlockIndex, headingLevel + 1);
+      updatedSectionLines = [
+        ...sectionLines.slice(0, insertionIndex),
+        ...uniqueNotes,
+        ...sectionLines.slice(insertionIndex)
+      ];
+    } else {
+      updatedSectionLines = [
+        ...sectionLines,
+        '',
+        blockTitle,
+        '',
+        ...uniqueNotes
+      ];
+    }
+
+    const mergedLines = [
+      ...lines.slice(0, startIndex),
+      ...updatedSectionLines,
+      ...lines.slice(endIndex)
+    ];
+
+    return mergedLines.join('\n').replace(/\n{3,}/g, '\n\n').trim();
+  }
+
+  private findReviewBlockEnd(sectionLines: string[], blockStartIndex: number, blockLevel: number): number {
+    for (let index = blockStartIndex + 1; index < sectionLines.length; index += 1) {
+      const match = sectionLines[index].match(/^(#{1,6})\s+/);
+      if (match && match[1].length <= blockLevel) {
+        return index;
+      }
+    }
+
+    return sectionLines.length;
+  }
+
+  private appendGlobalReviewNotes(content: string, notes: string[]): string {
+    const uniqueNotes = notes.filter(note => !content.includes(note));
+    if (uniqueNotes.length === 0) {
+      return content;
+    }
+
+    const lines = content.split(/\r?\n/);
+    const existingIndex = lines.findIndex(line => this.normalizeHeadingLine(line) === '## 审核修订记录');
+    if (existingIndex >= 0) {
+      const endIndex = this.findReviewBlockEnd(lines, existingIndex, 2);
+      const mergedLines = [
+        ...lines.slice(0, endIndex),
+        ...uniqueNotes,
+        ...lines.slice(endIndex)
+      ];
+      return mergedLines.join('\n').replace(/\n{3,}/g, '\n\n').trim();
+    }
+
+    return `${content.trim()}\n\n## 审核修订记录\n\n${uniqueNotes.join('\n')}`.trim();
+  }
+
+  private normalizeHeadingLine(line: string): string {
+    return line.trim().replace(/\s+/g, ' ');
   }
 }
 

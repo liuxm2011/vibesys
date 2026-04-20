@@ -2,7 +2,9 @@ import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
 import { fetchDocumentsApi, updateDocumentApi, createDocumentApi } from '@/api/document.api';
 import { generateDocumentStreamApi } from '@/api/ai.api';
-import type { Document, DocType, GenerateDocumentStreamProgress } from '@/types/document';
+import { reviewDocumentsApi } from '@/api/review.api';
+import type { Document, DocType, GenerateDocumentStreamProgress, ReviewResult, ReviewStatus } from '@/types/document';
+import type { PersistedReviewStatus } from '@/types/project';
 
 /**
  * Document Pinia store (DOC-01~05, D-12)
@@ -19,6 +21,13 @@ export const useDocumentStore = defineStore('document', () => {
   const generationPreviewLines = ref<string[]>([]);
   const saving = ref(false);      // For save operations
   const error = ref<string | null>(null);
+
+  // Review state
+  const reviewing = ref(false);
+  const reviewResult = ref<ReviewResult | null>(null);
+  const fixing = ref(false);
+  const fixingDocTypes = ref<DocType[]>([]);
+  const reviewStatus = ref<ReviewStatus>('idle');
 
   // Computed: Get specific document by type
   const prdDocument = computed(() =>
@@ -160,9 +169,14 @@ export const useDocumentStore = defineStore('document', () => {
    * Generate document via AI (DOC-04)
    * @param projectId Project ID
    * @param docType Document type to generate
+   * @param options Generation behavior overrides
    * @returns true on success, false on failure
    */
-  async function generateDocument(projectId: number, docType: DocType): Promise<boolean> {
+  async function generateDocument(
+    projectId: number,
+    docType: DocType,
+    options: { forceRegenerate?: boolean } = {}
+  ): Promise<boolean> {
     generating.value = true;
     generatingDocType.value = docType;
     generationPreviewLines.value = [];
@@ -170,6 +184,7 @@ export const useDocumentStore = defineStore('document', () => {
 
     try {
       const response = await generateDocumentStreamApi(projectId, docType, {
+        forceRegenerate: options.forceRegenerate === true,
         onProgress(event) {
           generationPreviewLines.value = buildPreviewLines(event);
         }
@@ -231,6 +246,124 @@ export const useDocumentStore = defineStore('document', () => {
   }
 
   /**
+   * Check if all 7 documents have been generated
+   */
+  const allDocsGenerated = computed(() =>
+    hasPRD.value && hasFrontend.value && hasBackend.value &&
+    hasAPI.value && hasTask.value && hasContextState.value && hasAgents.value
+  );
+
+  /**
+   * Trigger expert panel review
+   */
+  async function triggerReview(projectId: number): Promise<boolean> {
+    reviewing.value = true;
+    reviewStatus.value = 'reviewing';
+    error.value = null;
+
+    try {
+      const response = await reviewDocumentsApi(projectId, 'review');
+      if (response.review) {
+        hydrateReviewState('PENDING_FIX', response.review);
+        return true;
+      }
+      error.value = '审核返回数据异常';
+      return false;
+    } catch (e) {
+      error.value = e instanceof Error ? e.message : '审核失败';
+      reviewStatus.value = 'idle';
+      return false;
+    } finally {
+      reviewing.value = false;
+    }
+  }
+
+  /**
+   * Apply fixes from review results
+   */
+  async function applyFixes(projectId: number): Promise<boolean> {
+    if (!reviewResult.value) return false;
+
+    fixing.value = true;
+    reviewStatus.value = 'fixing';
+    error.value = null;
+
+    const affectedTypes = new Set<DocType>();
+    for (const issue of reviewResult.value.issues) {
+      for (const t of issue.affectedDocTypes) {
+        affectedTypes.add(t as DocType);
+      }
+    }
+    fixingDocTypes.value = Array.from(affectedTypes);
+
+    try {
+      const response = await reviewDocumentsApi(projectId, 'fix');
+      if (response.documents) {
+        for (const updatedDoc of response.documents) {
+          const index = documents.value.findIndex(d => d.id === updatedDoc.id);
+          if (index !== -1) {
+            documents.value[index] = updatedDoc;
+          }
+        }
+        reviewStatus.value = 'fixed';
+        return true;
+      }
+      error.value = '修复返回数据异常';
+      return false;
+    } catch (e) {
+      error.value = e instanceof Error ? e.message : '修复失败';
+      reviewStatus.value = 'reviewed';
+      return false;
+    } finally {
+      fixing.value = false;
+      fixingDocTypes.value = [];
+    }
+  }
+
+  /**
+   * Discard review results
+   */
+  async function discardReview(projectId: number): Promise<boolean> {
+    error.value = null;
+
+    try {
+      const response = await reviewDocumentsApi(projectId, 'discard');
+      if (response.success) {
+        hydrateReviewState('DISCARDED', null);
+        return true;
+      }
+
+      error.value = '放弃审核结果失败';
+      return false;
+    } catch (e) {
+      error.value = e instanceof Error ? e.message : '放弃审核结果失败';
+      return false;
+    }
+  }
+
+  function hydrateReviewState(
+    persistedStatus: PersistedReviewStatus | null | undefined,
+    persistedResult: ReviewResult | null | undefined
+  ): void {
+    reviewResult.value = persistedResult || null;
+
+    switch (persistedStatus) {
+      case 'PENDING_FIX':
+        reviewStatus.value = persistedResult ? 'reviewed' : 'idle';
+        break;
+      case 'ACCEPTED':
+        reviewStatus.value = persistedResult ? 'fixed' : 'idle';
+        break;
+      case 'DISCARDED':
+      case 'NONE':
+      default:
+        reviewResult.value = null;
+        reviewStatus.value = 'idle';
+        break;
+    }
+  }
+
+  /**
    * Reset store state
    */
   function $reset(): void {
@@ -243,6 +376,11 @@ export const useDocumentStore = defineStore('document', () => {
     generationPreviewLines.value = [];
     saving.value = false;
     error.value = null;
+    reviewing.value = false;
+    reviewResult.value = null;
+    fixing.value = false;
+    fixingDocTypes.value = [];
+    reviewStatus.value = 'idle';
   }
 
   return {
@@ -271,6 +409,13 @@ export const useDocumentStore = defineStore('document', () => {
     hasTask,
     hasContextState,
     hasAgents,
+    allDocsGenerated,
+    // Review state
+    reviewing,
+    reviewResult,
+    fixing,
+    fixingDocTypes,
+    reviewStatus,
     // Actions
     fetchDocuments,
     updateDocument,
@@ -278,6 +423,10 @@ export const useDocumentStore = defineStore('document', () => {
     generateDocument,
     isGeneratingDocument,
     getDocumentByType,
+    triggerReview,
+    applyFixes,
+    hydrateReviewState,
+    discardReview,
     $reset
   };
 });
