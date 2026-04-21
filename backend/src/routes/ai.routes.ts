@@ -422,7 +422,7 @@ router.post('/review', authMiddleware, checkBannedMiddleware, async (req: Reques
     const fixedDocs = await aiService.fixDocuments(topicInfo, affectedDocs, reviewResult as any);
 
     const updatedDocuments = [];
-    for (const [docType, content] of fixedDocs) {
+    for (const [docType, content] of fixedDocs.documents) {
       const document = await prisma.document.upsert({
         where: {
           projectId_docType: {
@@ -445,7 +445,10 @@ router.post('/review', authMiddleware, checkBannedMiddleware, async (req: Reques
       data: { reviewStatus: 'ACCEPTED' }
     });
 
-    return res.json({ documents: updatedDocuments });
+    return res.json({
+      documents: updatedDocuments,
+      unresolved: fixedDocs.unresolved
+    });
   } catch (error) {
     console.error('AI review error:', error);
     const actionLabel = mode === 'fix' ? '修复' : '审核';
@@ -458,6 +461,114 @@ router.post('/review', authMiddleware, checkBannedMiddleware, async (req: Reques
     }
 
     res.status(500).json({ error: `${actionLabel}失败，请稍后重试` });
+  }
+});
+
+/**
+ * POST /api/ai/review/stream
+ * Streaming expert panel review with SSE for UI progress feedback
+ */
+router.post('/review/stream', authMiddleware, checkBannedMiddleware, async (req: Request, res: Response) => {
+  const { projectId, mode } = req.body;
+
+  if (!projectId) {
+    return res.status(400).json({ error: '请提供项目ID' });
+  }
+
+  const parsedProjectId = parseInt(projectId);
+  if (isNaN(parsedProjectId)) {
+    return res.status(400).json({ error: '无效的项目ID' });
+  }
+
+  if (!mode || !['review', 'fix', 'discard'].includes(mode)) {
+    return res.status(400).json({ error: 'mode 参数必须为 review、fix 或 discard' });
+  }
+
+  if (mode !== 'review') {
+    return res.status(400).json({ error: 'stream 端点仅支持 review 模式' });
+  }
+
+  const sendEvent = (event: string, payload: unknown): void => {
+    res.write(`event: ${event}\n`);
+    res.write(`data: ${JSON.stringify(payload)}\n\n`);
+  };
+
+  try {
+    const userId = req.user!.userId;
+
+    const project = await prisma.project.findFirst({
+      where: { id: parsedProjectId, userId },
+      include: {
+        topic: {
+          select: {
+            title: true,
+            description: true,
+            background: true,
+            objectives: true,
+            domain: true,
+            techStack: true
+          }
+        }
+      }
+    });
+
+    if (!project) {
+      return res.status(404).json({ error: '项目不存在或无权限访问' });
+    }
+
+    const topicInfo = {
+      title: project.topic.title,
+      description: project.topic.description,
+      domain: project.topic.domain,
+      objectives: project.topic.objectives || project.topic.background,
+      techStack: project.topic.techStack as string[]
+    };
+
+    const allDocs = await prisma.document.findMany({
+      where: { projectId: parsedProjectId }
+    });
+
+    const docsMap: Record<string, string> = {};
+    for (const doc of allDocs) {
+      docsMap[doc.docType] = doc.content || '';
+    }
+
+    res.setHeader('Content-Type', 'text/event-stream; charset=utf-8');
+    res.setHeader('Cache-Control', 'no-cache, no-transform');
+    res.setHeader('Connection', 'keep-alive');
+    res.flushHeaders?.();
+
+    const reviewResult = await aiService.reviewDocumentsStream(topicInfo, docsMap, phase => {
+      sendEvent('phase', { phase });
+    });
+
+    await prisma.project.update({
+      where: { id: parsedProjectId },
+      data: {
+        reviewStatus: 'PENDING_FIX',
+        reviewResult: reviewResult as unknown as object
+      }
+    });
+
+    sendEvent('complete', { review: reviewResult });
+    res.end();
+  } catch (error) {
+    console.error('AI review streaming error:', error);
+
+    if (res.headersSent) {
+      sendEvent('error', {
+        error: error instanceof Error && error.message.includes('timeout')
+          ? '审核超时，请稍后重试'
+          : '审核失败，请稍后重试'
+      });
+      return res.end();
+    }
+
+    if (error instanceof Error && error.message.includes('timeout')) {
+      return res.status(504).json({ error: '审核超时，请稍后重试' });
+    }
+
+    res.status(500).json({ error: '审核失败，请稍后重试' });
   }
 });
 

@@ -50,6 +50,9 @@ export interface GenerateDocumentStreamProgress {
   phase: 'reasoning' | 'writing' | 'finalizing';
   reasoningText: string;
   contentText: string;
+  tokenCount?: number;
+  tokensPerSecond?: number;
+  elapsedSeconds?: number;
 }
 
 export interface UpdateTechStackRequest {
@@ -71,6 +74,7 @@ export interface ReviewIssue {
   description: string;
   affectedDocTypes: DocType[];
   suggestion: string;
+  patchHints: ReviewPatchHint[];
 }
 
 export interface ReviewResult {
@@ -78,9 +82,29 @@ export interface ReviewResult {
   summary: string;
 }
 
+export interface ReviewPatchHint {
+  docType: DocType;
+  changeType: 'replace_section' | 'replace_range';
+  targetHeadingPath: string[];
+  anchorBefore?: string;
+  anchorAfter?: string;
+  replacementContent: string;
+}
+
+export interface ReviewUnresolvedFix {
+  docType: DocType;
+  issueId: number;
+  reason: string;
+  fallbackNote: string;
+  targetHeadingPath?: string[];
+  anchorBefore?: string;
+  anchorAfter?: string;
+}
+
 export interface ReviewDocumentsResponse {
   review?: ReviewResult;
   documents?: Document[];
+  unresolved?: ReviewUnresolvedFix[];
   success?: boolean;
 }
 

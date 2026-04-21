@@ -2,8 +2,8 @@ import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
 import { fetchDocumentsApi, updateDocumentApi, createDocumentApi } from '@/api/document.api';
 import { generateDocumentStreamApi } from '@/api/ai.api';
-import { reviewDocumentsApi } from '@/api/review.api';
-import type { Document, DocType, GenerateDocumentStreamProgress, ReviewResult, ReviewStatus } from '@/types/document';
+import { reviewDocumentsStreamApi, reviewDocumentsApi } from '@/api/review.api';
+import type { Document, DocType, GenerateDocumentStreamProgress, ReviewResult, ReviewStatus, ReviewUnresolvedFix } from '@/types/document';
 import type { PersistedReviewStatus } from '@/types/project';
 
 /**
@@ -19,6 +19,16 @@ export const useDocumentStore = defineStore('document', () => {
   const generating = ref(false);  // For AI generation operations
   const generatingDocType = ref<DocType | null>(null);
   const generationPreviewLines = ref<string[]>([]);
+  const generationContent = ref<string>('');       // Full streaming content for terminal display
+  const generationStats = ref<{                   // Real-time generation stats
+    tokenCount: number;
+    tokensPerSecond: number;
+    elapsedSeconds: number;
+  }>({
+    tokenCount: 0,
+    tokensPerSecond: 0,
+    elapsedSeconds: 0
+  });
   const saving = ref(false);      // For save operations
   const error = ref<string | null>(null);
 
@@ -27,7 +37,10 @@ export const useDocumentStore = defineStore('document', () => {
   const reviewResult = ref<ReviewResult | null>(null);
   const fixing = ref(false);
   const fixingDocTypes = ref<DocType[]>([]);
+  const unresolvedFixes = ref<ReviewUnresolvedFix[]>([]);
   const reviewStatus = ref<ReviewStatus>('idle');
+  const reviewPhase = ref<string>(''); // Current review phase text for streaming UI
+  const reviewLog = ref<string>(''); // Accumulated review log for TerminalGenerationOverlay
 
   // Computed: Get specific document by type
   const prdDocument = computed(() =>
@@ -99,6 +112,8 @@ export const useDocumentStore = defineStore('document', () => {
     currentProjectId.value = projectId;
     generating.value = false; // Reset generating on fresh fetch (D-12)
     generatingDocType.value = null;
+    unresolvedFixes.value = [];
+    fixingDocTypes.value = [];
 
     try {
       const response = await fetchDocumentsApi(projectId);
@@ -165,6 +180,9 @@ export const useDocumentStore = defineStore('document', () => {
     }
   }
 
+  // AbortController for interrupting in-progress generation (cross-project concurrency guard)
+  let generationAbortController: AbortController | null = null;
+
   /**
    * Generate document via AI (DOC-04)
    * @param projectId Project ID
@@ -177,16 +195,33 @@ export const useDocumentStore = defineStore('document', () => {
     docType: DocType,
     options: { forceRegenerate?: boolean } = {}
   ): Promise<boolean> {
+    // Abort any in-progress generation before starting a new one
+    generationAbortController?.abort();
+    generationAbortController = new AbortController();
+
+    clearGenerationDisplay();
     generating.value = true;
     generatingDocType.value = docType;
-    generationPreviewLines.value = [];
     error.value = null;
 
     try {
       const response = await generateDocumentStreamApi(projectId, docType, {
         forceRegenerate: options.forceRegenerate === true,
+        signal: generationAbortController.signal,
         onProgress(event) {
           generationPreviewLines.value = buildPreviewLines(event);
+          // Update full content for terminal display
+          if (event.contentText) {
+            generationContent.value = event.contentText;
+          }
+          // Update stats if backend provides them
+          if (event.tokenCount !== undefined) {
+            generationStats.value = {
+              tokenCount: event.tokenCount,
+              tokensPerSecond: event.tokensPerSecond ?? 0,
+              elapsedSeconds: event.elapsedSeconds ?? 0
+            };
+          }
         }
       });
       // Update local state
@@ -198,13 +233,24 @@ export const useDocumentStore = defineStore('document', () => {
       }
       return true;
     } catch (e) {
+      if (e instanceof DOMException && e.name === 'AbortError') {
+        return false;
+      }
       error.value = e instanceof Error ? e.message : '生成失败';
       return false;
     } finally {
       generating.value = false;
       generatingDocType.value = null;
-      generationPreviewLines.value = [];
     }
+  }
+
+  /**
+   * Abort any in-progress document generation.
+   * Call before navigating away from the project detail page.
+   */
+  function abortGeneration(): void {
+    generationAbortController?.abort();
+    generationAbortController = null;
   }
 
   /**
@@ -237,6 +283,16 @@ export const useDocumentStore = defineStore('document', () => {
   }
 
   /**
+   * Clear transient generation display state.
+   * Keeps the document list untouched so the terminal can remain visible after completion.
+   */
+  function clearGenerationDisplay(): void {
+    generationPreviewLines.value = [];
+    generationContent.value = '';
+    generationStats.value = { tokenCount: 0, tokensPerSecond: 0, elapsedSeconds: 0 };
+  }
+
+  /**
    * Get document by type helper
    * @param docType Document type
    * @returns Document or undefined
@@ -254,16 +310,27 @@ export const useDocumentStore = defineStore('document', () => {
   );
 
   /**
-   * Trigger expert panel review
+   * Trigger expert panel review (streaming)
    */
   async function triggerReview(projectId: number): Promise<boolean> {
     reviewing.value = true;
     reviewStatus.value = 'reviewing';
+    reviewPhase.value = '';
+    reviewLog.value = '';
     error.value = null;
+    unresolvedFixes.value = [];
+    fixingDocTypes.value = [];
 
     try {
-      const response = await reviewDocumentsApi(projectId, 'review');
+      const response = await reviewDocumentsStreamApi(projectId, 'review', {
+        onPhase(phase) {
+          reviewLog.value += `${phase}\n`;
+          reviewPhase.value = reviewLog.value;
+        }
+      });
       if (response.review) {
+        reviewLog.value += '\n审核完成';
+        reviewPhase.value = reviewLog.value;
         hydrateReviewState('PENDING_FIX', response.review);
         return true;
       }
@@ -287,6 +354,7 @@ export const useDocumentStore = defineStore('document', () => {
     fixing.value = true;
     reviewStatus.value = 'fixing';
     error.value = null;
+    unresolvedFixes.value = [];
 
     const affectedTypes = new Set<DocType>();
     for (const issue of reviewResult.value.issues) {
@@ -305,6 +373,7 @@ export const useDocumentStore = defineStore('document', () => {
             documents.value[index] = updatedDoc;
           }
         }
+        unresolvedFixes.value = response.unresolved || [];
         reviewStatus.value = 'fixed';
         return true;
       }
@@ -316,7 +385,6 @@ export const useDocumentStore = defineStore('document', () => {
       return false;
     } finally {
       fixing.value = false;
-      fixingDocTypes.value = [];
     }
   }
 
@@ -346,6 +414,8 @@ export const useDocumentStore = defineStore('document', () => {
     persistedResult: ReviewResult | null | undefined
   ): void {
     reviewResult.value = persistedResult || null;
+    unresolvedFixes.value = [];
+    fixingDocTypes.value = [];
 
     switch (persistedStatus) {
       case 'PENDING_FIX':
@@ -374,13 +444,18 @@ export const useDocumentStore = defineStore('document', () => {
     generating.value = false;
     generatingDocType.value = null;
     generationPreviewLines.value = [];
+    generationContent.value = '';
+    generationStats.value = { tokenCount: 0, tokensPerSecond: 0, elapsedSeconds: 0 };
     saving.value = false;
     error.value = null;
     reviewing.value = false;
     reviewResult.value = null;
     fixing.value = false;
     fixingDocTypes.value = [];
+    unresolvedFixes.value = [];
     reviewStatus.value = 'idle';
+    reviewPhase.value = '';
+    reviewLog.value = '';
   }
 
   return {
@@ -392,6 +467,8 @@ export const useDocumentStore = defineStore('document', () => {
     generating,
     generatingDocType,
     generationPreviewLines,
+    generationContent,
+    generationStats,
     saving,
     error,
     // Computed
@@ -415,14 +492,19 @@ export const useDocumentStore = defineStore('document', () => {
     reviewResult,
     fixing,
     fixingDocTypes,
+    unresolvedFixes,
     reviewStatus,
+    reviewPhase,
+    reviewLog,
     // Actions
     fetchDocuments,
     updateDocument,
     createDocument,
     generateDocument,
+    abortGeneration,
     isGeneratingDocument,
     getDocumentByType,
+    clearGenerationDisplay,
     triggerReview,
     applyFixes,
     hydrateReviewState,

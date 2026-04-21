@@ -8,7 +8,9 @@ import { getTaskPromptTemplate } from '../prompts/task.template.js';
 import { getContextStatePromptTemplate } from '../prompts/context_state.template.js';
 import {
   getReviewSystemPrompt,
-  buildReviewUserPrompt
+  buildReviewUserPrompt,
+  getPatchHintRecoverySystemPrompt,
+  buildPatchHintRecoveryUserPrompt
 } from '../prompts/review.template.js';
 import { getAgentsPromptTemplate } from '../prompts/agents.template.js';
 
@@ -56,6 +58,9 @@ export interface GenerationProgress {
   phase: 'reasoning' | 'writing' | 'finalizing';
   reasoningText: string;
   contentText: string;
+  tokenCount?: number;
+  tokensPerSecond?: number;
+  elapsedSeconds?: number;
 }
 
 interface GenerationOptions {
@@ -75,6 +80,7 @@ export interface ReviewIssue {
   description: string;
   affectedDocTypes: DocType[];
   suggestion: string;
+  patchHints: ReviewPatchHint[];
 }
 
 export interface ReviewResult {
@@ -82,9 +88,39 @@ export interface ReviewResult {
   summary: string;
 }
 
+export interface ReviewPatchHint {
+  docType: DocType;
+  changeType: 'replace_section' | 'replace_range';
+  targetHeadingPath: string[];
+  anchorBefore?: string;
+  anchorAfter?: string;
+  replacementContent: string;
+}
+
+export interface ReviewUnresolvedFix {
+  docType: DocType;
+  issueId: number;
+  reason: string;
+  fallbackNote: string;
+  targetHeadingPath?: string[];
+  anchorBefore?: string;
+  anchorAfter?: string;
+}
+
+export interface ReviewFixResult {
+  documents: Map<string, string>;
+  unresolved: ReviewUnresolvedFix[];
+}
+
 interface CachedResult {
   content: string;
   timestamp: number;
+}
+
+interface SectionRange {
+  startIndex: number;
+  endIndex: number;
+  headingLine: string;
 }
 
 export class AIService {
@@ -169,6 +205,7 @@ These guidelines are working if: fewer unnecessary changes in diffs, fewer rewri
 
   private readonly CACHE_TTL = 24 * 60 * 60 * 1000; // 24 hours
   private readonly REQUEST_TIMEOUT = 120_000; // 120 seconds (2 minutes) timeout
+  private readonly REVIEW_TIMEOUT = 360_000; // 360 seconds (6 minutes) timeout for expert panel review
 
   /**
    * Generate cache key from docType and topic info
@@ -199,6 +236,7 @@ These guidelines are working if: fewer unnecessary changes in diffs, fewer rewri
     return {
       baseURL: process.env.MINIMAX_BASE_URL || 'https://api.minimax.chat/v1',
       apiKey: process.env.MINIMAX_API_KEY,
+      model: process.env.MINIMAX_MODEL || 'minimax-m2-7',
       mockMode: process.env.MOCK_AI === 'true' || process.env.MOCK_AI === '1',
     };
   }
@@ -342,13 +380,13 @@ These guidelines are working if: fewer unnecessary changes in diffs, fewer rewri
   private async executeWithRetry(
     messages: Array<{ role: 'system' | 'user' | 'assistant'; content: string }>
   ): Promise<string> {
-    const { baseURL, apiKey } = this.getConfig();
+    const { baseURL, apiKey, model } = this.getConfig();
     const contentParts: string[] = [];
     const maxAttempts = 3; // Reduced from 5 to 3
 
     for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
       try {
-        const data = await this.requestCompletion(baseURL, apiKey, messages);
+        const data = await this.requestCompletion(baseURL, apiKey, model, messages);
         const choice = data.choices?.[0];
         const content = choice?.message?.content?.trim() || '';
 
@@ -381,13 +419,13 @@ These guidelines are working if: fewer unnecessary changes in diffs, fewer rewri
     messages: Array<{ role: 'system' | 'user' | 'assistant'; content: string }>,
     onProgress: (progress: GenerationProgress) => void
   ): Promise<string> {
-    const { baseURL, apiKey } = this.getConfig();
+    const { baseURL, apiKey, model } = this.getConfig();
     const maxAttempts = 3;
     const contentParts: string[] = [];
 
     for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
       try {
-        const result = await this.requestStreamingCompletion(baseURL, apiKey, messages, onProgress);
+        const result = await this.requestStreamingCompletion(baseURL, apiKey, model, messages, onProgress);
 
         const cleanedContent = result.contentText.trim();
         if (!cleanedContent) {
@@ -415,7 +453,9 @@ These guidelines are working if: fewer unnecessary changes in diffs, fewer rewri
     onProgress({
       phase: 'finalizing',
       reasoningText: this.buildPreviewReasoningText('finalizing'),
-      contentText: finalContent
+      contentText: finalContent,
+      tokenCount: contentParts.reduce((acc, part) => acc + part.split(/\s+/).length, 0),
+      elapsedSeconds: 0,
     });
     return finalContent;
   }
@@ -488,6 +528,7 @@ ${baseInfo}${contextSection}
   private async requestCompletion(
     baseURL: string,
     apiKey: string,
+    model: string,
     messages: Array<{ role: 'system' | 'user' | 'assistant'; content: string }>
   ): Promise<ChatCompletionResponse> {
     const response = await fetch(`${baseURL}/chat/completions`, {
@@ -497,10 +538,10 @@ ${baseInfo}${contextSection}
         'Authorization': `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
-        model: 'minimax-m2-7',
+        model,
         messages,
         temperature: 0.7,
-        max_tokens: 16384, // Max output tokens for minimax-m2-7
+        max_tokens: 16384,
       }),
       signal: AbortSignal.timeout(this.REQUEST_TIMEOUT), // 120 seconds timeout
     });
@@ -516,9 +557,10 @@ ${baseInfo}${contextSection}
   private async requestStreamingCompletion(
     baseURL: string,
     apiKey: string,
+    model: string,
     messages: Array<{ role: 'system' | 'user' | 'assistant'; content: string }>,
     onProgress: (progress: GenerationProgress) => void
-  ): Promise<{ reasoningText: string; contentText: string; finishReason: string | null }> {
+  ): Promise<{ reasoningText: string; contentText: string; finishReason: string | null; tokenCount: number }> {
     const response = await fetch(`${baseURL}/chat/completions`, {
       method: 'POST',
       headers: {
@@ -526,7 +568,7 @@ ${baseInfo}${contextSection}
         'Authorization': `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
-        model: 'minimax-m2-7',
+        model,
         messages,
         temperature: 0.7,
         max_tokens: 16384,
@@ -552,6 +594,8 @@ ${baseInfo}${contextSection}
     let contentText = '';
     let finishReason: string | null = null;
     let lastEmitAt = 0;
+    let tokenCount = 0;
+    const startTime = Date.now();
 
     const extractNextEventBlock = (): string | null => {
       const match = buffer.match(/\r?\n\r?\n/);
@@ -577,10 +621,16 @@ ${baseInfo}${contextSection}
           ? 'reasoning'
           : 'reasoning';
 
+      const elapsedSeconds = Math.floor((now - startTime) / 1000);
+      const tokensPerSecond = elapsedSeconds > 0 ? tokenCount / elapsedSeconds : 0;
+
       onProgress({
         phase,
         reasoningText: this.buildPreviewReasoningText(phase),
-        contentText: previewContentText
+        contentText: previewContentText,
+        tokenCount,
+        tokensPerSecond,
+        elapsedSeconds,
       });
       lastEmitAt = now;
     };
@@ -618,6 +668,7 @@ ${baseInfo}${contextSection}
       const contentDelta = this.getNovelSuffix(contentText, contentIncoming);
       if (contentDelta) {
         contentText += contentDelta;
+        tokenCount += 1;
       }
 
       if (choice?.finish_reason) {
@@ -656,7 +707,8 @@ ${baseInfo}${contextSection}
     return {
       reasoningText,
       contentText,
-      finishReason
+      finishReason,
+      tokenCount,
     };
   }
 
@@ -1096,22 +1148,35 @@ ${topicInfo.techStack.map(tech => `- ${tech}`).join('\n')}
   ): Promise<string> {
     const content = this.generateMockDocument(docType, topicInfo);
     let streamedContent = '';
+    let tokenCount = 0;
+    const startTime = Date.now();
 
     const chunks = content.match(/.{1,80}/gs) || [content];
     for (const chunk of chunks) {
       streamedContent += chunk;
+      tokenCount += chunk.split(/\s+/).length;
+      const elapsedSeconds = Math.floor((Date.now() - startTime) / 1000);
+      const tokensPerSecond = elapsedSeconds > 0 ? tokenCount / elapsedSeconds : 0;
       onProgress({
         phase: 'writing',
         reasoningText: '',
-        contentText: streamedContent
+        contentText: streamedContent,
+        tokenCount,
+        tokensPerSecond,
+        elapsedSeconds,
       });
       await new Promise(resolve => setTimeout(resolve, 90));
     }
 
+    const elapsedSeconds = Math.floor((Date.now() - startTime) / 1000);
+    const tokensPerSecond = elapsedSeconds > 0 ? tokenCount / elapsedSeconds : 0;
     onProgress({
       phase: 'finalizing',
       reasoningText: '',
-      contentText: streamedContent
+      contentText: streamedContent,
+      tokenCount,
+      tokensPerSecond,
+      elapsedSeconds,
     });
 
     return this.cleanGeneratedContent(streamedContent);
@@ -1223,6 +1288,185 @@ ${getAgentsPromptTemplate(domain)}
   }
 
   /**
+   * Review all documents for cross-document alignment (streaming version)
+   * Emits initial phases, then streams the actual AI review output into
+   * the terminal so the user sees the review reasoning in real time.
+   */
+  async reviewDocumentsStream(
+    topicInfo: TopicInfo,
+    allDocs: Record<string, string>,
+    onProgress: (phase: string) => void
+  ): Promise<ReviewResult> {
+    const config = this.getConfig();
+
+    if (config.mockMode) {
+      onProgress('正在加载并解析 7 份文档内容...\n');
+      await this.delay(500);
+      onProgress('产品经理：检查 PRD 与前端/后端的一致性...\n');
+      await this.delay(500);
+      onProgress('前端架构师：验证前端文档与 API 契约...\n');
+      await this.delay(500);
+      onProgress('后端架构师：检查后端与 API 的对齐...\n');
+      await this.delay(500);
+      onProgress('总协调员：汇总整体评估意见...\n');
+      await this.delay(500);
+      onProgress('正在生成结构化审核结果...\n');
+      await this.delay(500);
+      const result = this.generateMockReviewResult();
+      onProgress(JSON.stringify(result, null, 2));
+      onProgress('\n审核完成');
+      return result;
+    }
+
+    // Emit initial phases
+    onProgress('正在加载并解析 7 份文档内容...\n');
+    await this.delay(500);
+    onProgress('产品经理：检查 PRD 与前端/后端的一致性...\n');
+    await this.delay(300);
+    onProgress('前端架构师：验证前端文档与 API 契约...\n');
+    await this.delay(300);
+    onProgress('后端架构师：检查后端与 API 的对齐...\n');
+    await this.delay(300);
+    onProgress('总协调员：汇总整体评估意见...\n');
+    await this.delay(300);
+    onProgress('正在生成结构化审核结果...\n\n');
+
+    const systemPrompt = getReviewSystemPrompt(topicInfo.domain);
+    const userPrompt = buildReviewUserPrompt(topicInfo, allDocs);
+    const messages: Array<{ role: 'system' | 'user' | 'assistant'; content: string }> = [
+      { role: 'system', content: systemPrompt },
+      { role: 'user', content: userPrompt }
+    ];
+
+    // Stream the AI response, forwarding raw content to onProgress.
+    // We inline the streaming logic here because requestStreamingCompletion
+    // passes extractPreviewContent(contentText) which strips JSON output.
+    const rawContent = await this.requestStreamingCompletionRaw(
+      config.baseURL,
+      config.apiKey,
+      config.model,
+      messages,
+      onProgress
+    );
+
+    const cleaned = this.cleanGeneratedContent(rawContent);
+    const parsedResult = this.parseReviewResult(cleaned);
+    const finalized = await this.ensureReviewPatchHints(topicInfo, allDocs, parsedResult);
+
+    onProgress('\n\n审核完成');
+    return finalized;
+  }
+
+  /**
+   * Like requestStreamingCompletion but passes raw accumulated content
+   * to onProgress instead of the preview-extracted version.
+   * Used for review streaming where the output is JSON, not markdown.
+   */
+  private async requestStreamingCompletionRaw(
+    baseURL: string,
+    apiKey: string,
+    model: string,
+    messages: Array<{ role: 'system' | 'user' | 'assistant'; content: string }>,
+    onRawContent: (rawContent: string) => void
+  ): Promise<string> {
+    const response = await fetch(`${baseURL}/chat/completions`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({
+        model,
+        messages,
+        temperature: 0.7,
+        max_tokens: 16384,
+        stream: true,
+        reasoning_split: true
+      }),
+      signal: AbortSignal.timeout(this.REVIEW_TIMEOUT),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`MiniMax API request failed: ${response.status} ${errorText}`);
+    }
+
+    if (!response.body) {
+      throw new Error('MiniMax API stream is unavailable');
+    }
+
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+    let contentText = '';
+    let lastEmitAt = 0;
+
+    const extractNextEventBlock = (): string | null => {
+      const match = buffer.match(/\r?\n\r?\n/);
+      if (!match || match.index === undefined) {
+        return null;
+      }
+      const block = buffer.slice(0, match.index).trim();
+      buffer = buffer.slice(match.index + match[0].length);
+      return block;
+    };
+
+    const emitProgress = (force = false): void => {
+      const now = Date.now();
+      if (!force && now - lastEmitAt < 120) {
+        return;
+      }
+      onRawContent(contentText);
+      lastEmitAt = now;
+    };
+
+    const processEventBlock = (block: string): void => {
+      const dataLines = block
+        .split(/\r?\n/)
+        .filter(line => line.startsWith('data:'))
+        .map(line => line.slice(5).trim());
+
+      if (dataLines.length === 0) return;
+
+      const payload = dataLines.join('\n');
+      if (payload === '[DONE]') return;
+
+      const chunk = JSON.parse(payload) as StreamChunkResponse;
+      const choice = chunk.choices?.[0];
+      const delta = choice?.delta;
+      if (!delta) return;
+
+      const contentIncoming = delta.content || '';
+      const contentDelta = this.getNovelSuffix(contentText, contentIncoming);
+      if (contentDelta) {
+        contentText += contentDelta;
+        emitProgress();
+      }
+    };
+
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
+
+      buffer += decoder.decode(value, { stream: true });
+      let block = extractNextEventBlock();
+      while (block !== null) {
+        if (block) processEventBlock(block);
+        block = extractNextEventBlock();
+      }
+    }
+
+    if (buffer.trim()) processEventBlock(buffer.trim());
+    emitProgress(true);
+
+    return contentText;
+  }
+
+  private async delay(ms: number): Promise<void> {
+    return new Promise(resolve => setTimeout(resolve, ms));
+  }
+
+  /**
    * Review all documents for cross-document alignment
    */
   async reviewDocuments(
@@ -1243,7 +1487,8 @@ ${getAgentsPromptTemplate(domain)}
     ];
 
     const rawContent = await this.executeWithRetry(messages);
-    return this.parseReviewResult(rawContent);
+    const parsedResult = this.parseReviewResult(rawContent);
+    return this.ensureReviewPatchHints(topicInfo, allDocs, parsedResult);
   }
 
   /**
@@ -1253,13 +1498,23 @@ ${getAgentsPromptTemplate(domain)}
     topicInfo: TopicInfo,
     affectedDocs: Record<string, string>,
     findings: ReviewResult
-  ): Promise<Map<string, string>> {
+  ): Promise<ReviewFixResult> {
+    const relevantDocTypes = new Set(Object.keys(affectedDocs) as DocType[]);
+    const scopedFindings: ReviewResult = {
+      summary: findings.summary,
+      issues: findings.issues.filter(issue =>
+        issue.affectedDocTypes.some(docType => relevantDocTypes.has(docType))
+        || issue.patchHints.some(hint => relevantDocTypes.has(hint.docType))
+      )
+    };
+    const hydratedFindings = await this.ensureReviewPatchHints(topicInfo, affectedDocs, scopedFindings);
     const results = new Map<string, string>();
+    const unresolved: ReviewUnresolvedFix[] = [];
 
     for (const [docType, fullContent] of Object.entries(affectedDocs)) {
       const docFindings: ReviewResult = {
-        issues: findings.issues.filter(issue => issue.affectedDocTypes.includes(docType as DocType)),
-        summary: findings.summary
+        issues: hydratedFindings.issues.filter(issue => issue.affectedDocTypes.includes(docType as DocType)),
+        summary: hydratedFindings.summary
       };
 
       if (docFindings.issues.length === 0) {
@@ -1267,15 +1522,19 @@ ${getAgentsPromptTemplate(domain)}
         continue;
       }
 
-      const fixedContent = this.applyDeterministicReviewFixes(
+      const fixResult = this.applyStructuredReviewFixes(
         docType as DocType,
         fullContent,
         docFindings
       );
-      results.set(docType, this.postProcessGeneratedContent(docType as DocType, fixedContent));
+      unresolved.push(...fixResult.unresolved);
+      results.set(docType, this.postProcessGeneratedContent(docType as DocType, fixResult.content));
     }
 
-    return results;
+    return {
+      documents: results,
+      unresolved
+    };
   }
 
   private parseReviewResult(rawContent: string): ReviewResult {
@@ -1294,7 +1553,8 @@ ${getAgentsPromptTemplate(domain)}
           title: issue.title ?? '未命名问题',
           description: issue.description ?? '',
           affectedDocTypes: Array.isArray(issue.affectedDocTypes) ? issue.affectedDocTypes : [],
-          suggestion: issue.suggestion ?? ''
+          suggestion: issue.suggestion ?? '',
+          patchHints: this.parseReviewPatchHints(issue.patchHints)
         })) : [],
         summary: typeof parsed.summary === 'string' ? parsed.summary : '审核完成。'
       };
@@ -1313,54 +1573,152 @@ ${getAgentsPromptTemplate(domain)}
           title: 'Mock模式：PRD与前端文档对齐检查',
           description: '此为Mock模式生成的示例审核结果。配置有效API密钥后将生成真实审核。',
           affectedDocTypes: ['PRD', 'FRONTEND'],
-          suggestion: '在前端文档中补充PRD提到的用户管理模块设计'
+          suggestion: '在前端文档中补充PRD提到的用户管理模块设计',
+          patchHints: [
+            {
+              docType: 'FRONTEND',
+              changeType: 'replace_section',
+              targetHeadingPath: ['## 核心组件设计'],
+              replacementContent: `## 核心组件设计
+
+### 用户管理模块
+
+- 登录注册流程
+- 个人资料管理
+- 收藏与发布管理`
+            }
+          ]
         }
       ],
       summary: 'Mock模式审核完成。整体文档结构较为完整，建议检查各文档间的模块命名一致性。'
     };
   }
 
-  private generateMockFixedDocument(docType: string, original: string, _findings: ReviewResult): string {
-    const timestamp = new Date().toLocaleString('zh-CN');
-    return `${original}\n\n---\n\n*注：此为Mock模式生成的修复版本，时间 ${timestamp}。*`;
+  private parseReviewPatchHints(rawHints: unknown): ReviewPatchHint[] {
+    if (!Array.isArray(rawHints)) {
+      return [];
+    }
+
+    return rawHints
+      .map((rawHint): ReviewPatchHint | null => {
+        if (!rawHint || typeof rawHint !== 'object') {
+          return null;
+        }
+
+        const hint = rawHint as Partial<ReviewPatchHint>;
+        const changeType = hint.changeType === 'replace_range' ? 'replace_range' : hint.changeType === 'replace_section' ? 'replace_section' : null;
+        const docType = typeof hint.docType === 'string' ? hint.docType as DocType : null;
+        const replacementContent = typeof hint.replacementContent === 'string' ? hint.replacementContent.trim() : '';
+
+        if (!docType || !changeType || !replacementContent) {
+          return null;
+        }
+
+        return {
+          docType,
+          changeType,
+          targetHeadingPath: Array.isArray(hint.targetHeadingPath)
+            ? hint.targetHeadingPath.filter((part): part is string => typeof part === 'string').map(part => part.trim()).filter(Boolean)
+            : [],
+          anchorBefore: typeof hint.anchorBefore === 'string' ? hint.anchorBefore.trim() : undefined,
+          anchorAfter: typeof hint.anchorAfter === 'string' ? hint.anchorAfter.trim() : undefined,
+          replacementContent
+        };
+      })
+      .filter((hint): hint is ReviewPatchHint => hint !== null);
   }
 
-  private applyDeterministicReviewFixes(
+  private applyStructuredReviewFixes(
     docType: DocType,
     originalContent: string,
     findings: ReviewResult
-  ): string {
-    const content = this.cleanGeneratedContent(originalContent);
-    const groupedNotes = new Map<string, string[]>();
-    const fallbackNotes: string[] = [];
+  ): { content: string; unresolved: ReviewUnresolvedFix[] } {
+    let nextContent = this.cleanGeneratedContent(originalContent);
+    const unresolved: ReviewUnresolvedFix[] = [];
 
     for (const issue of findings.issues) {
-      const note = this.buildReviewIssueNote(issue);
-      if (content.includes(note)) {
+      const patchHints = issue.patchHints.filter(hint => hint.docType === docType);
+      if (patchHints.length === 0) {
+        if (issue.patchHints.length > 0) {
+          continue;
+        }
+
+        unresolved.push({
+          docType,
+          issueId: issue.id,
+          reason: 'missing_patch_hints',
+          fallbackNote: this.buildReviewIssueNote(issue)
+        });
         continue;
       }
 
-      const targetHeading = this.findReviewTargetHeading(content, docType, issue.category);
-      if (!targetHeading) {
-        fallbackNotes.push(note);
-        continue;
+      for (const patchHint of patchHints) {
+        const result = this.applyStructuredPatchHint(nextContent, patchHint);
+        if (result.applied) {
+          nextContent = result.content;
+          continue;
+        }
+
+        unresolved.push({
+          docType,
+          issueId: issue.id,
+          reason: result.reason || 'patch_apply_failed',
+          fallbackNote: this.buildReviewIssueNote(issue),
+          targetHeadingPath: patchHint.targetHeadingPath.length > 0 ? patchHint.targetHeadingPath : undefined,
+          anchorBefore: patchHint.anchorBefore,
+          anchorAfter: patchHint.anchorAfter
+        });
+      }
+    }
+
+    return {
+      content: nextContent,
+      unresolved
+    };
+  }
+
+  private applyStructuredPatchHint(
+    content: string,
+    patchHint: ReviewPatchHint
+  ): { applied: boolean; content: string; reason?: string } {
+    if (patchHint.changeType === 'replace_section') {
+      const section = this.findSectionByHeadingPath(content, patchHint.targetHeadingPath);
+      if (section) {
+        return {
+          applied: true,
+          content: this.replaceSectionByRange(content, section, patchHint.replacementContent)
+        };
       }
 
-      const current = groupedNotes.get(targetHeading) || [];
-      current.push(note);
-      groupedNotes.set(targetHeading, current);
+      if (patchHint.anchorBefore && patchHint.anchorAfter) {
+        return this.applyAnchorPatch(content, patchHint);
+      }
+
+      return { applied: false, content, reason: 'target_heading_path_not_found' };
     }
 
-    let nextContent = content;
-    for (const [targetHeading, notes] of groupedNotes) {
-      nextContent = this.insertReviewNotesIntoSection(nextContent, targetHeading, notes);
+    if (patchHint.changeType === 'replace_range') {
+      const anchorResult = this.applyAnchorPatch(content, patchHint);
+      if (anchorResult.applied) {
+        return anchorResult;
+      }
+
+      if (patchHint.targetHeadingPath.length > 0) {
+        const section = this.findSectionByHeadingPath(content, patchHint.targetHeadingPath);
+        if (section) {
+          return {
+            applied: true,
+            content: this.replaceSectionByRange(content, section, patchHint.replacementContent)
+          };
+        }
+      }
+
+      return anchorResult.reason
+        ? anchorResult
+        : { applied: false, content, reason: 'anchors_not_found' };
     }
 
-    if (fallbackNotes.length > 0) {
-      nextContent = this.appendGlobalReviewNotes(nextContent, fallbackNotes);
-    }
-
-    return nextContent;
+    return { applied: false, content, reason: 'unsupported_change_type' };
   }
 
   private buildReviewIssueNote(issue: ReviewIssue): string {
@@ -1382,149 +1740,226 @@ ${getAgentsPromptTemplate(domain)}
     return `- [${severityLabels[issue.severity]}][${categoryLabels[issue.category]}] ${issue.title}：${detail}`;
   }
 
-  private findReviewTargetHeading(
-    content: string,
-    docType: DocType,
-    category: ReviewIssue['category']
-  ): string | null {
-    const candidates = this.getReviewHeadingCandidates(docType, category);
-    const lines = content.split(/\r?\n/);
+  private findSectionByHeadingPath(content: string, targetHeadingPath: string[]): SectionRange | null {
+    if (!Array.isArray(targetHeadingPath) || targetHeadingPath.length === 0) {
+      return null;
+    }
 
-    for (const candidate of candidates) {
-      const match = lines.find(line => this.normalizeHeadingLine(line) === candidate);
-      if (match) {
-        return match;
+    const lines = content.split(/\r?\n/);
+    const normalizedTargetPath = targetHeadingPath.map(part => this.normalizeHeadingLine(part));
+    const stack: Array<{ level: number; heading: string }> = [];
+
+    for (let index = 0; index < lines.length; index += 1) {
+      const line = lines[index];
+      const match = line.match(/^(#{1,6})\s+/);
+      if (!match) {
+        continue;
       }
+
+      const level = match[1].length;
+      const heading = this.normalizeHeadingLine(line);
+      while (stack.length > 0 && stack[stack.length - 1].level >= level) {
+        stack.pop();
+      }
+      stack.push({ level, heading });
+
+      const currentPath = stack.map(item => item.heading);
+      if (!this.pathEndsWith(currentPath, normalizedTargetPath)) {
+        continue;
+      }
+
+      let endIndex = lines.length;
+      for (let end = index + 1; end < lines.length; end += 1) {
+        const nextMatch = lines[end].match(/^(#{1,6})\s+/);
+        if (nextMatch && nextMatch[1].length <= level) {
+          endIndex = end;
+          break;
+        }
+      }
+
+      return {
+        startIndex: index,
+        endIndex,
+        headingLine: line
+      };
     }
 
     return null;
   }
 
-  private getReviewHeadingCandidates(
-    docType: DocType,
-    category: ReviewIssue['category']
-  ): string[] {
-    const byDocType: Record<DocType, string[]> = {
-      PRD: ['## 功能需求', '### 功能模块划分', '### 详细功能列表', '## 项目概述'],
-      FRONTEND: ['## 核心组件设计', '## 页面设计', '## 状态管理', '## API 对接', '## API对接'],
-      BACKEND: ['## API设计', '## 数据库设计', '## 核心业务流程', '## 安全设计'],
-      API: ['## 接口列表', '## API设计', '## 认证与鉴权', '## 数据模型', '## 错误码'],
-      TASK: ['## 开发任务清单', '## 任务拆解', '## 里程碑', '## 模块任务'],
-      CONTEXT_STATE: ['## 当前状态', '## 待办事项', '## 风险与阻塞', '## 下一步计划'],
-      AGENTS: ['## 执行流程', '## 规则', '## 输出约束', '## ContextState 更新规则']
-    };
-
-    const byCategory: Partial<Record<ReviewIssue['category'], string[]>> = {
-      prd_vs_frontend: ['## 功能需求', '## 核心组件设计', '## 页面设计'],
-      prd_vs_backend: ['## 功能需求', '## API设计', '## 数据库设计'],
-      backend_vs_api: ['## API设计', '## 接口列表', '## 数据模型'],
-      frontend_vs_api: ['## API 对接', '## API对接', '## 接口列表', '## 状态管理'],
-      overall: ['## 项目概述', '## 当前状态', '## 规则']
-    };
-
-    return Array.from(new Set([
-      ...(byCategory[category] || []),
-      ...byDocType[docType]
-    ])).map(candidate => this.normalizeHeadingLine(candidate));
-  }
-
-  private insertReviewNotesIntoSection(content: string, targetHeading: string, notes: string[]): string {
+  private replaceSectionByRange(content: string, section: SectionRange, replacementContent: string): string {
     const lines = content.split(/\r?\n/);
-    const startIndex = lines.findIndex(line => this.normalizeHeadingLine(line) === this.normalizeHeadingLine(targetHeading));
-    if (startIndex === -1) {
-      return content;
+    let replacement = this.cleanGeneratedContent(replacementContent);
+    const firstReplacementLine = replacement.split(/\r?\n/)[0] || '';
+
+    if (this.normalizeHeadingLine(firstReplacementLine) !== this.normalizeHeadingLine(section.headingLine)) {
+      replacement = `${section.headingLine}\n\n${replacement}`.trim();
     }
 
-    const headingLevelMatch = lines[startIndex].match(/^(#{1,6})\s+/);
-    if (!headingLevelMatch) {
-      return content;
-    }
-
-    const headingLevel = headingLevelMatch[1].length;
-    let endIndex = lines.length;
-
-    for (let index = startIndex + 1; index < lines.length; index += 1) {
-      const match = lines[index].match(/^(#{1,6})\s+/);
-      if (match && match[1].length <= headingLevel) {
-        endIndex = index;
-        break;
-      }
-    }
-
-    const sectionLines = lines.slice(startIndex, endIndex);
-    const normalizedSection = sectionLines.join('\n');
-    const uniqueNotes = notes.filter(note => !normalizedSection.includes(note));
-
-    if (uniqueNotes.length === 0) {
-      return content;
-    }
-
-    const blockTitle = headingLevel < 6
-      ? `${'#'.repeat(headingLevel + 1)} 审核修订`
-      : `${'#'.repeat(headingLevel)} 审核修订`;
-    const existingBlockIndex = sectionLines.findIndex(line => this.normalizeHeadingLine(line) === this.normalizeHeadingLine(blockTitle));
-
-    let updatedSectionLines: string[];
-    if (existingBlockIndex >= 0) {
-      const insertionIndex = this.findReviewBlockEnd(sectionLines, existingBlockIndex, headingLevel + 1);
-      updatedSectionLines = [
-        ...sectionLines.slice(0, insertionIndex),
-        ...uniqueNotes,
-        ...sectionLines.slice(insertionIndex)
-      ];
-    } else {
-      updatedSectionLines = [
-        ...sectionLines,
-        '',
-        blockTitle,
-        '',
-        ...uniqueNotes
-      ];
-    }
-
+    const replacementLines = replacement.split(/\r?\n/);
     const mergedLines = [
-      ...lines.slice(0, startIndex),
-      ...updatedSectionLines,
-      ...lines.slice(endIndex)
+      ...lines.slice(0, section.startIndex),
+      ...replacementLines,
+      ...lines.slice(section.endIndex)
     ];
 
     return mergedLines.join('\n').replace(/\n{3,}/g, '\n\n').trim();
   }
 
-  private findReviewBlockEnd(sectionLines: string[], blockStartIndex: number, blockLevel: number): number {
-    for (let index = blockStartIndex + 1; index < sectionLines.length; index += 1) {
-      const match = sectionLines[index].match(/^(#{1,6})\s+/);
-      if (match && match[1].length <= blockLevel) {
-        return index;
+  private applyAnchorPatch(
+    content: string,
+    patchHint: ReviewPatchHint
+  ): { applied: boolean; content: string; reason?: string } {
+    if (!patchHint.anchorBefore || !patchHint.anchorAfter) {
+      return { applied: false, content, reason: 'missing_anchors' };
+    }
+
+    const startIndex = content.indexOf(patchHint.anchorBefore);
+    if (startIndex === -1) {
+      return { applied: false, content, reason: 'anchor_before_not_found' };
+    }
+
+    const replaceStart = startIndex + patchHint.anchorBefore.length;
+    const endIndex = content.indexOf(patchHint.anchorAfter, replaceStart);
+    if (endIndex === -1) {
+      return { applied: false, content, reason: 'anchor_after_not_found' };
+    }
+
+    if (endIndex < replaceStart) {
+      return { applied: false, content, reason: 'invalid_anchor_order' };
+    }
+
+    const merged = `${content.slice(0, replaceStart)}${patchHint.replacementContent}${content.slice(endIndex)}`;
+    return {
+      applied: true,
+      content: merged.replace(/\n{3,}/g, '\n\n').trim()
+    };
+  }
+
+  private pathEndsWith(fullPath: string[], targetPath: string[]): boolean {
+    if (fullPath.length < targetPath.length) {
+      return false;
+    }
+
+    const startIndex = fullPath.length - targetPath.length;
+    for (let index = 0; index < targetPath.length; index += 1) {
+      if (fullPath[startIndex + index] !== targetPath[index]) {
+        return false;
       }
     }
 
-    return sectionLines.length;
-  }
-
-  private appendGlobalReviewNotes(content: string, notes: string[]): string {
-    const uniqueNotes = notes.filter(note => !content.includes(note));
-    if (uniqueNotes.length === 0) {
-      return content;
-    }
-
-    const lines = content.split(/\r?\n/);
-    const existingIndex = lines.findIndex(line => this.normalizeHeadingLine(line) === '## 审核修订记录');
-    if (existingIndex >= 0) {
-      const endIndex = this.findReviewBlockEnd(lines, existingIndex, 2);
-      const mergedLines = [
-        ...lines.slice(0, endIndex),
-        ...uniqueNotes,
-        ...lines.slice(endIndex)
-      ];
-      return mergedLines.join('\n').replace(/\n{3,}/g, '\n\n').trim();
-    }
-
-    return `${content.trim()}\n\n## 审核修订记录\n\n${uniqueNotes.join('\n')}`.trim();
+    return true;
   }
 
   private normalizeHeadingLine(line: string): string {
     return line.trim().replace(/\s+/g, ' ');
+  }
+
+  private async ensureReviewPatchHints(
+    topicInfo: TopicInfo,
+    allDocs: Record<string, string>,
+    reviewResult: ReviewResult
+  ): Promise<ReviewResult> {
+    const issuesNeedingRecovery = reviewResult.issues
+      .map(issue => ({
+        issue,
+        missingDocTypes: issue.affectedDocTypes.filter(docType =>
+          Boolean(allDocs[docType])
+          && !issue.patchHints.some(hint => hint.docType === docType)
+        )
+      }))
+      .filter(item => item.missingDocTypes.length > 0);
+
+    if (issuesNeedingRecovery.length === 0) {
+      return reviewResult;
+    }
+
+    const recoverySystemPrompt = getPatchHintRecoverySystemPrompt(topicInfo.domain);
+    const recoveryUserPrompt = buildPatchHintRecoveryUserPrompt(
+      topicInfo,
+      allDocs,
+      issuesNeedingRecovery.map(({ issue }) => ({
+        id: issue.id,
+        category: issue.category,
+        title: issue.title,
+        description: issue.description,
+        suggestion: issue.suggestion,
+        affectedDocTypes: issue.affectedDocTypes,
+        existingPatchDocTypes: issue.patchHints.map(hint => hint.docType)
+      }))
+    );
+
+    try {
+      const rawRecovery = await this.executeWithRetry([
+        { role: 'system', content: recoverySystemPrompt },
+        { role: 'user', content: recoveryUserPrompt }
+      ]);
+      const recoveredPatchHints = this.parsePatchHintRecoveryResult(rawRecovery);
+
+      return {
+        ...reviewResult,
+        issues: reviewResult.issues.map(issue => {
+          const extraHints = recoveredPatchHints.get(issue.id) || [];
+          if (extraHints.length === 0) {
+            return issue;
+          }
+
+          const existingKeys = new Set(
+            issue.patchHints.map(hint => this.getPatchHintIdentity(hint))
+          );
+          const mergedHints = [
+            ...issue.patchHints,
+            ...extraHints.filter(hint => !existingKeys.has(this.getPatchHintIdentity(hint)))
+          ];
+
+          return {
+            ...issue,
+            patchHints: mergedHints
+          };
+        })
+      };
+    } catch (error) {
+      console.warn('Patch hint recovery failed:', error);
+      return reviewResult;
+    }
+  }
+
+  private parsePatchHintRecoveryResult(rawContent: string): Map<number, ReviewPatchHint[]> {
+    const patchHintsByIssueId = new Map<number, ReviewPatchHint[]>();
+    const jsonMatch = rawContent.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) {
+      return patchHintsByIssueId;
+    }
+
+    try {
+      const parsed = JSON.parse(jsonMatch[0]) as {
+        patchHintsByIssueId?: Record<string, unknown>;
+      };
+
+      for (const [issueId, rawHints] of Object.entries(parsed.patchHintsByIssueId || {})) {
+        const numericIssueId = Number(issueId);
+        if (Number.isNaN(numericIssueId)) {
+          continue;
+        }
+
+        patchHintsByIssueId.set(numericIssueId, this.parseReviewPatchHints(rawHints));
+      }
+    } catch {
+      return patchHintsByIssueId;
+    }
+
+    return patchHintsByIssueId;
+  }
+
+  private getPatchHintIdentity(patchHint: ReviewPatchHint): string {
+    return JSON.stringify({
+      docType: patchHint.docType,
+      changeType: patchHint.changeType,
+      targetHeadingPath: patchHint.targetHeadingPath,
+      anchorBefore: patchHint.anchorBefore || '',
+      anchorAfter: patchHint.anchorAfter || '',
+      replacementContent: patchHint.replacementContent
+    });
   }
 }
 

@@ -24,7 +24,7 @@
     <!-- State 2: Reviewing -->
     <div v-else-if="reviewStatus === 'reviewing'" class="review-loading">
       <el-icon class="is-loading" :size="32"><Loading /></el-icon>
-      <p class="loading-text">{{ reviewLoadingText }}</p>
+      <p class="loading-text">专家团正在审核中</p>
     </div>
 
     <!-- State 3: Results -->
@@ -97,8 +97,44 @@
 
     <!-- State 5: Fixed -->
     <div v-else-if="reviewStatus === 'fixed'" class="review-fixed">
-      <el-result icon="success" title="修复完成" sub-title="文档已根据审核建议更新">
-        <template #extra>
+      <el-result
+        :icon="hasUnresolvedFixes ? 'warning' : 'success'"
+        :title="hasUnresolvedFixes ? '部分修复完成' : '修复完成'"
+        :sub-title="hasUnresolvedFixes ? '已自动修订可定位内容，未定位项请按提示人工整理文档结构' : '文档已根据审核建议更新'"
+      >
+        <template v-if="hasUnresolvedFixes" #extra>
+          <div class="unresolved-summary">
+            <p class="unresolved-desc">以下问题没有再被直接追加到文末，而是保留为待人工整理项，方便你按结构重新编排文档。</p>
+            <el-collapse class="issues-collapse">
+              <el-collapse-item
+                v-for="item in documentStore.unresolvedFixes"
+                :key="`${item.docType}-${item.issueId}-${item.reason}`"
+                :title="`${(docTypeLabels as any)[item.docType] || item.docType} · 问题 #${item.issueId}`"
+              >
+                <div class="issue-detail">
+                  <p class="issue-desc"><strong>未自动应用原因：</strong>{{ unresolvedReasonLabel(item.reason) }}</p>
+                  <p v-if="item.targetHeadingPath?.length" class="issue-desc">
+                    <strong>目标标题路径：</strong>{{ item.targetHeadingPath.join(' > ') }}
+                  </p>
+                  <p v-if="item.anchorBefore" class="issue-desc">
+                    <strong>前锚点：</strong>{{ item.anchorBefore }}
+                  </p>
+                  <p v-if="item.anchorAfter" class="issue-desc">
+                    <strong>后锚点：</strong>{{ item.anchorAfter }}
+                  </p>
+                  <p class="issue-suggestion">
+                    <strong>建议人工整理：</strong>{{ item.fallbackNote }}
+                  </p>
+                </div>
+              </el-collapse-item>
+            </el-collapse>
+            <div class="review-actions">
+              <el-button type="primary" @click="handleNewReview">再次审核</el-button>
+              <el-button @click="handleDiscard">关闭</el-button>
+            </div>
+          </div>
+        </template>
+        <template v-else #extra>
           <el-button type="primary" @click="handleNewReview">再次审核</el-button>
           <el-button @click="handleDiscard">关闭</el-button>
         </template>
@@ -130,15 +166,7 @@ const docTypeLabels = DOC_TYPE_LABELS;
 
 const reviewStatus = computed(() => documentStore.reviewStatus);
 const fixing = computed(() => documentStore.fixing);
-
-const reviewMessages = [
-  '产品经理正在检查 PRD 与前端/后端的一致性...',
-  '前端架构师正在验证前端文档与 API 契约...',
-  '后端架构师正在检查后端与 API 的对齐...',
-  '总协调员正在汇总整体评估意见...'
-];
-const reviewLoadingText = ref(reviewMessages[0]);
-let reviewTimer: ReturnType<typeof setInterval> | null = null;
+const hasUnresolvedFixes = computed(() => documentStore.unresolvedFixes.length > 0);
 
 const fixMessages = [
   '正在根据审核建议定位受影响章节...',
@@ -158,12 +186,7 @@ function startLoadingRotation(messages: string[], textRef: { value: string }, du
 }
 
 async function handleStartReview() {
-  reviewLoadingText.value = reviewMessages[0];
-  reviewTimer = startLoadingRotation(reviewMessages, reviewLoadingText);
-
   const success = await documentStore.triggerReview(props.projectId);
-  if (reviewTimer) clearInterval(reviewTimer);
-  reviewTimer = null;
 
   if (success) {
     ElMessage.success('审核完成');
@@ -220,7 +243,11 @@ async function handleApplyFixes() {
   if (success) {
     const fixedTypes = documentStore.fixingDocTypes;
     emit('fixed', fixedTypes);
-    ElMessage.success(`已修改 ${fixedTypes.length} 份文档`);
+    if (documentStore.unresolvedFixes.length > 0) {
+      ElMessage.warning(`已自动修改 ${fixedTypes.length} 份文档，另有 ${documentStore.unresolvedFixes.length} 项待人工整理`);
+    } else {
+      ElMessage.success(`已修改 ${fixedTypes.length} 份文档`);
+    }
   } else {
     ElMessage.error(documentStore.error || '修复失败');
   }
@@ -242,8 +269,23 @@ function handleNewReview() {
   void handleStartReview();
 }
 
+function unresolvedReasonLabel(reason: string): string {
+  const labels: Record<string, string> = {
+    missing_patch_hints: '审核结果没有给出可直接应用的结构化修订提示',
+    patch_apply_failed: '结构化修订提示应用失败',
+    target_heading_path_not_found: '未找到目标标题路径',
+    missing_anchors: '缺少局部替换所需的前后锚点',
+    anchor_before_not_found: '未找到前锚点',
+    anchor_after_not_found: '未找到后锚点',
+    invalid_anchor_order: '前后锚点顺序异常',
+    anchors_not_found: '未找到可替换的锚点区间',
+    unsupported_change_type: '遇到不支持的修订类型'
+  };
+
+  return labels[reason] || reason;
+}
+
 onUnmounted(() => {
-  if (reviewTimer) clearInterval(reviewTimer);
   if (fixTimer) clearInterval(fixTimer);
 });
 </script>
@@ -265,6 +307,7 @@ onUnmounted(() => {
 }
 
 .review-loading {
+  position: relative;
   text-align: center;
   padding: 24px 0;
 }
@@ -356,5 +399,21 @@ onUnmounted(() => {
 
 .review-actions .el-button {
   flex: 1;
+}
+
+.review-fixed {
+  padding: 8px 0;
+}
+
+.unresolved-summary {
+  width: 100%;
+  text-align: left;
+}
+
+.unresolved-desc {
+  margin: 0 0 12px;
+  font-size: 13px;
+  color: #606266;
+  line-height: 1.6;
 }
 </style>
