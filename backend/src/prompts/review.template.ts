@@ -122,6 +122,13 @@ patchHints 为可自动应用的局部修订提示数组，字段要求如下：
 - 对 replace_range，replacementContent 不要包含 anchorBefore 和 anchorAfter 本身
 - 如果你无法可靠定位某个问题，请保留 issue，但 patchHints 可为空数组
 
+targetHeadingPath 关键规则：
+- targetHeadingPath 中的每一段都必须对应目标文档中实际存在的 Markdown 标题行（以 # 开头的行）
+- 不要将列表项、编号项、表格行等非标题内容作为 targetHeadingPath 的段
+- 例如 "2. T-02 数据库设计与表结构创建" 是列表项而非标题，不能作为 targetHeadingPath 的最后一段
+- 如果目标区域不是标题，应使用其最近的父标题作为 targetHeadingPath，同时用 anchorBefore/anchorAfter 标记精确替换范围
+- 优先组合使用 targetHeadingPath（定位到章节）+ anchorBefore/anchorAfter（定位到章节内的精确位置），这比单独使用任一方式更可靠
+
 如果没有发现问题，issues 数组为空。`;
 }
 
@@ -183,6 +190,8 @@ export function getPatchHintRecoverySystemPrompt(domain: Domain): string {
 - 优先使用 replace_section；只有标题路径不稳定或只能局部替换时再用 replace_range
 - replacementContent 只能是目标位置的新内容，不能是整篇文档
 - 如果某个 issue 仍无法可靠定位，可返回空数组
+- targetHeadingPath 中的每一段必须对应文档中实际存在的 Markdown 标题行（# 开头），不要把列表项或编号项作为标题路径段
+- 优先组合使用 targetHeadingPath（定位章节）+ anchorBefore/anchorAfter（定位章节内精确位置），比单独使用任一方式更可靠
 
 JSON 格式：
 {

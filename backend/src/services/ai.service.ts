@@ -1682,6 +1682,7 @@ ${getAgentsPromptTemplate(domain)}
     patchHint: ReviewPatchHint
   ): { applied: boolean; content: string; reason?: string } {
     if (patchHint.changeType === 'replace_section') {
+      // Strategy 1: Heading path match (exact + fuzzy)
       const section = this.findSectionByHeadingPath(content, patchHint.targetHeadingPath);
       if (section) {
         return {
@@ -1690,8 +1691,21 @@ ${getAgentsPromptTemplate(domain)}
         };
       }
 
+      // Strategy 2: Anchor-based replacement
       if (patchHint.anchorBefore && patchHint.anchorAfter) {
         return this.applyAnchorPatch(content, patchHint);
+      }
+
+      // Strategy 3: Partial heading path + text search within section
+      const partialResult = this.findByPartialPathAndText(content, patchHint);
+      if (partialResult.applied) {
+        return partialResult;
+      }
+
+      // Strategy 4: Full-text keyword search
+      const textResult = this.findByFullTextSearch(content, patchHint);
+      if (textResult.applied) {
+        return textResult;
       }
 
       return { applied: false, content, reason: 'target_heading_path_not_found' };
@@ -1711,6 +1725,12 @@ ${getAgentsPromptTemplate(domain)}
             content: this.replaceSectionByRange(content, section, patchHint.replacementContent)
           };
         }
+      }
+
+      // Partial heading path + text search fallback
+      const partialResult = this.findByPartialPathAndText(content, patchHint);
+      if (partialResult.applied) {
+        return partialResult;
       }
 
       return anchorResult.reason
@@ -1747,7 +1767,7 @@ ${getAgentsPromptTemplate(domain)}
 
     const lines = content.split(/\r?\n/);
     const normalizedTargetPath = targetHeadingPath.map(part => this.normalizeHeadingLine(part));
-    const stack: Array<{ level: number; heading: string }> = [];
+    const stack: Array<{ level: number; heading: string; original: string }> = [];
 
     for (let index = 0; index < lines.length; index += 1) {
       const line = lines[index];
@@ -1757,34 +1777,287 @@ ${getAgentsPromptTemplate(domain)}
       }
 
       const level = match[1].length;
-      const heading = this.normalizeHeadingLine(line);
+      const originalHeading = line.replace(/^(#{1,6})\s+/, '');
+      const normalizedHeading = this.normalizeHeadingLine(line);
+      
       while (stack.length > 0 && stack[stack.length - 1].level >= level) {
         stack.pop();
       }
-      stack.push({ level, heading });
+      stack.push({ level, heading: normalizedHeading, original: originalHeading });
 
       const currentPath = stack.map(item => item.heading);
-      if (!this.pathEndsWith(currentPath, normalizedTargetPath)) {
+      if (this.pathEndsWith(currentPath, normalizedTargetPath)) {
+        let endIndex = lines.length;
+        for (let end = index + 1; end < lines.length; end += 1) {
+          const nextMatch = lines[end].match(/^(#{1,6})\s+/);
+          if (nextMatch && nextMatch[1].length <= level) {
+            endIndex = end;
+            break;
+          }
+        }
+
+        return {
+          startIndex: index,
+          endIndex,
+          headingLine: line
+        };
+      }
+    }
+
+    // If exact match not found, try fuzzy matching for better robustness
+    return this.fuzzyFindSectionByHeadingPath(content, targetHeadingPath, stack);
+  }
+
+  /**
+   * Fuzzy matching for heading paths to handle minor text differences
+   */
+  private fuzzyFindSectionByHeadingPath(
+    content: string, 
+    targetHeadingPath: string[],
+    originalStack: Array<{ level: number; heading: string; original: string }>
+  ): SectionRange | null {
+    if (!Array.isArray(targetHeadingPath) || targetHeadingPath.length === 0) {
+      return null;
+    }
+
+    const lines = content.split(/\r?\n/);
+    const normalizedTargetPath = targetHeadingPath.map(part => this.normalizeHeadingLine(part));
+    const targetLastSegment = normalizedTargetPath[normalizedTargetPath.length - 1];
+    const targetLastSegmentSimple = targetLastSegment.replace(/[#\s]/g, '').toLowerCase();
+    
+    for (let index = 0; index < lines.length; index += 1) {
+      const line = lines[index];
+      const match = line.match(/^(#{1,6})\s+/);
+      if (!match) {
         continue;
       }
 
-      let endIndex = lines.length;
-      for (let end = index + 1; end < lines.length; end += 1) {
-        const nextMatch = lines[end].match(/^(#{1,6})\s+/);
-        if (nextMatch && nextMatch[1].length <= level) {
-          endIndex = end;
-          break;
-        }
+      const level = match[1].length;
+      // Only consider headings that match the depth we're looking for
+      if (level !== targetHeadingPath.length) {
+        continue;
       }
 
-      return {
-        startIndex: index,
-        endIndex,
-        headingLine: line
-      };
+      const originalHeading = line.replace(/^(#{1,6})\s+/, '');
+      const normalizedHeading = this.normalizeHeadingLine(line);
+      const normalizedHeadingSimple = normalizedHeading.replace(/[#\s]/g, '').toLowerCase();
+      
+      // Check for exact match first (fallback)
+      if (normalizedHeading === targetLastSegment) {
+        // Now check if the parent path matches
+        const tempStack: Array<{ level: number; heading: string }> = [];
+        for (let i = 0; i < index; i++) {
+          const prevLine = lines[i];
+          const prevMatch = prevLine.match(/^(#{1,6})\s+/);
+          if (!prevMatch) continue;
+          
+          const prevLevel = prevMatch[1].length;
+          const prevHeading = this.normalizeHeadingLine(prevLine);
+          
+          while (tempStack.length > 0 && tempStack[tempStack.length - 1].level >= prevLevel) {
+            tempStack.pop();
+          }
+          tempStack.push({ level: prevLevel, heading: prevHeading });
+        }
+        
+        const currentPath = tempStack.map(item => item.heading);
+        if (this.pathEndsWith(currentPath, normalizedTargetPath.slice(0, -1))) {
+          let endIndex = lines.length;
+          for (let end = index + 1; end < lines.length; end += 1) {
+            const nextMatch = lines[end].match(/^(#{1,6})\s+/);
+            if (nextMatch && nextMatch[1].length <= level) {
+              endIndex = end;
+              break;
+            }
+          }
+
+          return {
+            startIndex: index,
+            endIndex,
+            headingLine: line
+          };
+        }
+      }
+      
+      // Check for fuzzy match (contains or partial match)
+      if (normalizedHeadingSimple.includes(targetLastSegmentSimple) || 
+          targetLastSegmentSimple.includes(normalizedHeadingSimple)) {
+        // Simple containment match - use this as a fallback
+        let endIndex = lines.length;
+        for (let end = index + 1; end < lines.length; end += 1) {
+          const nextMatch = lines[end].match(/^(#{1,6})\s+/);
+          if (nextMatch && nextMatch[1].length <= level) {
+            endIndex = end;
+            break;
+          }
+        }
+
+        return {
+          startIndex: index,
+          endIndex,
+          headingLine: line
+        };
+      }
     }
 
     return null;
+  }
+
+  /**
+   * Strategy 3: Find by partial heading path, then search for text within that section.
+   * Handles cases like "## 下一步行动 > 2. T-02 数据库设计" where the last segment
+   * is a list item inside the section, not a heading.
+   */
+  private findByPartialPathAndText(
+    content: string,
+    patchHint: ReviewPatchHint
+  ): { applied: boolean; content: string; reason?: string } {
+    const { targetHeadingPath, replacementContent } = patchHint;
+    if (targetHeadingPath.length < 2) {
+      return { applied: false, content, reason: 'target_heading_path_not_found' };
+    }
+
+    // Try matching the parent path (all segments except the last)
+    const parentPath = targetHeadingPath.slice(0, -1);
+    const lastSegment = targetHeadingPath[targetHeadingPath.length - 1];
+
+    // Find the parent section
+    const parentSection = this.findSectionByHeadingPath(content, parentPath);
+    if (!parentSection) {
+      return { applied: false, content, reason: 'target_heading_path_not_found' };
+    }
+
+    // Extract parent section content and search for the last segment text
+    const lines = content.split(/\r?\n/);
+    const parentLines = lines.slice(parentSection.startIndex, parentSection.endIndex);
+    const parentContent = parentLines.join('\n');
+
+    // Normalize the last segment for search
+    const normalizedLast = lastSegment
+      .replace(/^\d+[\.\)、]\s*/, '') // Remove leading numbering like "2. " or "2) "
+      .trim()
+      .toLowerCase();
+
+    if (!normalizedLast) {
+      // No meaningful text to search — replace entire parent section
+      return {
+        applied: true,
+        content: this.replaceSectionByRange(content, parentSection, replacementContent)
+      };
+    }
+
+    // Find the line containing the last segment text
+    const matchedLineIndex = parentLines.findIndex(line => {
+      const normalizedLine = line.replace(/^\s*[-*]\s*/, '').replace(/^\d+[\.\)、]\s*/, '').trim().toLowerCase();
+      return normalizedLine.includes(normalizedLast) || normalizedLast.includes(normalizedLine);
+    });
+
+    if (matchedLineIndex === -1) {
+      // Text not found within parent section — replace entire parent section as last resort
+      return {
+        applied: true,
+        content: this.replaceSectionByRange(content, parentSection, replacementContent)
+      };
+    }
+
+    // Found the target text — determine its scope (list item block or single line)
+    const absoluteMatchIndex = parentSection.startIndex + matchedLineIndex;
+    const matchLevel = this.detectListLevel(parentLines[matchedLineIndex]);
+    let endOfBlock = matchedLineIndex + 1;
+    while (endOfBlock < parentLines.length) {
+      const nextLine = parentLines[endOfBlock];
+      if (nextLine.trim() === '') { endOfBlock++; continue; }
+      const nextLevel = this.detectListLevel(nextLine);
+      if (nextLevel <= matchLevel && nextLine.match(/^\s*[-*\d]/)) break;
+      if (nextLine.match(/^#{1,6}\s+/)) break;
+      if (nextLevel <= matchLevel) break;
+      endOfBlock++;
+    }
+
+    const blockSection: SectionRange = {
+      startIndex: absoluteMatchIndex,
+      endIndex: parentSection.startIndex + endOfBlock,
+      headingLine: lines[absoluteMatchIndex]
+    };
+
+    return {
+      applied: true,
+      content: this.replaceSectionByRange(content, blockSection, replacementContent)
+    };
+  }
+
+  /**
+   * Strategy 4: Full-text keyword search across the entire document.
+   * Extracts key terms from targetHeadingPath and replacementContent,
+   * locates the best matching region, and replaces it.
+   */
+  private findByFullTextSearch(
+    content: string,
+    patchHint: ReviewPatchHint
+  ): { applied: boolean; content: string; reason?: string } {
+    const { targetHeadingPath, replacementContent } = patchHint;
+
+    // Extract searchable keywords from the path segments
+    const keywords = targetHeadingPath
+      .flatMap(segment => segment.split(/[\s>]+/))
+      .map(kw => kw.replace(/^\d+[\.\)、]*/, '').trim().toLowerCase())
+      .filter(kw => kw.length >= 2);
+
+    if (keywords.length === 0) {
+      return { applied: false, content, reason: 'target_heading_path_not_found' };
+    }
+
+    const lines = content.split(/\r?\n/);
+    let bestLineIndex = -1;
+    let bestScore = 0;
+
+    for (let i = 0; i < lines.length; i++) {
+      const normalizedLine = lines[i].toLowerCase();
+      let score = 0;
+      for (const kw of keywords) {
+        if (normalizedLine.includes(kw)) score++;
+      }
+      if (score > bestScore) {
+        bestScore = score;
+        bestLineIndex = i;
+      }
+    }
+
+    if (bestLineIndex === -1 || bestScore === 0) {
+      return { applied: false, content, reason: 'target_heading_path_not_found' };
+    }
+
+    // Determine the scope of the matched region
+    const matchLine = lines[bestLineIndex];
+    const matchLevel = this.detectListLevel(matchLine);
+    let endOfBlock = bestLineIndex + 1;
+    while (endOfBlock < lines.length) {
+      const nextLine = lines[endOfBlock];
+      if (nextLine.trim() === '') { endOfBlock++; continue; }
+      const nextLevel = this.detectListLevel(nextLine);
+      if (nextLine.match(/^#{1,6}\s+/)) break;
+      if (nextLevel <= matchLevel && nextLine.match(/^\s*[-*\d]/)) break;
+      if (nextLevel <= matchLevel) break;
+      endOfBlock++;
+    }
+
+    const section: SectionRange = {
+      startIndex: bestLineIndex,
+      endIndex: endOfBlock,
+      headingLine: matchLine
+    };
+
+    return {
+      applied: true,
+      content: this.replaceSectionByRange(content, section, replacementContent)
+    };
+  }
+
+  private detectListLevel(line: string): number {
+    const match = line.match(/^(\s*)/);
+    const indent = match ? match[1].length : 0;
+    // Count indent level (2 or 4 spaces per level)
+    return Math.floor(indent / 2);
   }
 
   private replaceSectionByRange(content: string, section: SectionRange, replacementContent: string): string {
@@ -1852,7 +2125,7 @@ ${getAgentsPromptTemplate(domain)}
   }
 
   private normalizeHeadingLine(line: string): string {
-    return line.trim().replace(/\s+/g, ' ');
+    return line.trim().replace(/\s+/g, ' ').replace(/[^\w\s一-鿿]/g, '').toLowerCase();
   }
 
   private async ensureReviewPatchHints(
