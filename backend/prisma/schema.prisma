@@ -149,7 +149,7 @@ model Document {
 model SystemConfig {
   id          Int      @id @default(autoincrement())
   key         String   @unique  // "announcement" | "guide"
-  value       String   // JSON string or plain text
+  value       String   @db.LongText // JSON string or plain text，公告/指南可能包含较长文本
   description String?  // Optional description for admin reference
   updatedAt   DateTime @updatedAt
 
