@@ -134,7 +134,7 @@ model Document {
   id        Int       @id @default(autoincrement())
   projectId Int       // D-10: 关联项目
   docType   DocType   // D-13: 文档类型
-  content   String   // D-13: Markdown内容
+  content   String   @db.LongText // D-13: Markdown内容，AI生成文档可能超过默认VARCHAR长度
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
 
