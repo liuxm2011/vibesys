@@ -75,10 +75,16 @@
                   :status="documentStore.generating && isGeneratingDoc('PRD') ? 'generating' : 'idle'"
                   :stats="documentStore.generationStats"
                 />
+                <DocumentModeToggle v-model:mode="docModes.PRD" class="mode-toggle" />
                 <MarkdownEditor
+                  v-if="docModes.PRD === 'edit'"
                   :content="document.content"
                   :document-id="document.id"
                   @save="handleDocumentSave"
+                />
+                <MarkdownPreview
+                  v-else
+                  :content="document.content"
                 />
               </div>
               <div v-else class="empty-doc-placeholder">
@@ -109,10 +115,16 @@
                   :status="documentStore.generating && isGeneratingDoc('FRONTEND') ? 'generating' : 'idle'"
                   :stats="documentStore.generationStats"
                 />
+                <DocumentModeToggle v-model:mode="docModes.FRONTEND" class="mode-toggle" />
                 <MarkdownEditor
+                  v-if="docModes.FRONTEND === 'edit'"
                   :content="document.content"
                   :document-id="document.id"
                   @save="handleDocumentSave"
+                />
+                <MarkdownPreview
+                  v-else
+                  :content="document.content"
                 />
               </div>
               <div v-else class="empty-doc-placeholder">
@@ -144,10 +156,16 @@
                   :status="documentStore.generating && isGeneratingDoc('BACKEND') ? 'generating' : 'idle'"
                   :stats="documentStore.generationStats"
                 />
+                <DocumentModeToggle v-model:mode="docModes.BACKEND" class="mode-toggle" />
                 <MarkdownEditor
+                  v-if="docModes.BACKEND === 'edit'"
                   :content="document.content"
                   :document-id="document.id"
                   @save="handleDocumentSave"
+                />
+                <MarkdownPreview
+                  v-else
+                  :content="document.content"
                 />
               </div>
               <div v-else class="empty-doc-placeholder">
@@ -179,10 +197,16 @@
                   :status="documentStore.generating && isGeneratingDoc('API') ? 'generating' : 'idle'"
                   :stats="documentStore.generationStats"
                 />
+                <DocumentModeToggle v-model:mode="docModes.API" class="mode-toggle" />
                 <MarkdownEditor
+                  v-if="docModes.API === 'edit'"
                   :content="document.content"
                   :document-id="document.id"
                   @save="handleDocumentSave"
+                />
+                <MarkdownPreview
+                  v-else
+                  :content="document.content"
                 />
               </div>
               <div v-else class="empty-doc-placeholder">
@@ -214,10 +238,16 @@
                   :status="documentStore.generating && isGeneratingDoc('TASK') ? 'generating' : 'idle'"
                   :stats="documentStore.generationStats"
                 />
+                <DocumentModeToggle v-model:mode="docModes.TASK" class="mode-toggle" />
                 <MarkdownEditor
+                  v-if="docModes.TASK === 'edit'"
                   :content="document.content"
                   :document-id="document.id"
                   @save="handleDocumentSave"
+                />
+                <MarkdownPreview
+                  v-else
+                  :content="document.content"
                 />
               </div>
               <div v-else class="empty-doc-placeholder">
@@ -249,10 +279,16 @@
                   :status="documentStore.generating && isGeneratingDoc('CONTEXT_STATE') ? 'generating' : 'idle'"
                   :stats="documentStore.generationStats"
                 />
+                <DocumentModeToggle v-model:mode="docModes.CONTEXT_STATE" class="mode-toggle" />
                 <MarkdownEditor
+                  v-if="docModes.CONTEXT_STATE === 'edit'"
                   :content="document.content"
                   :document-id="document.id"
                   @save="handleDocumentSave"
+                />
+                <MarkdownPreview
+                  v-else
+                  :content="document.content"
                 />
               </div>
               <div v-else class="empty-doc-placeholder">
@@ -284,10 +320,16 @@
                   :status="documentStore.generating && isGeneratingDoc('AGENTS') ? 'generating' : 'idle'"
                   :stats="documentStore.generationStats"
                 />
+                <DocumentModeToggle v-model:mode="docModes.AGENTS" class="mode-toggle" />
                 <MarkdownEditor
+                  v-if="docModes.AGENTS === 'edit'"
                   :content="document.content"
                   :document-id="document.id"
                   @save="handleDocumentSave"
+                />
+                <MarkdownPreview
+                  v-else
+                  :content="document.content"
                 />
               </div>
               <div v-else class="empty-doc-placeholder">
@@ -394,6 +436,8 @@ import TerminalGenerationOverlay from '@/components/TerminalGenerationOverlay.vu
 import DocumentTabs from '@/components/DocumentTabs.vue';
 import DocumentEmptyState from '@/components/DocumentEmptyState.vue';
 import MarkdownEditor from '@/components/MarkdownEditor.vue';
+import MarkdownPreview from '@/components/MarkdownPreview.vue';
+import DocumentModeToggle from '@/components/DocumentModeToggle.vue';
 import TechStackPanel from '@/components/TechStackPanel.vue';
 import ExpertReviewPanel from '@/components/ExpertReviewPanel.vue';
 import type { DocType } from '@/types/document';
@@ -416,6 +460,15 @@ const projectId = computed(() => {
 });
 
 const activeDocType = ref<DocType>('PRD');
+const docModes = ref<Record<DocType, 'read' | 'edit'>>({
+  PRD: 'edit',
+  FRONTEND: 'edit',
+  BACKEND: 'edit',
+  API: 'edit',
+  TASK: 'edit',
+  CONTEXT_STATE: 'edit',
+  AGENTS: 'edit',
+});
 const project = computed(() =>
   projectStore.projects.find(p => p.id === projectId.value)
 );
@@ -749,6 +802,13 @@ function getStatusTagType(status: ProjectStatus | undefined): 'info' | 'warning'
 .document-wrapper {
   height: calc(100vh - 200px);
   position: relative;
+}
+
+.mode-toggle {
+  position: absolute;
+  top: 8px;
+  right: 12px;
+  z-index: 10;
 }
 
 .empty-doc-placeholder {
