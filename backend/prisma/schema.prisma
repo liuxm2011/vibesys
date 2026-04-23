@@ -155,3 +155,22 @@ model SystemConfig {
 
   @@index([key])
 }
+
+// AI usage tracking model
+model AiUsageLog {
+  id                Int       @id @default(autoincrement())
+  userId            Int
+  projectId         Int?
+  docType           String?   // PRD/FRONTEND/BACKEND/API/TASK/CONTEXT_STATE/AGENTS
+  operation         String    // 'generate' | 'generate_stream' | 'review' | 'review_stream' | 'fix'
+  promptTokens      Int       @default(0)
+  completionTokens  Int       @default(0)
+  totalTokens       Int       @default(0)
+  status            String    @default("success") // 'success' | 'error' | 'timeout'
+  errorMessage      String?   @db.Text
+  createdAt         DateTime  @default(now())
+
+  @@index([userId])
+  @@index([createdAt])
+  @@index([operation])
+}

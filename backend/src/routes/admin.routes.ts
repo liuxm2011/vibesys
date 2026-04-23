@@ -1024,4 +1024,195 @@ router.put('/config/guide', async (req: Request, res: Response) => {
   }
 });
 
+// ============================================================
+// AI USAGE STATISTICS
+// ============================================================
+
+/**
+ * GET /api/admin/stats/ai-usage
+ * AI usage statistics: total requests, total tokens, per-user breakdown,
+ * per-docType breakdown, daily trends, and failed requests
+ */
+router.get('/stats/ai-usage', async (req: Request, res: Response) => {
+  try {
+    // Overall totals
+    const [
+      totalRequests,
+      totalPromptTokens,
+      totalCompletionTokens,
+      totalTokens,
+      successRequests,
+      errorRequests,
+      timeoutRequests
+    ] = await Promise.all([
+      prisma.aiUsageLog.count(),
+      prisma.aiUsageLog.aggregate({ _sum: { promptTokens: true } }),
+      prisma.aiUsageLog.aggregate({ _sum: { completionTokens: true } }),
+      prisma.aiUsageLog.aggregate({ _sum: { totalTokens: true } }),
+      prisma.aiUsageLog.count({ where: { status: 'success' } }),
+      prisma.aiUsageLog.count({ where: { status: 'error' } }),
+      prisma.aiUsageLog.count({ where: { status: 'timeout' } })
+    ]);
+
+    // Per-user breakdown (top 50 by total tokens)
+    const userUsageRaw = await prisma.aiUsageLog.groupBy({
+      by: ['userId'],
+      _count: true,
+      _sum: {
+        promptTokens: true,
+        completionTokens: true,
+        totalTokens: true
+      },
+      orderBy: { _sum: { totalTokens: 'desc' } },
+      take: 50
+    });
+
+    // Fetch user names for the breakdown
+    const userIds = userUsageRaw.map(u => u.userId);
+    const users = await prisma.user.findMany({
+      where: { id: { in: userIds } },
+      select: { id: true, name: true, studentId: true }
+    });
+    const userMap = new Map(users.map(u => [u.id, u]));
+
+    const userUsage = userUsageRaw.map(u => {
+      const user = userMap.get(u.userId);
+      return {
+        userId: u.userId,
+        name: user?.name || '未知用户',
+        studentId: user?.studentId || '-',
+        requestCount: u._count,
+        promptTokens: u._sum.promptTokens || 0,
+        completionTokens: u._sum.completionTokens || 0,
+        totalTokens: u._sum.totalTokens || 0
+      };
+    });
+
+    // Per-docType breakdown
+    const docTypeUsageRaw = await prisma.aiUsageLog.groupBy({
+      by: ['docType'],
+      _count: true,
+      _sum: {
+        promptTokens: true,
+        completionTokens: true,
+        totalTokens: true
+      },
+      orderBy: { _sum: { totalTokens: 'desc' } }
+    });
+
+    const docTypeUsage = docTypeUsageRaw.map(d => ({
+      docType: d.docType || 'unknown',
+      requestCount: d._count,
+      promptTokens: d._sum.promptTokens || 0,
+      completionTokens: d._sum.completionTokens || 0,
+      totalTokens: d._sum.totalTokens || 0
+    }));
+
+    // Per-operation breakdown
+    const operationUsageRaw = await prisma.aiUsageLog.groupBy({
+      by: ['operation'],
+      _count: true,
+      _sum: {
+        promptTokens: true,
+        completionTokens: true,
+        totalTokens: true
+      },
+      orderBy: { _sum: { totalTokens: 'desc' } }
+    });
+
+    const operationUsage = operationUsageRaw.map(o => ({
+      operation: o.operation,
+      requestCount: o._count,
+      promptTokens: o._sum.promptTokens || 0,
+      completionTokens: o._sum.completionTokens || 0,
+      totalTokens: o._sum.totalTokens || 0
+    }));
+
+    // Daily trends (last 30 days)
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+    const dailyLogs = await prisma.aiUsageLog.findMany({
+      where: { createdAt: { gte: thirtyDaysAgo } },
+      select: {
+        createdAt: true,
+        totalTokens: true,
+        status: true
+      }
+    });
+
+    const dateMap = new Map<string, { date: string; requestCount: number; totalTokens: number; successCount: number; errorCount: number; timeoutCount: number }>();
+    for (const log of dailyLogs) {
+      const date = log.createdAt.toISOString().split('T')[0];
+      const entry = dateMap.get(date) || { date, requestCount: 0, totalTokens: 0, successCount: 0, errorCount: 0, timeoutCount: 0 };
+      entry.requestCount += 1;
+      entry.totalTokens += log.totalTokens;
+      if (log.status === 'success') entry.successCount += 1;
+      else if (log.status === 'error') entry.errorCount += 1;
+      else if (log.status === 'timeout') entry.timeoutCount += 1;
+      dateMap.set(date, entry);
+    }
+
+    const dailyTrends = Array.from(dateMap.values())
+      .sort((a, b) => a.date.localeCompare(b.date));
+
+    // Recent failed requests (last 50)
+    const recentFailed = await prisma.aiUsageLog.findMany({
+      where: { status: { in: ['error', 'timeout'] } },
+      orderBy: { createdAt: 'desc' },
+      take: 50,
+      select: {
+        id: true,
+        userId: true,
+        projectId: true,
+        docType: true,
+        operation: true,
+        status: true,
+        errorMessage: true,
+        createdAt: true
+      }
+    });
+
+    const failedUserIds = recentFailed.map(f => f.userId);
+    const failedUsers = await prisma.user.findMany({
+      where: { id: { in: failedUserIds } },
+      select: { id: true, name: true, studentId: true }
+    });
+    const failedUserMap = new Map(failedUsers.map(u => [u.id, u]));
+
+    const recentFailedRequests = recentFailed.map(f => ({
+      id: f.id,
+      userId: f.userId,
+      name: failedUserMap.get(f.userId)?.name || '未知用户',
+      studentId: failedUserMap.get(f.userId)?.studentId || '-',
+      projectId: f.projectId,
+      docType: f.docType,
+      operation: f.operation,
+      status: f.status,
+      errorMessage: f.errorMessage,
+      createdAt: f.createdAt.toISOString()
+    }));
+
+    res.json({
+      overview: {
+        totalRequests,
+        totalPromptTokens: totalPromptTokens._sum.promptTokens || 0,
+        totalCompletionTokens: totalCompletionTokens._sum.completionTokens || 0,
+        totalTokens: totalTokens._sum.totalTokens || 0,
+        successRequests,
+        errorRequests,
+        timeoutRequests
+      },
+      userUsage,
+      docTypeUsage,
+      operationUsage,
+      dailyTrends,
+      recentFailedRequests
+    });
+  } catch (error) {
+    console.error('AI usage stats error:', error);
+    res.status(500).json({ error: '获取AI用量统计失败' });
+  }
+});
+
 export default router;

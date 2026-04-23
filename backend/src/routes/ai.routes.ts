@@ -3,8 +3,39 @@ import { DocType, Prisma } from '@prisma/client';
 import { authMiddleware } from '../middleware/auth.middleware.js';
 import { checkBannedMiddleware } from '../middleware/ban.middleware.js';
 import { prisma } from '../index.js';
-import { aiService } from '../services/ai.service.js';
+import { aiService, type TokenUsage } from '../services/ai.service.js';
 import { DOC_GENERATION_ORDER, getContextDependencies, getGenerationBlockedReason } from '../constants/document-generation.js';
+
+/**
+ * Record AI usage log to database
+ */
+async function recordAiUsage(
+  userId: number,
+  projectId: number | null,
+  docType: string | null,
+  operation: string,
+  usage: TokenUsage,
+  status: 'success' | 'error' | 'timeout',
+  errorMessage?: string
+): Promise<void> {
+  try {
+    await prisma.aiUsageLog.create({
+      data: {
+        userId,
+        projectId,
+        docType,
+        operation,
+        promptTokens: usage.promptTokens,
+        completionTokens: usage.completionTokens,
+        totalTokens: usage.totalTokens,
+        status,
+        errorMessage: errorMessage || null
+      }
+    });
+  } catch (err) {
+    console.error('[AI Usage Log] Failed to record usage:', err);
+  }
+}
 
 const router = Router();
 
@@ -99,12 +130,16 @@ router.post('/generate', authMiddleware, checkBannedMiddleware, async (req: Requ
     }
 
     // Generate document content via AI service
-    const content = await aiService.generateDocument(docType as DocType, {
+    const result = await aiService.generateDocument(docType as DocType, {
       ...topicInfo,
       previousDocs
     }, {
       bypassCache: forceRegenerate === true
     });
+    const content = result.content;
+
+    // Record AI usage
+    await recordAiUsage(userId, parsedProjectId, docType, 'generate', result.usage, 'success');
 
     // D-12: Create or update document record (single version, overwrite)
     const document = await prisma.document.upsert({
@@ -149,8 +184,21 @@ router.post('/generate', authMiddleware, checkBannedMiddleware, async (req: Requ
   } catch (error) {
     console.error('AI generation error:', error);
 
+    // Record failed usage
+    const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+    const isTimeout = errorMsg.includes('timeout');
+    await recordAiUsage(
+      req.user!.userId,
+      parsedProjectId,
+      docType,
+      'generate',
+      { promptTokens: 0, completionTokens: 0, totalTokens: 0 },
+      isTimeout ? 'timeout' : 'error',
+      errorMsg
+    );
+
     // Handle timeout gracefully
-    if (error instanceof Error && error.message.includes('timeout')) {
+    if (isTimeout) {
       return res.status(504).json({ error: '文档生成超时，请稍后重试' });
     }
 
@@ -238,7 +286,7 @@ router.post('/generate/stream', authMiddleware, checkBannedMiddleware, async (re
     res.setHeader('Connection', 'keep-alive');
     res.flushHeaders?.();
 
-    const content = await aiService.generateDocumentStream(docType as DocType, {
+    const result = await aiService.generateDocumentStream(docType as DocType, {
       ...topicInfo,
       previousDocs
     }, progress => {
@@ -246,6 +294,10 @@ router.post('/generate/stream', authMiddleware, checkBannedMiddleware, async (re
     }, {
       bypassCache: forceRegenerate === true
     });
+    const content = result.content;
+
+    // Record AI usage
+    await recordAiUsage(userId, parsedProjectId, docType, 'generate_stream', result.usage, 'success');
 
     const document = await prisma.document.upsert({
       where: {
@@ -288,16 +340,29 @@ router.post('/generate/stream', authMiddleware, checkBannedMiddleware, async (re
   } catch (error) {
     console.error('AI streaming generation error:', error);
 
+    // Record failed usage
+    const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+    const isTimeout = errorMsg.includes('timeout');
+    await recordAiUsage(
+      req.user!.userId,
+      parsedProjectId,
+      docType,
+      'generate_stream',
+      { promptTokens: 0, completionTokens: 0, totalTokens: 0 },
+      isTimeout ? 'timeout' : 'error',
+      errorMsg
+    );
+
     if (res.headersSent) {
       sendEvent('error', {
-        error: error instanceof Error && error.message.includes('timeout')
+        error: isTimeout
           ? '文档生成超时，请稍后重试'
           : '文档生成失败，请稍后重试'
       });
       return res.end();
     }
 
-    if (error instanceof Error && error.message.includes('timeout')) {
+    if (isTimeout) {
       return res.status(504).json({ error: '文档生成超时，请稍后重试' });
     }
 

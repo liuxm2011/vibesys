@@ -139,3 +139,74 @@ export interface ImportResult {
   errors: { row: number; reason: string }[];
   defaultPasswordRule?: string;
 }
+
+// ============================================================
+// AI USAGE STATISTICS
+// ============================================================
+
+export interface AiUsageOverview {
+  totalRequests: number;
+  totalPromptTokens: number;
+  totalCompletionTokens: number;
+  totalTokens: number;
+  successRequests: number;
+  errorRequests: number;
+  timeoutRequests: number;
+}
+
+export interface AiUserUsage {
+  userId: number;
+  name: string;
+  studentId: string;
+  requestCount: number;
+  promptTokens: number;
+  completionTokens: number;
+  totalTokens: number;
+}
+
+export interface AiDocTypeUsage {
+  docType: string;
+  requestCount: number;
+  promptTokens: number;
+  completionTokens: number;
+  totalTokens: number;
+}
+
+export interface AiOperationUsage {
+  operation: string;
+  requestCount: number;
+  promptTokens: number;
+  completionTokens: number;
+  totalTokens: number;
+}
+
+export interface AiDailyTrend {
+  date: string;
+  requestCount: number;
+  totalTokens: number;
+  successCount: number;
+  errorCount: number;
+  timeoutCount: number;
+}
+
+export interface AiFailedRequest {
+  id: number;
+  userId: number;
+  name: string;
+  studentId: string;
+  projectId: number | null;
+  docType: string | null;
+  operation: string;
+  status: string;
+  errorMessage: string | null;
+  createdAt: string;
+}
+
+export interface AiUsageStats {
+  overview: AiUsageOverview;
+  userUsage: AiUserUsage[];
+  docTypeUsage: AiDocTypeUsage[];
+  operationUsage: AiOperationUsage[];
+  dailyTrends: AiDailyTrend[];
+  recentFailedRequests: AiFailedRequest[];
+}

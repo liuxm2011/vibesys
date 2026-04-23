@@ -38,6 +38,11 @@ interface ChatCompletionResponse {
       content?: string;
     };
   }>;
+  usage?: {
+    prompt_tokens?: number;
+    completion_tokens?: number;
+    total_tokens?: number;
+  };
 }
 
 interface StreamChunkChoice {
@@ -53,6 +58,17 @@ interface StreamChunkChoice {
 
 interface StreamChunkResponse {
   choices?: StreamChunkChoice[];
+  usage?: {
+    prompt_tokens?: number;
+    completion_tokens?: number;
+    total_tokens?: number;
+  };
+}
+
+export interface TokenUsage {
+  promptTokens: number;
+  completionTokens: number;
+  totalTokens: number;
 }
 
 export interface GenerationProgress {
@@ -71,6 +87,11 @@ interface GenerationOptions {
 interface PendingRequest {
   promise: Promise<string>;
   timestamp: number;
+}
+
+interface ExecuteResult {
+  content: string;
+  usage: TokenUsage;
 }
 
 export interface ReviewIssue {
@@ -244,6 +265,26 @@ These guidelines are working if: fewer unnecessary changes in diffs, fewer rewri
   }
 
   /**
+   * Estimate token count from text content.
+   * Fallback when API does not return usage info.
+   * Chinese characters ≈ 1 token, English words ≈ 1.3 tokens.
+   */
+  estimateTokens(text: string): TokenUsage {
+    const chineseChars = (text.match(/[\u4e00-\u9fff]/g) || []).length;
+    const englishWords = (text.match(/[a-zA-Z]+/g) || []).length;
+    const otherChars = text.length - chineseChars - englishWords;
+    const completionTokens = Math.ceil(chineseChars + englishWords * 1.3 + otherChars * 0.5);
+    // Prompt tokens are harder to estimate without the original prompt;
+    // use a rough ratio for estimation
+    const promptTokens = Math.ceil(completionTokens * 0.3);
+    return {
+      promptTokens,
+      completionTokens,
+      totalTokens: promptTokens + completionTokens
+    };
+  }
+
+  /**
    * Generate document content via MiniMax API
    * DOC-04: AI content generation
    * D-08/09: Domain-specific templates
@@ -252,13 +293,15 @@ These guidelines are working if: fewer unnecessary changes in diffs, fewer rewri
     docType: DocType,
     topicInfo: TopicInfo,
     options: GenerationOptions = {}
-  ): Promise<string> {
+  ): Promise<{ content: string; usage: TokenUsage }> {
     const config = this.getConfig();
 
     // Mock mode for development/testing when API is unavailable
     if (config.mockMode) {
       console.log('[AI Mock] Generating mock document for', docType);
-      return this.postProcessGeneratedContent(docType, this.generateMockDocument(docType, topicInfo));
+      const content = this.postProcessGeneratedContent(docType, this.generateMockDocument(docType, topicInfo));
+      const usage = this.estimateTokens(content);
+      return { content, usage };
     }
 
     const cacheKey = this.generateCacheKey(docType, topicInfo);
@@ -269,14 +312,18 @@ These guidelines are working if: fewer unnecessary changes in diffs, fewer rewri
       const cached = this.resultCache.get(cacheKey);
       if (cached && Date.now() - cached.timestamp < this.CACHE_TTL) {
         console.log('[AI Cache] Hit for', cacheKey);
-        return this.postProcessGeneratedContent(docType, cached.content);
+        const content = this.postProcessGeneratedContent(docType, cached.content);
+        const usage = this.estimateTokens(content);
+        return { content, usage };
       }
 
       // 2. Check pending request (deduplication)
       const pending = this.pendingRequests.get(cacheKey);
       if (pending && Date.now() - pending.timestamp < 60_000) {
         console.log('[AI Dedup] Reusing pending request for', cacheKey);
-        return pending.promise;
+        const content = await pending.promise;
+        const usage = this.estimateTokens(content);
+        return { content, usage };
       }
     }
 
@@ -289,7 +336,7 @@ These guidelines are working if: fewer unnecessary changes in diffs, fewer rewri
     ];
 
     const requestPromise = this.executeWithRetry(messages)
-      .then(content => this.postProcessGeneratedContent(docType, content));
+      .then(result => this.postProcessGeneratedContent(docType, result.content));
 
     // Record pending request
     this.pendingRequests.set(cacheKey, {
@@ -306,7 +353,8 @@ These guidelines are working if: fewer unnecessary changes in diffs, fewer rewri
         timestamp: Date.now()
       });
 
-      return content;
+      const usage = this.estimateTokens(content);
+      return { content, usage };
     } finally {
       // Clean up pending marker
       this.pendingRequests.delete(cacheKey);
@@ -318,7 +366,7 @@ These guidelines are working if: fewer unnecessary changes in diffs, fewer rewri
     topicInfo: TopicInfo,
     onProgress: (progress: GenerationProgress) => void,
     options: GenerationOptions = {}
-  ): Promise<string> {
+  ): Promise<{ content: string; usage: TokenUsage }> {
     const config = this.getConfig();
 
     if (config.mockMode) {
@@ -331,7 +379,8 @@ These guidelines are working if: fewer unnecessary changes in diffs, fewer rewri
           contentText: finalized
         });
       }
-      return finalized;
+      const usage = this.estimateTokens(finalized);
+      return { content: finalized, usage };
     }
 
     const cacheKey = this.generateCacheKey(docType, topicInfo);
@@ -346,7 +395,8 @@ These guidelines are working if: fewer unnecessary changes in diffs, fewer rewri
           reasoningText: this.buildPreviewReasoningText('finalizing'),
           contentText: finalizedCached
         });
-        return finalizedCached;
+        const usage = this.estimateTokens(finalizedCached);
+        return { content: finalizedCached, usage };
       }
     }
 
@@ -357,10 +407,10 @@ These guidelines are working if: fewer unnecessary changes in diffs, fewer rewri
       { role: 'user', content: userPrompt }
     ];
 
-    const content = await this.executeStreamWithRetry(messages, onProgress);
-    const finalized = this.postProcessGeneratedContent(docType, content);
+    const result = await this.executeStreamWithRetry(messages, onProgress);
+    const finalized = this.postProcessGeneratedContent(docType, result.content);
 
-    if (finalized !== content) {
+    if (finalized !== result.content) {
       onProgress({
         phase: 'finalizing',
         reasoningText: this.buildPreviewReasoningText('finalizing'),
@@ -373,7 +423,7 @@ These guidelines are working if: fewer unnecessary changes in diffs, fewer rewri
       timestamp: Date.now()
     });
 
-    return finalized;
+    return { content: finalized, usage: result.usage };
   }
 
   /**
@@ -381,9 +431,10 @@ These guidelines are working if: fewer unnecessary changes in diffs, fewer rewri
    */
   private async executeWithRetry(
     messages: Array<{ role: 'system' | 'user' | 'assistant'; content: string }>
-  ): Promise<string> {
+  ): Promise<ExecuteResult> {
     const { baseURL, apiKey, model } = this.getConfig();
     const contentParts: string[] = [];
+    let totalUsage: TokenUsage = { promptTokens: 0, completionTokens: 0, totalTokens: 0 };
     const maxAttempts = 3; // Reduced from 5 to 3
 
     for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
@@ -397,6 +448,13 @@ These guidelines are working if: fewer unnecessary changes in diffs, fewer rewri
         }
 
         contentParts.push(content);
+
+        // Accumulate usage from API response
+        if (data.usage) {
+          totalUsage.promptTokens += data.usage.prompt_tokens || 0;
+          totalUsage.completionTokens += data.usage.completion_tokens || 0;
+          totalUsage.totalTokens += data.usage.total_tokens || 0;
+        }
 
         if (choice?.finish_reason !== 'length') {
           break;
@@ -414,16 +472,22 @@ These guidelines are working if: fewer unnecessary changes in diffs, fewer rewri
       }
     }
 
-    return this.cleanGeneratedContent(contentParts.join('\n'));
+    const finalContent = this.cleanGeneratedContent(contentParts.join('\n'));
+    // Fallback to estimation if API didn't return usage
+    if (totalUsage.totalTokens === 0) {
+      totalUsage = this.estimateTokens(finalContent);
+    }
+    return { content: finalContent, usage: totalUsage };
   }
 
   private async executeStreamWithRetry(
     messages: Array<{ role: 'system' | 'user' | 'assistant'; content: string }>,
     onProgress: (progress: GenerationProgress) => void
-  ): Promise<string> {
+  ): Promise<ExecuteResult> {
     const { baseURL, apiKey, model } = this.getConfig();
     const maxAttempts = 3;
     const contentParts: string[] = [];
+    let totalUsage: TokenUsage = { promptTokens: 0, completionTokens: 0, totalTokens: 0 };
 
     for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
       try {
@@ -435,6 +499,13 @@ These guidelines are working if: fewer unnecessary changes in diffs, fewer rewri
         }
 
         contentParts.push(cleanedContent);
+
+        // Accumulate usage from API response (last chunk usually contains usage)
+        if (result.usage) {
+          totalUsage.promptTokens += result.usage.promptTokens || 0;
+          totalUsage.completionTokens += result.usage.completionTokens || 0;
+          totalUsage.totalTokens += result.usage.totalTokens || 0;
+        }
 
         if (result.finishReason !== 'length') {
           break;
@@ -452,6 +523,10 @@ These guidelines are working if: fewer unnecessary changes in diffs, fewer rewri
     }
 
     const finalContent = this.cleanGeneratedContent(contentParts.join('\n'));
+    // Fallback to estimation if API didn't return usage
+    if (totalUsage.totalTokens === 0) {
+      totalUsage = this.estimateTokens(finalContent);
+    }
     onProgress({
       phase: 'finalizing',
       reasoningText: this.buildPreviewReasoningText('finalizing'),
@@ -459,7 +534,7 @@ These guidelines are working if: fewer unnecessary changes in diffs, fewer rewri
       tokenCount: contentParts.reduce((acc, part) => acc + part.split(/\s+/).length, 0),
       elapsedSeconds: 0,
     });
-    return finalContent;
+    return { content: finalContent, usage: totalUsage };
   }
 
   /**
@@ -573,7 +648,7 @@ ${baseInfo}${contextSection}
     model: string,
     messages: Array<{ role: 'system' | 'user' | 'assistant'; content: string }>,
     onProgress: (progress: GenerationProgress) => void
-  ): Promise<{ reasoningText: string; contentText: string; finishReason: string | null; tokenCount: number }> {
+  ): Promise<{ reasoningText: string; contentText: string; finishReason: string | null; tokenCount: number; usage: TokenUsage }> {
     const response = await fetch(`${baseURL}/chat/completions`, {
       method: 'POST',
       headers: {
@@ -717,11 +792,19 @@ ${baseInfo}${contextSection}
 
     emitProgress(true);
 
+    // Build usage from accumulated token count and estimate prompt tokens
+    const usage: TokenUsage = {
+      promptTokens: Math.ceil(tokenCount * 0.3),
+      completionTokens: tokenCount,
+      totalTokens: Math.ceil(tokenCount * 1.3)
+    };
+
     return {
       reasoningText,
       contentText,
       finishReason,
       tokenCount,
+      usage,
     };
   }
 
@@ -1514,7 +1597,7 @@ ${getAgentsPromptTemplate(domain)}
     ];
 
     const rawContent = await this.executeWithRetry(messages);
-    const parsedResult = this.parseReviewResult(rawContent);
+    const parsedResult = this.parseReviewResult(rawContent.content);
     return this.ensureReviewPatchHints(topicInfo, allDocs, parsedResult);
   }
 
@@ -2321,7 +2404,7 @@ ${getAgentsPromptTemplate(domain)}
         { role: 'system', content: recoverySystemPrompt },
         { role: 'user', content: recoveryUserPrompt }
       ]);
-      const recoveredPatchHints = this.parsePatchHintRecoveryResult(rawRecovery);
+      const recoveredPatchHints = this.parsePatchHintRecoveryResult(rawRecovery.content);
 
       return {
         ...reviewResult,

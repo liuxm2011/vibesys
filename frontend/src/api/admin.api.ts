@@ -12,7 +12,8 @@ import type {
   CreateStudentResponse,
   UserPasswordInfo,
   UpdateUserPasswordRequest,
-  UpdateUserPasswordResponse
+  UpdateUserPasswordResponse,
+  AiUsageStats
 } from '@/types/admin';
 
 // ============================================================
@@ -205,6 +206,10 @@ export async function fetchUserStatsApi(): Promise<UserStats> {
 
 export async function fetchProjectStatsApi(): Promise<ProjectStats> {
   return api.get('/api/admin/stats/projects');
+}
+
+export async function fetchAiUsageStatsApi(): Promise<AiUsageStats> {
+  return api.get('/api/admin/stats/ai-usage');
 }
 
 // ============================================================

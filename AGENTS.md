@@ -227,13 +227,13 @@ curl -I https://miaofu.work
 <claude-mem-context>
 # Memory Context
 
-# [学生项目构建-cc] recent context, 2026-04-23 7:47pm GMT+8
+# [学生项目构建-cc] recent context, 2026-04-23 11:32pm GMT+8
 
 Legend: 🎯session 🔴bugfix 🟣feature 🔄refactor ✅change 🔵discovery ⚖️decision 🚨security_alert 🔐security_note
 Format: ID TIME TYPE TITLE
 Fetch details: get_observations([IDs]) | Search: mem-search skill
 
-Stats: 13 obs (1,941t read) | 243,832t work | 99% savings
+Stats: 40 obs (5,588t read) | 953,379t work | 99% savings
 
 ### Apr 22, 2026
 1 10:23p 🔵 学校服务器连接配置信息
@@ -249,6 +249,48 @@ Stats: 13 obs (1,941t read) | 243,832t work | 99% savings
 14 10:42p 🔵 llm.miaofu.conf nginx config and local endpoint checks retrieved
 15 10:43p 🔵 llm.miaofu.conf nginx config and local endpoint checks retrieved
 16 " 🔵 Upstream LLM services (ports 28020/28080) not running on VPS
+### Apr 23, 2026
+32 8:11p 🔵 项目文档系统架构分析
+33 8:13p 🔵 项目依赖分析：Markdown渲染与编辑库
+34 8:14p ⚖️ Plan: Document Read/Edit Mode Toggle
+S18 Implement read/edit mode toggle for all document tabs (Apr 23 at 8:14 PM)
+S1 Add a switch button to toggle between reading mode and editing mode for all seven generated documents (Apr 23 at 8:14 PM)
+35 8:19p 🟣 Created MarkdownPreview.vue component for sanitized markdown rendering
+36 8:20p 🟣 Created DocumentModeToggle.vue component for read/edit mode switching
+37 " 🔵 npm install failed for markdown rendering dependencies
+38 8:21p ✅ Successfully installed markdown rendering dependencies via pnpm
+39 " 🟣 Added imports for MarkdownPreview and DocumentModeToggle in ProjectDetail.vue
+40 8:22p 🟣 Added docModes state to track per-document read/edit mode in ProjectDetail.vue
+41 8:24p 🟣 Added read/edit mode toggle for all document tabs in ProjectDetail.vue
+42 8:25p ✅ Type check passed for frontend read/edit mode implementation
+43 8:27p 🔵 Frontend dev server failed to start due to port 5173 conflict
+44 " ✅ Completed test task for read/edit toggle functionality
+S24 查看文档生成的超时设定 (Apr 23 at 8:28 PM)
+45 9:10p 🔵 搜索文档生成超时相关文件
+46 9:11p 🔵 前端代码库中未配置文档生成超时设定
+47 " 🔵 文档生成超时配置为3分钟
+48 " 🔵 审核流式接口未配置超时设置
+49 " 🔵 探索代理完成超时配置调查
+S27 调试启动专家团审核偶尔出现network error的情况 (Apr 23 at 9:12 PM)
+50 9:14p 🔵 文档生成超时配置调查
+51 9:17p 🔵 调查任务清单文档生成超时问题
+52 9:21p 🔵 调查专家团审核偶尔出现network error的问题
+53 9:22p 🔵 探索专家团审核功能代码库
+54 9:24p 🔵 Investigate intermittent network error in oh-my-claudecode expert group review startup
+55 9:25p 🔵 Investigated expert review network error frontend implementation
+56 9:28p 🔵 AI服务超时配置检查
+57 9:29p 🔵 检查后端服务器超时配置
+58 9:30p 🔵 发现 Vite 开发服务器代理配置
+S28 用户询问是否将代码同步到服务器可解决生产环境的文档生成超时问题 (Apr 23 at 9:31 PM)
+S29 调试专家团审核偶尔出现network error的情况，Claude指导配置Nginx长超时 (Apr 23 at 10:02 PM)
+**Investigated**: 专家团审核的网络错误问题，推测是Nginx超时配置导致
 
-Access 244k tokens of past work via get_observations([IDs]) or mem-search skill.
+**Learned**: 专家团审核使用SSE流式接口，需要更长的Nginx超时配置（600秒）
+
+**Completed**: 提供了完整的Nginx配置修改方案，包括SSH登录、查看配置、添加专用location块、测试重载的步骤
+
+**Next Steps**: 用户需要SSH登录服务器查看当前Nginx配置，确认插入位置
+
+
+Access 953k tokens of past work via get_observations([IDs]) or mem-search skill.
 </claude-mem-context>

@@ -13,7 +13,8 @@ import type {
   ImportResult,
   UserPasswordInfo,
   UpdateUserPasswordRequest,
-  UpdateUserPasswordResponse
+  UpdateUserPasswordResponse,
+  AiUsageStats
 } from '@/types/admin';
 
 export const useAdminStore = defineStore('admin', () => {
@@ -31,6 +32,7 @@ export const useAdminStore = defineStore('admin', () => {
   const overviewStats = ref<OverviewStats | null>(null);
   const userStats = ref<UserStats | null>(null);
   const projectStats = ref<ProjectStats | null>(null);
+  const aiUsageStats = ref<AiUsageStats | null>(null);
   const statsLoading = ref(false);
 
   // System config state
@@ -213,6 +215,18 @@ export const useAdminStore = defineStore('admin', () => {
     }
   }
 
+  async function loadAiUsageStats() {
+    statsLoading.value = true;
+    error.value = null;
+    try {
+      aiUsageStats.value = await adminApi.fetchAiUsageStatsApi();
+    } catch (e) {
+      error.value = e instanceof Error ? e.message : '加载AI用量统计失败';
+    } finally {
+      statsLoading.value = false;
+    }
+  }
+
   // --- System Config ---
   async function loadAnnouncement() {
     configLoading.value = true;
@@ -265,6 +279,7 @@ export const useAdminStore = defineStore('admin', () => {
     overviewStats.value = null;
     userStats.value = null;
     projectStats.value = null;
+    aiUsageStats.value = null;
     announcement.value = null;
     guide.value = null;
     error.value = null;
@@ -273,12 +288,12 @@ export const useAdminStore = defineStore('admin', () => {
   return {
     users, userPagination, usersLoading,
     topics, topicPagination, topicsLoading,
-    overviewStats, userStats, projectStats, statsLoading,
+    overviewStats, userStats, projectStats, aiUsageStats, statsLoading,
     announcement, guide, configLoading,
     error,
     loadUsers, updateUserStatus, createStudent, importStudents, getUserPasswordInfo, updateUserPassword,
     loadTopics, createTopic, updateTopic, deleteTopic, importTopics,
-    loadOverviewStats, loadUserStats, loadProjectStats,
+    loadOverviewStats, loadUserStats, loadProjectStats, loadAiUsageStats,
     loadAnnouncement, saveAnnouncement, loadGuide, saveGuide,
     $reset
   };
