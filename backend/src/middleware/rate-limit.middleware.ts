@@ -12,7 +12,7 @@ export const loginLimiter = rateLimit({
   legacyHeaders: false,
   keyGenerator: (req) => {
     const studentId = req.body.studentId || 'unknown';
-    return `${ipKeyGenerator(req)}:${studentId}`;
+    return `${ipKeyGenerator(req.ip ?? '')}:${studentId}`;
   }
 });
 
@@ -35,7 +35,7 @@ export const aiLimiter = rateLimit({
   windowMs: 60 * 60 * 1000, // 1 hour
   max: 10,
   message: { error: 'AI生成次数已达上限，请稍后再试' },
-  keyGenerator: (req) => req.user?.userId?.toString() || ipKeyGenerator(req) || 'unknown'
+  keyGenerator: (req) => req.user?.userId?.toString() || ipKeyGenerator(req.ip ?? '') || 'unknown'
 });
 
 /**

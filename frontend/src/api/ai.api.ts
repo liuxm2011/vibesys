@@ -15,13 +15,20 @@ import type {
  */
 export async function generateDocumentApi(
   projectId: number,
-  docType: DocType
+  docType: DocType,
+  forceRegenerate = false
 ): Promise<GenerateDocumentResponse> {
-  return api.post<GenerateDocumentResponse>('/api/ai/generate', { projectId, docType });
+  return api.post<GenerateDocumentResponse>('/api/ai/generate', {
+    projectId,
+    docType,
+    forceRegenerate
+  });
 }
 
 interface GenerateDocumentStreamOptions {
   onProgress?: (event: GenerateDocumentStreamProgress) => void;
+  forceRegenerate?: boolean;
+  signal?: AbortSignal;
 }
 
 export async function generateDocumentStreamApi(
@@ -35,7 +42,12 @@ export async function generateDocumentStreamApi(
       'Content-Type': 'application/json'
     },
     credentials: 'include',
-    body: JSON.stringify({ projectId, docType })
+    signal: options.signal,
+    body: JSON.stringify({
+      projectId,
+      docType,
+      forceRegenerate: options.forceRegenerate === true
+    })
   });
 
   if (!response.ok) {

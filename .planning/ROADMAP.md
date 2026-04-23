@@ -10,12 +10,13 @@
 |---|-------|------|--------------|-------------------|
 | 1 | 认证与用户基础 | 本地认证系统和用户数据模型 | AUTH-01~04 | 7 plans |
 | 2 | 选题管理与学生端 | 学生可以选题并管理项目 | TOPIC-01~06, DASH-01~03 | 8 plans |
-| 3 | 文档生成与AI服务 | AI辅助生成PRD和技术文档 | DOC-01~08 | 7 plans |
-| 4 | 文档导出功能 | 完整文档包导出能力 | EXPORT-01~03 | 3 criteria |
-| 5 | 管理后台 | 管理员完整后台功能 | ADM-01~07 | 4 criteria |
+| 3 | 文档生成与AI服务 | AI辅助生成PRD和技术文档 | DOC-01~08 | 7 plans ✓ |
+| 4 | 文档导出功能 | 完整文档包导出能力 | EXPORT-01~03 | 3 criteria ✓ |
+| 5 | 管理后台 | 管理员完整后台功能 | ADM-01~07 | 4 criteria ✓ |
 
 **Total Phases:** 5
 **Requirements Mapped:** 31/31 ✓
+**All Phases:** Complete ✓
 
 ---
 
@@ -117,7 +118,7 @@
 
 **Goal:** AI辅助生成PRD、前端文档、后端文档，学生可在线编辑。系统调用自部署MiniMax API生成文档内容，支持软件工程和大数据两个领域的差异化模板。
 
-**Status:** ○ Ready for execution
+**Status:** ✓ Complete
 
 **UI hint:** yes
 
@@ -152,15 +153,15 @@
 
 ### Plans
 
-**Plans:** 7 plans in 6 waves
+**Plans:** 7 plans in 6 waves — ALL COMPLETE ✓
 
-- [ ] 03-00-PLAN.md — Wave 0: Prisma schema extension (Document model + DocType enum)
-- [ ] 03-01-PLAN.md — Wave 1: Backend AI service + prompt templates
-- [ ] 03-02-PLAN.md — Wave 1: Backend document CRUD routes (parallel with 01)
-- [ ] 03-03-PLAN.md — Wave 2: Frontend types + API clients + document store
-- [ ] 03-04-PLAN.md — Wave 3: UI components (MarkdownEditor, TechStackPanel, DocumentTabs)
-- [ ] 03-05-PLAN.md — Wave 4: ProjectDetail page integration + router
-- [ ] 03-06-PLAN.md — Wave 5: Human verification checkpoint
+- [x] 03-00-PLAN.md — Wave 0: Prisma schema extension (Document model + DocType enum) ✓
+- [x] 03-01-PLAN.md — Wave 1: Backend AI service + prompt templates ✓
+- [x] 03-02-PLAN.md — Wave 1: Backend document CRUD routes (parallel with 01) ✓
+- [x] 03-03-PLAN.md — Wave 2: Frontend types + API clients + document store ✓
+- [x] 03-04-PLAN.md — Wave 3: UI components (MarkdownEditor, TechStackPanel, DocumentTabs) ✓
+- [x] 03-05-PLAN.md — Wave 4: ProjectDetail page integration + router ✓
+- [x] 03-06-PLAN.md — Wave 5: Human verification checkpoint ✓
 
 **Context:** `.planning/phases/03-文档生成与AI服务/03-CONTEXT.md`
 **Research:** `.planning/phases/03-文档生成与AI服务/03-RESEARCH.md`
@@ -172,6 +173,8 @@
 
 **Goal:** 学生可导出完整文档包用于外部AI工具
 
+**Status:** ✓ Complete
+
 ### Requirements Covered
 
 - EXPORT-01: 文档包导出
@@ -180,21 +183,24 @@
 
 ### Success Criteria
 
-1. 导出按钮生成包含PRD、前端、后端文档的压缩包
-2. 文件格式为Markdown，命名包含项目名和日期
-3. 导出过程流畅无阻塞
+1. 导出按钮生成包含PRD、前端、后端文档的压缩包 ✓
+2. 文件格式为Markdown，命名包含项目名和日期 ✓
+3. 导出过程流畅无阻塞 ✓
 
 ### Implementation Notes
 
-- 文件打包服务
-- OSS临时存储或直接流式下载
-- 文件命名规范实现
+- 前端 JSZip 打包所有文档内容为 ZIP
+- 文件名格式：`{项目名}_{YYYY-MM-DD}.zip`
+- 导出按钮在 ProjectDetail 页面顶部操作栏
+- 空文档自动过滤，生成内容直接打包
 
 ---
 
 ## Phase 5: 管理后台
 
 **Goal:** 管理员完整后台管理功能
+
+**Status:** ✓ Complete
 
 **UI hint:** yes
 
@@ -210,16 +216,20 @@
 
 ### Success Criteria
 
-1. 管理员可完整管理选题池（增删改）
-2. 用户列表展示关键信息（姓名、学号、项目数）
-3. 使用统计仪表板展示关键指标
-4. 平台公告和指南可正确配置和展示
+1. 管理员可完整管理选题池（增删改） ✓
+2. 用户列表展示关键信息（姓名、学号、项目数） ✓
+3. 使用统计仪表板展示关键指标 ✓
+4. 平台公告和指南可正确配置和展示 ✓
 
 ### Implementation Notes
 
-- 管理后台独立路由和权限验证
-- 统计数据聚合查询设计
-- 公告和指南存储方案
+- 管理后台独立路由 `/admin/*` 和权限验证中间件
+- AdminLayout 提供侧边导航布局
+- UserManagement：用户列表、封禁/解封操作
+- TopicManagement：选题池增删改查、领域分类
+- Statistics：使用统计仪表板
+- SystemConfig：公告和使用指南配置
+- admin.routes.ts 提供 30+ 管理接口
 
 ---
 
@@ -232,29 +242,24 @@ Phase 1 (认证基础) ✓
     │                  │
     ▼                  ▼
 Phase 2          Phase 3
-(选题管理) ✓     (文档生成) ○ Ready
+(选题管理) ✓     (文档生成) ✓
     │                  │
     │                  │
     ▼                  ▼
-    │            Phase 4 (导出)
+    │            Phase 4 (导出) ✓
     │                  │
     └──────────────────┘
               │
               ▼
-        Phase 5 (管理后台)
+        Phase 5 (管理后台) ✓
 ```
 
 ---
 
 ## Next Step
 
-**Phase 3: 文档生成与AI服务** — Plans created, ready for execution
-
-```
-/gsd-execute-phase 3 — Execute Wave 0 first (schema extension)
-```
+**All 5 phases complete.** Project is ready for deployment.
 
 ---
 
-*Roadmap updated: 2026-04-18*
-*Phase 3 plans created: 7 plans in 6 waves*
+*Roadmap updated: 2026-04-20 - All 5 phases complete*

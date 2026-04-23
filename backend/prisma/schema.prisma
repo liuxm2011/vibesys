@@ -49,10 +49,26 @@ enum TopicType {
   CUSTOM  // 学生自拟 (D-05)
 }
 
+enum Platform {
+  WEB             // Web应用 (浏览器访问)
+  IOS             // iOS原生应用
+  ANDROID         // Android原生应用
+  WECHAT_MINI     // 微信小程序
+  WINDOWS_DESKTOP // Windows桌面端
+  MAC_DESKTOP     // Mac桌面端
+}
+
 enum ProjectStatus {
   NOT_STARTED  // 未开始 (D-10)
   IN_PROGRESS  // 进行中 (D-10)
   COMPLETED    // 已完成 (D-10)
+}
+
+enum ReviewStatus {
+  NONE          // 未审核
+  PENDING_FIX   // 已审核，有问题待处理
+  ACCEPTED      // 已应用修复
+  DISCARDED     // 已放弃修复
 }
 
 // Phase 3 enums (D-13)
@@ -74,6 +90,7 @@ model Topic {
   background      String     @default("") // D-01: 背景
   objectives      String     @default("") // D-01: 目标
   domain          Domain     // D-03: 领域分类
+  platform        Platform   @default(WEB)  // 运行平台
   techStack       Json       // D-04: 技术栈建议 (JSON array)
   type            TopicType  @default(SYSTEM)  // D-05: 类型
   creatorId       Int?       // D-14: 仅自定义选题有creator
@@ -97,6 +114,8 @@ model Project {
   status          ProjectStatus @default(NOT_STARTED)  // D-10
   techStack       String?       // D-07: 用户修改的技术栈 (DOC-07)
   documentsRef    Json?         // D-11: 已生成文档引用 (Phase 2 placeholder - deprecated, use Document table)
+  reviewStatus    ReviewStatus  @default(NONE)
+  reviewResult    Json?
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
 

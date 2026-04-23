@@ -3,19 +3,21 @@
  */
 
 import type { ReviewResult } from './document';
-import type { Domain, TopicType } from './topic';
+import type { Domain, TopicType, Platform } from './topic';
 
 export type ProjectStatus = 'NOT_STARTED' | 'IN_PROGRESS' | 'COMPLETED';
 export type PersistedReviewStatus = 'NONE' | 'PENDING_FIX' | 'ACCEPTED' | 'DISCARDED';
 
 /**
- * Minimal topic info included in project response
- * From backend include: { select: { id, title, domain, type, techStack } }
+ * Topic info included in project response
+ * From backend include: { select: { id, title, description, domain, type, techStack } }
  */
 export interface ProjectTopic {
   id: number;
   title: string;
+  description: string;
   domain: Domain;
+  platform: Platform;
   type: TopicType;
   techStack: string[];
 }
@@ -43,7 +45,9 @@ export interface ProjectDetail {
   updatedAt: string;
   topic: {
     title: string;
+    description: string;
     domain: Domain;
+    platform: Platform;
   };
 }
 

@@ -6,6 +6,7 @@ export interface TopicImportRow {
   background?: string;
   objectives?: string;
   domain?: string;
+  platform?: string;
   techStack?: string;
 }
 
@@ -19,6 +20,30 @@ export interface ValidationError {
   row: number;
   reason: string;
 }
+
+const PLATFORM_NAME_MAP: Record<string, string> = {
+  'Web App': 'WEB',
+  'Web': 'WEB',
+  'web': 'WEB',
+  'iOS': 'IOS',
+  'ios': 'IOS',
+  'IOS': 'IOS',
+  'Android': 'ANDROID',
+  'android': 'ANDROID',
+  '安卓': 'ANDROID',
+  '微信小程序': 'WECHAT_MINI',
+  '小程序': 'WECHAT_MINI',
+  '微信': 'WECHAT_MINI',
+  'Windows桌面端': 'WINDOWS_DESKTOP',
+  'Windows': 'WINDOWS_DESKTOP',
+  'windows': 'WINDOWS_DESKTOP',
+  'Mac桌面端': 'MAC_DESKTOP',
+  'Mac': 'MAC_DESKTOP',
+  'mac': 'MAC_DESKTOP',
+  'macOS': 'MAC_DESKTOP',
+};
+
+const VALID_PLATFORMS = new Set(['WEB', 'IOS', 'ANDROID', 'WECHAT_MINI', 'WINDOWS_DESKTOP', 'MAC_DESKTOP']);
 
 // ============================================================
 // STUDENT IMPORT UTILITIES
@@ -152,13 +177,18 @@ export function parseExcelTopics(buffer: Buffer): TopicImportRow[] {
     const row = data[i] as any[];
     if (!row || row.length === 0) continue;
 
+    // Map display name to enum value
+    const platformDisplay = row[5]?.toString().trim() || '';
+    const platform = PLATFORM_NAME_MAP[platformDisplay] || platformDisplay;
+
     rows.push({
       title: row[0]?.toString().trim() || '',
       description: row[1]?.toString().trim() || '',
       background: row[2]?.toString().trim() || '',
       objectives: row[3]?.toString().trim() || '',
       domain: row[4]?.toString().trim() || '',
-      techStack: row[5]?.toString().trim() || ''
+      platform,
+      techStack: row[6]?.toString().trim() || ''
     });
   }
 
@@ -183,6 +213,10 @@ export function validateTopicRow(row: TopicImportRow): string[] {
     errors.push('领域类型必须是SE或BD');
   }
 
+  if (!row.platform || !VALID_PLATFORMS.has(row.platform)) {
+    errors.push('运行平台必须是6个有效值之一（WEB/IOS/ANDROID/WECHAT_MINI/WINDOWS_DESKTOP/MAC_DESKTOP）');
+  }
+
   return errors;
 }
 
@@ -193,7 +227,7 @@ export function generateTemplateBuffer(): Buffer {
   const workbook = XLSX.utils.book_new();
 
   // Header row
-  const headers = ['标题', '描述', '背景', '目标', '领域(SE/BD)', '技术栈(逗号分隔)'];
+  const headers = ['标题', '描述', '背景', '目标', '领域(SE/BD)', '运行平台', '技术栈(逗号分隔)'];
 
   // Example data row
   const example = [
@@ -202,6 +236,7 @@ export function generateTemplateBuffer(): Buffer {
     '随着学校图书馆数字化建设，需要一个现代化的管理系统',
     '实现图书信息管理、借阅记录管理、用户管理等功能',
     'SE',
+    'Web App',
     'Vue, Node.js, MySQL, Element Plus'
   ];
 
@@ -215,6 +250,7 @@ export function generateTemplateBuffer(): Buffer {
     { wch: 40 },  // 背景
     { wch: 40 },  // 目标
     { wch: 15 },  // 领域
+    { wch: 15 },  // 运行平台
     { wch: 35 }   // 技术栈
   ];
 

@@ -1,3 +1,4 @@
+import { saveAs } from 'file-saver';
 import { api, resolveApiUrl } from '@/utils/request';
 import type {
   UserListResponse,
@@ -8,7 +9,10 @@ import type {
   SystemConfig,
   ImportResult,
   CreateStudentRequest,
-  CreateStudentResponse
+  CreateStudentResponse,
+  UserPasswordInfo,
+  UpdateUserPasswordRequest,
+  UpdateUserPasswordResponse
 } from '@/types/admin';
 
 // ============================================================
@@ -43,6 +47,17 @@ export async function createStudentApi(data: CreateStudentRequest): Promise<Crea
   return api.post('/api/admin/users', data);
 }
 
+export async function fetchUserPasswordInfoApi(userId: number): Promise<UserPasswordInfo> {
+  return api.get(`/api/admin/users/${userId}/password`);
+}
+
+export async function updateUserPasswordApi(
+  userId: number,
+  data: UpdateUserPasswordRequest
+): Promise<UpdateUserPasswordResponse> {
+  return api.put(`/api/admin/users/${userId}/password`, data);
+}
+
 export async function importStudentsApi(file: File): Promise<ImportResult> {
   const formData = new FormData();
   formData.append('file', file);
@@ -54,15 +69,24 @@ export async function importStudentsApi(file: File): Promise<ImportResult> {
   });
 
   if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error || '导入失败');
+    throw new Error(await readErrorMessage(response, '导入失败'));
   }
 
   return response.json();
 }
 
-export function downloadStudentTemplateApi(): void {
-  window.open(resolveApiUrl('/api/admin/users/template'), '_blank');
+export async function downloadStudentTemplateApi(): Promise<void> {
+  const response = await fetch(resolveApiUrl('/api/admin/users/template'), {
+    method: 'GET',
+    credentials: 'include'
+  });
+
+  if (!response.ok) {
+    throw new Error(await readErrorMessage(response, '下载模板失败'));
+  }
+
+  const blob = await response.blob();
+  saveAs(blob, getFilenameFromResponse(response, '学生导入模板.xlsx'));
 }
 
 // ============================================================
@@ -126,8 +150,7 @@ export async function importTopicsApi(file: File): Promise<ImportResult> {
   });
 
   if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error || '导入失败');
+    throw new Error(await readErrorMessage(response, '导入失败'));
   }
 
   return response.json();
@@ -135,6 +158,37 @@ export async function importTopicsApi(file: File): Promise<ImportResult> {
 
 export function downloadTemplateApi(): void {
   window.open(resolveApiUrl('/api/admin/topics/template'), '_blank');
+}
+
+async function readErrorMessage(response: Response, fallback: string): Promise<string> {
+  const contentType = response.headers.get('content-type') || '';
+
+  if (contentType.includes('application/json')) {
+    try {
+      const error = await response.json();
+      return error.error || fallback;
+    } catch {
+      return fallback;
+    }
+  }
+
+  try {
+    const text = await response.text();
+    return text || fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+function getFilenameFromResponse(response: Response, fallback: string): string {
+  const disposition = response.headers.get('content-disposition') || '';
+  const utf8Match = disposition.match(/filename\*=UTF-8''([^;]+)/i);
+  if (utf8Match?.[1]) {
+    return decodeURIComponent(utf8Match[1]);
+  }
+
+  const basicMatch = disposition.match(/filename="?([^"]+)"?/i);
+  return basicMatch?.[1] || fallback;
 }
 
 // ============================================================

@@ -1,5 +1,5 @@
 import { Router, Request, Response } from 'express';
-import { Domain, TopicType } from '@prisma/client';
+import { Domain, Platform, TopicType } from '@prisma/client';
 import { authMiddleware } from '../middleware/auth.middleware.js';
 import { prisma } from '../index.js';
 
@@ -15,6 +15,8 @@ router.get('/', authMiddleware, async (req: Request, res: Response) => {
   try {
     const userId = req.user!.userId;
     const domain = req.query.domain as Domain | undefined;
+    const type = req.query.type as TopicType | undefined;
+    const platform = req.query.platform as Platform | undefined;
 
     // D-14: Show SYSTEM topics + user's own CUSTOM topics
     const whereClause: any = {
@@ -24,12 +26,35 @@ router.get('/', authMiddleware, async (req: Request, res: Response) => {
       ]
     };
 
-    // TOPIC-02: Optional domain filter
+    // Optional type filter: SYSTEM = 仅系统, CUSTOM = 仅自拟
+    if (type === TopicType.SYSTEM) {
+      whereClause.OR = [{ type: TopicType.SYSTEM }];
+    } else if (type === TopicType.CUSTOM) {
+      whereClause.OR = [{ creatorId: userId }];
+    }
+
+    // Optional domain filter
     if (domain) {
-      whereClause.OR = [
-        { type: TopicType.SYSTEM, domain },
-        { creatorId: userId, domain }
-      ];
+      if (type === TopicType.SYSTEM) {
+        whereClause.OR = [{ type: TopicType.SYSTEM, domain }];
+      } else if (type === TopicType.CUSTOM) {
+        whereClause.OR = [{ creatorId: userId, domain }];
+      } else {
+        whereClause.OR = [
+          { type: TopicType.SYSTEM, domain },
+          { creatorId: userId, domain }
+        ];
+      }
+    }
+
+    // Optional platform filter
+    if (platform) {
+      const applyPlatform = (clause: any) => ({ ...clause, platform });
+      if (Array.isArray(whereClause.OR)) {
+        whereClause.OR = whereClause.OR.map(applyPlatform);
+      } else {
+        whereClause.platform = platform;
+      }
     }
 
     const topics = await prisma.topic.findMany({
@@ -101,10 +126,10 @@ router.get('/:id', authMiddleware, async (req: Request, res: Response) => {
  * D-15: Type marked as CUSTOM
  */
 router.post('/custom', authMiddleware, async (req: Request, res: Response) => {
-  const { title, description, background, objectives, domain } = req.body;
+  const { title, description, background, objectives, domain, platform, techStack } = req.body;
 
   // D-12: Validate required fields
-  if (!title || !description || !domain) {
+  if (!title || !description || !domain || !platform) {
     return res.status(400).json({ error: '请填写必要信息' });
   }
 
@@ -123,6 +148,17 @@ router.post('/custom', authMiddleware, async (req: Request, res: Response) => {
     return res.status(400).json({ error: '无效的领域类型' });
   }
 
+  // Validate platform value
+  const validPlatforms = ['WEB', 'IOS', 'ANDROID', 'WECHAT_MINI', 'WINDOWS_DESKTOP', 'MAC_DESKTOP'];
+  if (!validPlatforms.includes(platform)) {
+    return res.status(400).json({ error: '无效的运行平台' });
+  }
+
+  // Validate techStack: must be array with at least 3 items
+  if (!techStack || !Array.isArray(techStack) || techStack.length < 3) {
+    return res.status(400).json({ error: '请至少选择3项技术栈' });
+  }
+
   try {
     const userId = req.user!.userId;
 
@@ -134,13 +170,14 @@ router.post('/custom', authMiddleware, async (req: Request, res: Response) => {
         background: background || '',      // Optional per D-12
         objectives: objectives || '',      // Optional per D-12
         domain: domain as Domain,
-        techStack: [],                     // Empty for custom topics
+        platform: platform as Platform,
+        techStack: techStack,              // Store string[] in JSON field
         type: TopicType.CUSTOM,            // D-15
         creatorId: userId                   // D-14: Link to creator
       }
     });
 
-    res.json({ topic: { ...topic, techStack: [] as string[] } });
+    res.json({ topic: { ...topic, techStack } });
   } catch (error) {
     console.error('Custom topic error:', error);
     res.status(500).json({ error: '服务器错误，请稍后重试' });

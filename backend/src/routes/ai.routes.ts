@@ -54,6 +54,7 @@ router.post('/generate', authMiddleware, checkBannedMiddleware, async (req: Requ
             background: true,
             objectives: true,
             domain: true,
+            platform: true,
             techStack: true
           }
         }
@@ -69,6 +70,7 @@ router.post('/generate', authMiddleware, checkBannedMiddleware, async (req: Requ
       title: project.topic.title,
       description: project.topic.description,
       domain: project.topic.domain,
+      platform: project.topic.platform,
       objectives: project.topic.objectives || project.topic.background,
       techStack: project.topic.techStack as string[]
     };
@@ -189,6 +191,7 @@ router.post('/generate/stream', authMiddleware, checkBannedMiddleware, async (re
             background: true,
             objectives: true,
             domain: true,
+            platform: true,
             techStack: true
           }
         }
@@ -203,6 +206,7 @@ router.post('/generate/stream', authMiddleware, checkBannedMiddleware, async (re
       title: project.topic.title,
       description: project.topic.description,
       domain: project.topic.domain,
+      platform: project.topic.platform,
       objectives: project.topic.objectives || project.topic.background,
       techStack: project.topic.techStack as string[]
     };
@@ -339,6 +343,7 @@ router.post('/review', authMiddleware, checkBannedMiddleware, async (req: Reques
             background: true,
             objectives: true,
             domain: true,
+            platform: true,
             techStack: true
           }
         }
@@ -353,6 +358,7 @@ router.post('/review', authMiddleware, checkBannedMiddleware, async (req: Reques
       title: project.topic.title,
       description: project.topic.description,
       domain: project.topic.domain,
+      platform: project.topic.platform,
       objectives: project.topic.objectives || project.topic.background,
       techStack: project.topic.techStack as string[]
     };
@@ -506,6 +512,7 @@ router.post('/review/stream', authMiddleware, checkBannedMiddleware, async (req:
             background: true,
             objectives: true,
             domain: true,
+            platform: true,
             techStack: true
           }
         }
@@ -520,6 +527,7 @@ router.post('/review/stream', authMiddleware, checkBannedMiddleware, async (req:
       title: project.topic.title,
       description: project.topic.description,
       domain: project.topic.domain,
+      platform: project.topic.platform,
       objectives: project.topic.objectives || project.topic.background,
       techStack: project.topic.techStack as string[]
     };

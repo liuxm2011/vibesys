@@ -29,6 +29,17 @@
 - `/gsd-execute-phase N` — 执行计划
 - `/gsd-verify-work N` — 验证完成度
 
+## 本地开发环境
+
+| 服务 | 端口 | 说明 |
+|------|------|------|
+| 后端 (Express) | **3001** | `.env` 中 `PORT=3001`，Vite 代理必须指向此端口 |
+| 前端 (Vite) | **5173** | `vite.config.ts` 中配置 |
+| MySQL | **3306** | Docker 容器运行 |
+| Redis | **6379** | 本地运行 |
+
+> ⚠️ 端口 3000 常被 Docker 或其他服务占用，后端不使用此端口。Vite 代理 `/api` 目标为 `http://127.0.0.1:3001`。
+
 ## 关键约束
 
 - 认证必须对接学校SSO（CAS/OAuth）
@@ -52,7 +63,28 @@
 <claude-mem-context>
 # Memory Context
 
-# [学生项目构建-cc] recent context, 2026-04-20 12:44am GMT+8
+# [学生项目构建-cc] recent context, 2026-04-23 1:52pm GMT+8
 
-No previous sessions found.
+Legend: 🎯session 🔴bugfix 🟣feature 🔄refactor ✅change 🔵discovery ⚖️decision
+Format: ID TIME TYPE TITLE
+Fetch details: get_observations([IDs]) | Search: mem-search skill
+
+Stats: 13 obs (1,941t read) | 243,832t work | 99% savings
+
+### Apr 22, 2026
+1 10:23p 🔵 学校服务器连接配置信息
+2 10:34p 🔵 Read AGENTS.md Documentation
+3 10:36p 🔵 Server configuration for miaofu.work retrieved
+4 10:37p 🔵 Server operations guide snapshot and core rules retrieved
+5 " 🔵 Connected to public VPS (101.43.175.201) and retrieved system info
+6 " 🔵 Comprehensive system audit of public VPS (101.43.175.201)
+7 10:38p 🔵 Nginx configuration and service status audit on VPS
+11 10:40p 🔵 Public IP 101.43.175.201 responds with 301 redirect to HTTPS
+12 10:41p 🔵 miaofu.work DNS records point to Cloudflare, not VPS IP
+13 " 🔵 Full xiaoduangong.conf nginx config retrieved
+14 10:42p 🔵 llm.miaofu.conf nginx config and local endpoint checks retrieved
+15 10:43p 🔵 llm.miaofu.conf nginx config and local endpoint checks retrieved
+16 " 🔵 Upstream LLM services (ports 28020/28080) not running on VPS
+
+Access 244k tokens of past work via get_observations([IDs]) or mem-search skill.
 </claude-mem-context>

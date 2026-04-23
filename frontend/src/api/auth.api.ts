@@ -18,6 +18,19 @@ export interface LogoutResponse {
   message: string;
 }
 
+export interface ChangePasswordResponse {
+  message: string;
+}
+
+export interface StudentSystemConfig {
+  announcement: string;
+  guide: string;
+  updatedAt: {
+    announcement: string | null;
+    guide: string | null;
+  };
+}
+
 /**
  * Login API (D-02: studentId as account)
  * @param studentId Student ID (login account)
@@ -46,4 +59,18 @@ export async function logoutApi(): Promise<LogoutResponse> {
  */
 export async function getProfileApi(): Promise<User> {
   return api.get<User>('/api/auth/profile');
+}
+
+export async function fetchStudentSystemConfigApi(): Promise<StudentSystemConfig> {
+  return api.get<StudentSystemConfig>('/api/auth/system-config');
+}
+
+export async function changePasswordApi(
+  currentPassword: string,
+  newPassword: string
+): Promise<ChangePasswordResponse> {
+  return api.put<ChangePasswordResponse>('/api/auth/password', {
+    currentPassword,
+    newPassword
+  });
 }

@@ -10,7 +10,10 @@ import type {
   SystemConfig,
   PaginationInfo,
   CreateStudentRequest,
-  ImportResult
+  ImportResult,
+  UserPasswordInfo,
+  UpdateUserPasswordRequest,
+  UpdateUserPasswordResponse
 } from '@/types/admin';
 
 export const useAdminStore = defineStore('admin', () => {
@@ -67,8 +70,9 @@ export const useAdminStore = defineStore('admin', () => {
   async function createStudent(data: CreateStudentRequest) {
     error.value = null;
     try {
-      await adminApi.createStudentApi(data);
+      const response = await adminApi.createStudentApi(data);
       await loadUsers({ page: 1, pageSize: userPagination.value.pageSize });
+      return response;
     } catch (e) {
       error.value = e instanceof Error ? e.message : '创建学生失败';
       throw e;
@@ -87,8 +91,33 @@ export const useAdminStore = defineStore('admin', () => {
     }
   }
 
+  async function getUserPasswordInfo(userId: number): Promise<UserPasswordInfo> {
+    error.value = null;
+    try {
+      return await adminApi.fetchUserPasswordInfoApi(userId);
+    } catch (e) {
+      error.value = e instanceof Error ? e.message : '获取密码信息失败';
+      throw e;
+    }
+  }
+
+  async function updateUserPassword(
+    userId: number,
+    data: UpdateUserPasswordRequest
+  ): Promise<UpdateUserPasswordResponse> {
+    error.value = null;
+    try {
+      const response = await adminApi.updateUserPasswordApi(userId, data);
+      await loadUsers({ page: userPagination.value.page, pageSize: userPagination.value.pageSize });
+      return response;
+    } catch (e) {
+      error.value = e instanceof Error ? e.message : '更新密码失败';
+      throw e;
+    }
+  }
+
   // --- Topic Management ---
-  async function loadTopics(params: { page?: number; pageSize?: number; search?: string; domain?: string; type?: string } = {}) {
+  async function loadTopics(params: { page?: number; pageSize?: number; search?: string; domain?: string; type?: string; platform?: string } = {}) {
     topicsLoading.value = true;
     error.value = null;
     try {
@@ -247,7 +276,7 @@ export const useAdminStore = defineStore('admin', () => {
     overviewStats, userStats, projectStats, statsLoading,
     announcement, guide, configLoading,
     error,
-    loadUsers, updateUserStatus, createStudent, importStudents,
+    loadUsers, updateUserStatus, createStudent, importStudents, getUserPasswordInfo, updateUserPassword,
     loadTopics, createTopic, updateTopic, deleteTopic, importTopics,
     loadOverviewStats, loadUserStats, loadProjectStats,
     loadAnnouncement, saveAnnouncement, loadGuide, saveGuide,

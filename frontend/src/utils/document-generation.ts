@@ -50,3 +50,17 @@ export function getGenerationBlockedReason(docType: DocType, documents: Document
 export function canGenerateDocument(docType: DocType, documents: Document[]): boolean {
   return getGenerationBlockedReason(docType, documents) === null;
 }
+
+export const REVIEW_CATEGORY_LABELS: Record<string, string> = {
+  prd_vs_frontend: 'PRD vs 前端',
+  prd_vs_backend: 'PRD vs 后端',
+  backend_vs_api: '后端 vs API',
+  frontend_vs_api: '前端 vs API',
+  overall: '整体一致性'
+};
+
+export const REVIEW_SEVERITY_CONFIG: Record<string, { type: 'danger' | 'warning' | 'info'; label: string }> = {
+  critical: { type: 'danger', label: '严重' },
+  warning: { type: 'warning', label: '警告' },
+  suggestion: { type: 'info', label: '建议' }
+};

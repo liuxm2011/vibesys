@@ -14,6 +14,9 @@
           <el-tag :type="topic.domain === 'SE' ? 'primary' : 'success'" effect="light">
             {{ topic.domain === 'SE' ? '软件工程' : '大数据' }}
           </el-tag>
+          <el-tag type="info" effect="light">
+            {{ PLATFORM_LABELS[topic.platform as Platform]?.icon ?? '🌐' }} {{ PLATFORM_LABELS[topic.platform as Platform]?.name ?? topic.platform }}
+          </el-tag>
           <el-tag :type="topic.type === 'SYSTEM' ? 'info' : 'warning'" plain>
             {{ topic.type === 'SYSTEM' ? '系统预设' : '自拟选题' }}
           </el-tag>
@@ -72,7 +75,8 @@ import { ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { ElMessage } from 'element-plus';
 import { useProjectStore } from '@/stores/project.store';
-import type { Topic } from '@/types/topic';
+import type { Topic, Platform } from '@/types/topic';
+import { PLATFORM_LABELS } from '@/types/topic';
 
 interface Props {
   visible: boolean;

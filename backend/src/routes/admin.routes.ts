@@ -1,16 +1,54 @@
 import { Router, Request, Response } from 'express';
 import multer from 'multer';
-import { Role, Status, Domain, TopicType, ProjectStatus } from '@prisma/client';
+import { Role, Status, Domain, Platform, TopicType, ProjectStatus } from '@prisma/client';
 import { prisma } from '../index.js';
 import { authMiddleware, adminOnlyMiddleware } from '../middleware/auth.middleware.js';
 import { parseExcelTopics, validateTopicRow, generateTemplateBuffer, parseExcelStudents, validateStudentRow, generateStudentTemplateBuffer, deriveMajorFromStudentId, deriveGradeFromStudentId, validateStudentId } from '../utils/excel-import.utils.js';
-import { hashPassword } from '../utils/password.utils.js';
-
-// Default password for new students
-const DEFAULT_PASSWORD = '123456';
+import {
+  ADMIN_DEFAULT_PASSWORD,
+  getPasswordDisplayInfo,
+  hashPassword,
+  validatePassword
+} from '../utils/password.utils.js';
 
 const router = Router();
 const upload = multer({ storage: multer.memoryStorage() });
+
+function buildAttachmentHeader(asciiFilename: string, utf8Filename: string): string {
+  return `attachment; filename="${asciiFilename}"; filename*=UTF-8''${encodeURIComponent(utf8Filename)}`;
+}
+
+function getDefaultPasswordForUser(user: { role: Role; studentId: string }): string {
+  return user.role === Role.ADMIN ? ADMIN_DEFAULT_PASSWORD : user.studentId;
+}
+
+async function ensureSystemConfigTableExists(): Promise<void> {
+  await prisma.$executeRawUnsafe(`
+    CREATE TABLE IF NOT EXISTS SystemConfig (
+      id INT NOT NULL AUTO_INCREMENT,
+      \`key\` VARCHAR(191) NOT NULL,
+      value LONGTEXT NOT NULL,
+      description VARCHAR(191) NULL,
+      updatedAt DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
+      PRIMARY KEY (id),
+      UNIQUE INDEX SystemConfig_key_key (\`key\`),
+      INDEX SystemConfig_key_idx (\`key\`)
+    ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+  `);
+}
+
+async function withSystemConfigTable<T>(operation: () => Promise<T>): Promise<T> {
+  try {
+    return await operation();
+  } catch (error: any) {
+    if (error?.code === 'P2021' && error?.meta?.modelName === 'SystemConfig') {
+      await ensureSystemConfigTableExists();
+      return operation();
+    }
+
+    throw error;
+  }
+}
 
 // Apply auth and admin middleware to all admin routes
 router.use(authMiddleware);
@@ -63,6 +101,7 @@ router.get('/users', async (req: Request, res: Response) => {
           major: true,
           grade: true,
           class: true,
+          password: true,
           role: true,
           status: true,
           createdAt: true,
@@ -74,18 +113,28 @@ router.get('/users', async (req: Request, res: Response) => {
       prisma.user.count({ where: whereClause })
     ]);
 
-    const formattedUsers = users.map(u => ({
-      id: u.id,
-      studentId: u.studentId,
-      name: u.name,
-      major: u.major,
-      grade: u.grade,
-      class: u.class,
-      role: u.role,
-      status: u.status,
-      projectCount: u._count.projects,
-      createdAt: u.createdAt
-    }));
+    const formattedUsers = await Promise.all(
+      users.map(async (u) => {
+        const passwordInfo = await getPasswordDisplayInfo(u.studentId, u.role, u.password);
+
+        return {
+          id: u.id,
+          studentId: u.studentId,
+          name: u.name,
+          major: u.major,
+          grade: u.grade,
+          class: u.class,
+          role: u.role,
+          status: u.status,
+          projectCount: u._count.projects,
+          createdAt: u.createdAt,
+          passwordStatus: passwordInfo.passwordStatus,
+          passwordHint: passwordInfo.passwordHint,
+          revealedPassword: passwordInfo.revealedPassword,
+          canRevealPassword: passwordInfo.canReveal
+        };
+      })
+    );
 
     res.json({
       users: formattedUsers,
@@ -147,6 +196,121 @@ router.put('/users/:id/status', async (req: Request, res: Response) => {
 });
 
 /**
+ * GET /api/admin/users/:id/password
+ * Returns password visibility info without exposing non-recoverable custom passwords
+ */
+router.get('/users/:id/password', async (req: Request, res: Response) => {
+  try {
+    const idParam = req.params.id;
+    const userId = parseInt(Array.isArray(idParam) ? idParam[0] : idParam);
+
+    if (isNaN(userId)) {
+      return res.status(400).json({ error: '无效的用户ID' });
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        id: true,
+        studentId: true,
+        name: true,
+        role: true,
+        password: true
+      }
+    });
+
+    if (!user) {
+      return res.status(404).json({ error: '用户不存在' });
+    }
+
+    const passwordInfo = await getPasswordDisplayInfo(user.studentId, user.role, user.password);
+
+    res.json({
+      userId: user.id,
+      name: user.name,
+      passwordStatus: passwordInfo.passwordStatus,
+      passwordHint: passwordInfo.passwordHint,
+      revealedPassword: passwordInfo.revealedPassword,
+      canRevealPassword: passwordInfo.canReveal
+    });
+  } catch (error) {
+    console.error('Get user password info error:', error);
+    res.status(500).json({ error: '获取密码信息失败' });
+  }
+});
+
+/**
+ * PUT /api/admin/users/:id/password
+ * Allows admin to reset password to default or set a custom password
+ */
+router.put('/users/:id/password', async (req: Request, res: Response) => {
+  try {
+    const idParam = req.params.id;
+    const userId = parseInt(Array.isArray(idParam) ? idParam[0] : idParam);
+    const { action, newPassword } = req.body as {
+      action?: 'RESET_TO_DEFAULT' | 'SET_CUSTOM';
+      newPassword?: string;
+    };
+
+    if (isNaN(userId)) {
+      return res.status(400).json({ error: '无效的用户ID' });
+    }
+
+    if (action !== 'RESET_TO_DEFAULT' && action !== 'SET_CUSTOM') {
+      return res.status(400).json({ error: '无效的密码操作类型' });
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        id: true,
+        studentId: true,
+        name: true,
+        role: true
+      }
+    });
+
+    if (!user) {
+      return res.status(404).json({ error: '用户不存在' });
+    }
+
+    let passwordToApply = getDefaultPasswordForUser(user);
+
+    if (action === 'SET_CUSTOM') {
+      const validationError = validatePassword(newPassword || '');
+      if (validationError) {
+        return res.status(400).json({ error: validationError });
+      }
+
+      passwordToApply = newPassword!;
+    }
+
+    const hashedPassword = await hashPassword(passwordToApply);
+
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { password: hashedPassword }
+    });
+
+    res.json({
+      message: action === 'RESET_TO_DEFAULT' ? '密码已重置为默认值' : '密码修改成功',
+      userId: user.id,
+      passwordStatus: action === 'RESET_TO_DEFAULT' ? 'DEFAULT' : 'CUSTOM',
+      passwordHint:
+        action === 'RESET_TO_DEFAULT'
+          ? user.role === Role.ADMIN
+            ? '已重置为系统默认管理员密码'
+            : '已重置为学号'
+          : '已设置为管理员指定的新密码',
+      revealedPassword: passwordToApply
+    });
+  } catch (error) {
+    console.error('Update user password error:', error);
+    res.status(500).json({ error: '更新密码失败' });
+  }
+});
+
+/**
  * POST /api/admin/users
  * Create a single student
  */
@@ -179,8 +343,8 @@ router.post('/users', async (req: Request, res: Response) => {
     const major = deriveMajorFromStudentId(studentId);
     const grade = deriveGradeFromStudentId(studentId);
 
-    // Hash default password
-    const hashedPassword = await hashPassword(DEFAULT_PASSWORD);
+    // Initial student password follows the project rule: password = studentId
+    const hashedPassword = await hashPassword(studentId);
 
     // Create user
     const user = await prisma.user.create({
@@ -207,7 +371,10 @@ router.post('/users', async (req: Request, res: Response) => {
       }
     });
 
-    res.json({ user });
+    res.json({
+      user,
+      initialPassword: studentId
+    });
   } catch (error) {
     console.error('Create student error:', error);
     res.status(500).json({ error: '创建学生失败' });
@@ -260,13 +427,12 @@ router.post('/users/import', upload.single('file'), async (req: Request, res: Re
 
     // Hash passwords and create users
     if (validRows.length > 0) {
-      const hashedPassword = await hashPassword(DEFAULT_PASSWORD);
-
-      // Add hashed password to each row
-      const usersWithPassword = validRows.map(row => ({
-        ...row,
-        password: hashedPassword
-      }));
+      const usersWithPassword = await Promise.all(
+        validRows.map(async (row) => ({
+          ...row,
+          password: await hashPassword(row.studentId)
+        }))
+      );
 
       await prisma.user.createMany({ data: usersWithPassword });
       imported = validRows.length;
@@ -276,7 +442,8 @@ router.post('/users/import', upload.single('file'), async (req: Request, res: Re
       success: errors.length === 0,
       imported,
       failed: errors.length,
-      errors
+      errors,
+      defaultPasswordRule: '初始密码默认为学生学号'
     });
   } catch (error) {
     console.error('Import students error:', error);
@@ -292,7 +459,10 @@ router.get('/users/template', async (req: Request, res: Response) => {
   try {
     const buffer = generateStudentTemplateBuffer();
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-    res.setHeader('Content-Disposition', 'attachment; filename=学生导入模板.xlsx');
+    res.setHeader(
+      'Content-Disposition',
+      buildAttachmentHeader('student-import-template.xlsx', '学生导入模板.xlsx')
+    );
     res.send(buffer);
   } catch (error) {
     console.error('Generate student template error:', error);
@@ -314,10 +484,18 @@ router.get('/topics', async (req: Request, res: Response) => {
     const pageSize = parseInt(req.query.pageSize as string) || 20;
     const search = (req.query.search as string) || '';
     const domain = req.query.domain as Domain | undefined;
-    const type = req.query.type as TopicType | undefined;
+    const typeFilter = req.query.type as 'SYSTEM' | 'CUSTOM' | undefined;
+    const platformFilter = req.query.platform as Platform | undefined;
     const skip = (page - 1) * pageSize;
 
     const whereClause: any = {};
+
+    // Apply type filter: SYSTEM = 内置, CUSTOM = 自拟, undefined = 全部
+    if (typeFilter === 'SYSTEM') {
+      whereClause.type = TopicType.SYSTEM;
+    } else if (typeFilter === 'CUSTOM') {
+      whereClause.type = TopicType.CUSTOM;
+    }
 
     if (search) {
       whereClause.title = { contains: search };
@@ -327,8 +505,8 @@ router.get('/topics', async (req: Request, res: Response) => {
       whereClause.domain = domain;
     }
 
-    if (type) {
-      whereClause.type = type;
+    if (platformFilter) {
+      whereClause.platform = platformFilter;
     }
 
     const [topics, total] = await Promise.all([
@@ -372,9 +550,9 @@ router.get('/topics', async (req: Request, res: Response) => {
  */
 router.post('/topics', async (req: Request, res: Response) => {
   try {
-    const { title, description, background, objectives, domain, techStack } = req.body;
+    const { title, description, background, objectives, domain, platform, techStack } = req.body;
 
-    if (!title || !description || !domain) {
+    if (!title || !description || !domain || !platform) {
       return res.status(400).json({ error: '请填写必要信息' });
     }
 
@@ -390,6 +568,11 @@ router.post('/topics', async (req: Request, res: Response) => {
       return res.status(400).json({ error: '无效的领域类型' });
     }
 
+    const validPlatforms = ['WEB', 'IOS', 'ANDROID', 'WECHAT_MINI', 'WINDOWS_DESKTOP', 'MAC_DESKTOP'];
+    if (!validPlatforms.includes(platform)) {
+      return res.status(400).json({ error: '无效的运行平台' });
+    }
+
     const topic = await prisma.topic.create({
       data: {
         title,
@@ -397,6 +580,7 @@ router.post('/topics', async (req: Request, res: Response) => {
         background: background || '',
         objectives: objectives || '',
         domain: domain as Domain,
+        platform: platform as Platform,
         techStack: techStack || [],
         type: TopicType.SYSTEM
       }
@@ -421,9 +605,21 @@ router.put('/topics/:id', async (req: Request, res: Response) => {
       return res.status(400).json({ error: '无效的选题ID' });
     }
 
-    const { title, description, background, objectives, domain, techStack } = req.body;
+    const existingTopic = await prisma.topic.findFirst({
+      where: {
+        id: topicId,
+        type: TopicType.SYSTEM
+      },
+      select: { id: true }
+    });
 
-    if (!title || !description || !domain) {
+    if (!existingTopic) {
+      return res.status(404).json({ error: '系统选题不存在' });
+    }
+
+    const { title, description, background, objectives, domain, platform, techStack } = req.body;
+
+    if (!title || !description || !domain || !platform) {
       return res.status(400).json({ error: '请填写必要信息' });
     }
 
@@ -439,6 +635,11 @@ router.put('/topics/:id', async (req: Request, res: Response) => {
       return res.status(400).json({ error: '无效的领域类型' });
     }
 
+    const validPlatforms = ['WEB', 'IOS', 'ANDROID', 'WECHAT_MINI', 'WINDOWS_DESKTOP', 'MAC_DESKTOP'];
+    if (!validPlatforms.includes(platform)) {
+      return res.status(400).json({ error: '无效的运行平台' });
+    }
+
     const topic = await prisma.topic.update({
       where: { id: topicId },
       data: {
@@ -447,6 +648,7 @@ router.put('/topics/:id', async (req: Request, res: Response) => {
         background: background || '',
         objectives: objectives || '',
         domain: domain as Domain,
+        platform: platform as Platform,
         techStack: techStack || []
       }
     });
@@ -468,6 +670,18 @@ router.delete('/topics/:id', async (req: Request, res: Response) => {
     const topicId = parseInt(Array.isArray(idParam) ? idParam[0] : idParam);
     if (isNaN(topicId)) {
       return res.status(400).json({ error: '无效的选题ID' });
+    }
+
+    const topic = await prisma.topic.findFirst({
+      where: {
+        id: topicId,
+        type: TopicType.SYSTEM
+      },
+      select: { id: true }
+    });
+
+    if (!topic) {
+      return res.status(404).json({ error: '系统选题不存在' });
     }
 
     // Check if topic is referenced by any project
@@ -513,6 +727,7 @@ router.post('/topics/import', upload.single('file'), async (req: Request, res: R
           background: row.background || '',
           objectives: row.objectives || '',
           domain: row.domain! as Domain,
+          platform: row.platform! as Platform,
           techStack: row.techStack ? row.techStack.split(',').map(s => s.trim()).filter(Boolean) : [],
           type: TopicType.SYSTEM
         });
@@ -544,7 +759,10 @@ router.get('/topics/template', async (req: Request, res: Response) => {
   try {
     const buffer = generateTemplateBuffer();
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-    res.setHeader('Content-Disposition', 'attachment; filename=选题导入模板.xlsx');
+    res.setHeader(
+      'Content-Disposition',
+      buildAttachmentHeader('topic-import-template.xlsx', '选题导入模板.xlsx')
+    );
     res.send(buffer);
   } catch (error) {
     console.error('Generate template error:', error);
@@ -566,9 +784,7 @@ router.get('/stats/overview', async (req: Request, res: Response) => {
       totalUsers,
       activeUsers,
       bannedUsers,
-      totalTopics,
       systemTopics,
-      customTopics,
       totalProjects,
       completedProjects,
       inProgressProjects,
@@ -578,9 +794,7 @@ router.get('/stats/overview', async (req: Request, res: Response) => {
       prisma.user.count(),
       prisma.user.count({ where: { status: Status.ACTIVE } }),
       prisma.user.count({ where: { status: Status.BANNED } }),
-      prisma.topic.count(),
       prisma.topic.count({ where: { type: TopicType.SYSTEM } }),
-      prisma.topic.count({ where: { type: TopicType.CUSTOM } }),
       prisma.project.count(),
       prisma.project.count({ where: { status: ProjectStatus.COMPLETED } }),
       prisma.project.count({ where: { status: ProjectStatus.IN_PROGRESS } }),
@@ -592,9 +806,9 @@ router.get('/stats/overview', async (req: Request, res: Response) => {
       totalUsers,
       activeUsers,
       bannedUsers,
-      totalTopics,
+      totalTopics: systemTopics,
       systemTopics,
-      customTopics,
+      customTopics: 0,
       totalProjects,
       completedProjects,
       inProgressProjects,
@@ -708,9 +922,11 @@ router.get('/stats/projects', async (req: Request, res: Response) => {
  */
 router.get('/config/announcement', async (req: Request, res: Response) => {
   try {
-    const config = await prisma.systemConfig.findUnique({
-      where: { key: 'announcement' }
-    });
+    const config = await withSystemConfigTable(() =>
+      prisma.systemConfig.findUnique({
+        where: { key: 'announcement' }
+      })
+    );
 
     if (!config) {
       return res.json({ key: 'announcement', value: '', updatedAt: new Date() });
@@ -739,11 +955,13 @@ router.put('/config/announcement', async (req: Request, res: Response) => {
       return res.status(400).json({ error: '公告内容不能超过5000字符' });
     }
 
-    const config = await prisma.systemConfig.upsert({
-      where: { key: 'announcement' },
-      update: { value },
-      create: { key: 'announcement', value, description: '平台公告' }
-    });
+    const config = await withSystemConfigTable(() =>
+      prisma.systemConfig.upsert({
+        where: { key: 'announcement' },
+        update: { value },
+        create: { key: 'announcement', value, description: '平台公告' }
+      })
+    );
 
     res.json({ key: config.key, value: config.value, updatedAt: config.updatedAt });
   } catch (error) {
@@ -758,9 +976,11 @@ router.put('/config/announcement', async (req: Request, res: Response) => {
  */
 router.get('/config/guide', async (req: Request, res: Response) => {
   try {
-    const config = await prisma.systemConfig.findUnique({
-      where: { key: 'guide' }
-    });
+    const config = await withSystemConfigTable(() =>
+      prisma.systemConfig.findUnique({
+        where: { key: 'guide' }
+      })
+    );
 
     if (!config) {
       return res.json({ key: 'guide', value: '', updatedAt: new Date() });
@@ -789,11 +1009,13 @@ router.put('/config/guide', async (req: Request, res: Response) => {
       return res.status(400).json({ error: '指南内容不能超过10000字符' });
     }
 
-    const config = await prisma.systemConfig.upsert({
-      where: { key: 'guide' },
-      update: { value },
-      create: { key: 'guide', value, description: '使用指南' }
-    });
+    const config = await withSystemConfigTable(() =>
+      prisma.systemConfig.upsert({
+        where: { key: 'guide' },
+        update: { value },
+        create: { key: 'guide', value, description: '使用指南' }
+      })
+    );
 
     res.json({ key: config.key, value: config.value, updatedAt: config.updatedAt });
   } catch (error) {

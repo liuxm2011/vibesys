@@ -1,2 +1,13 @@
 .omx/
+.omc/
+.DS_Store
+**/.DS_Store
+backend/.env
+frontend/.env
+.env
+.env.*
+!.env.example
+!backend/.env.example
+!frontend/.env.example
+*.backup
 *.tsbuildinfo

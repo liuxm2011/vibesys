@@ -1,4 +1,4 @@
-import { DocType, Domain } from '@prisma/client';
+import { DocType, Domain, Platform } from '@prisma/client';
 import crypto from 'crypto';
 import { getPRDPromptTemplate } from '../prompts/prd.template.js';
 import { getFrontendPromptTemplate } from '../prompts/frontend.template.js';
@@ -24,6 +24,7 @@ interface TopicInfo {
   title: string;
   description: string;
   domain: Domain;
+  platform: Platform;
   objectives: string;
   techStack: string[];
   // 新增：前置文档内容，用于上下文传递
@@ -216,6 +217,7 @@ These guidelines are working if: fewer unnecessary changes in diffs, fewer rewri
       title: topicInfo.title,
       description: topicInfo.description,
       domain: topicInfo.domain,
+      platform: topicInfo.platform,
       objectives: topicInfo.objectives,
       techStack: [...topicInfo.techStack].sort(),
       previousDocs: Object.entries(topicInfo.previousDocs || {})
@@ -489,10 +491,21 @@ These guidelines are working if: fewer unnecessary changes in diffs, fewer rewri
    * Build user prompt with topic info and previous document context
    */
   private buildUserPrompt(docType: DocType, topicInfo: TopicInfo): string {
+    const platformLabels: Record<string, string> = {
+      WEB: 'Web应用（浏览器访问）',
+      IOS: 'iOS原生应用',
+      ANDROID: 'Android原生应用',
+      WECHAT_MINI: '微信小程序',
+      WINDOWS_DESKTOP: 'Windows桌面端',
+      MAC_DESKTOP: 'Mac桌面端'
+    };
+    const platformLabel = platformLabels[topicInfo.platform] ?? topicInfo.platform;
+
     const baseInfo = `
 **选题标题**: ${topicInfo.title}
 **选题描述**: ${topicInfo.description}
 **领域**: ${topicInfo.domain === 'SE' ? '软件工程' : '大数据'}
+**运行平台**: ${platformLabel}
 **项目目标**: ${topicInfo.objectives}
 **推荐技术栈**: ${topicInfo.techStack.join(', ')}
 `;
@@ -853,6 +866,15 @@ ${baseInfo}${contextSection}
    */
   private generateMockDocument(docType: DocType, topicInfo: TopicInfo): string {
     const domainLabel = topicInfo.domain === 'SE' ? '软件工程' : '大数据';
+    const platformLabels: Record<string, string> = {
+      WEB: 'Web应用',
+      IOS: 'iOS原生应用',
+      ANDROID: 'Android原生应用',
+      WECHAT_MINI: '微信小程序',
+      WINDOWS_DESKTOP: 'Windows桌面端',
+      MAC_DESKTOP: 'Mac桌面端'
+    };
+    const platformLabel = platformLabels[topicInfo.platform] ?? topicInfo.platform;
     const timestamp = new Date().toLocaleString('zh-CN');
 
     if (docType === 'PRD') {
@@ -861,6 +883,7 @@ ${baseInfo}${contextSection}
 ## 项目概述
 
 **领域**: ${domainLabel}
+**运行平台**: ${platformLabel}
 **生成时间**: ${timestamp}
 **项目描述**: ${topicInfo.description}
 **项目目标**: ${topicInfo.objectives}
@@ -909,6 +932,7 @@ ${baseInfo}${contextSection}
 ## 项目概述
 
 **领域**: ${domainLabel}
+**运行平台**: ${platformLabel}
 **生成时间**: ${timestamp}
 
 ## 技术栈
@@ -955,6 +979,7 @@ src/
 ## 项目概述
 
 **领域**: ${domainLabel}
+**运行平台**: ${platformLabel}
 **生成时间**: ${timestamp}
 
 ## 技术栈
@@ -996,6 +1021,7 @@ ${topicInfo.techStack.map(tech => `- ${tech}`).join('\n')}
 
 ## 项目概述
 **领域**: ${domainLabel}
+**运行平台**: ${platformLabel}
 **生成时间**: ${timestamp}
 
 ## 认证机制
@@ -1067,6 +1093,7 @@ ${topicInfo.techStack.map(tech => `- ${tech}`).join('\n')}
 
 ## 项目概述
 **领域**: ${domainLabel}
+**运行平台**: ${platformLabel}
 **生成时间**: ${timestamp}
 
 ## 任务完成状态
@@ -1100,6 +1127,7 @@ ${topicInfo.techStack.map(tech => `- ${tech}`).join('\n')}
 
 ## 项目概述
 **领域**: ${domainLabel}
+**运行平台**: ${platformLabel}
 **项目描述**: ${topicInfo.description}
 **项目目标**: ${topicInfo.objectives}
 

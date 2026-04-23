@@ -1,11 +1,16 @@
 <template>
   <div class="dashboard-container">
     <!-- Main Header -->
-    <el-header class="dashboard-header">
+    <el-header class="dashboard-header" height="72px">
       <div class="header-content">
         <div class="header-left">
-          <div class="logo-mini">VB</div>
-          <h1 class="platform-name">VibeCoding <span>教学实践平台</span></h1>
+          <div class="logo-box">
+            <div class="logo-mini">VB</div>
+            <div class="logo-text">
+              <h1 class="platform-name">VibeCoding</h1>
+              <span class="platform-tag">教学实践平台</span>
+            </div>
+          </div>
         </div>
         <div class="header-right">
           <div class="nav-actions">
@@ -22,23 +27,26 @@
               v-else
               type="primary"
               @click="router.push('/topics')"
-              class="nav-item action-btn"
+              class="nav-item action-btn-pro"
             >
               <el-icon><FolderAdd /></el-icon>选题管理
             </el-button>
           </div>
-          <el-divider direction="vertical" />
+          <el-divider direction="vertical" class="header-divider" />
           <div class="user-profile">
             <el-dropdown trigger="click">
               <div class="user-info-trigger">
-                <el-avatar :size="32" class="user-avatar">{{ user?.name?.charAt(0) }}</el-avatar>
-                <span class="user-name">{{ user?.name }}</span>
-                <el-icon><ArrowDown /></el-icon>
+                <el-avatar :size="36" class="user-avatar">{{ user?.name?.charAt(0) }}</el-avatar>
+                <div class="user-meta">
+                  <span class="user-name">{{ user?.name }}</span>
+                  <span class="user-role">{{ isAdmin ? '管理员' : '学生用户' }}</span>
+                </div>
+                <el-icon class="dropdown-icon"><ArrowDown /></el-icon>
               </div>
               <template #dropdown>
                 <el-dropdown-menu>
-                  <el-dropdown-item disabled>
-                    <el-icon><User /></el-icon>{{ isAdmin ? '管理员' : '学生' }}
+                  <el-dropdown-item @click="passwordDialogVisible = true">
+                    <el-icon><Key /></el-icon>修改密码
                   </el-dropdown-item>
                   <el-dropdown-item divided @click="handleLogout" class="logout-item">
                     <el-icon><SwitchButton /></el-icon>退出登录
@@ -51,82 +59,81 @@
       </div>
     </el-header>
 
-    <div class="dashboard-content">
-      <!-- Welcome Section -->
-      <section class="welcome-section">
-        <div class="welcome-card-modern">
+    <div class="dashboard-content-wrapper">
+      <!-- Welcome Section: Compact & Integrated -->
+      <section class="welcome-banner">
+        <div class="banner-inner">
           <div class="welcome-info">
             <h2 class="welcome-text">你好，{{ user?.name }} 👋</h2>
-            <p class="welcome-subtext">欢迎回来！今天想开始哪个项目的编码？</p>
+            <p class="welcome-subtext">欢迎回来！准备好开启新的编码旅程了吗？</p>
           </div>
-          <div class="stats-row" v-if="!isAdmin">
-            <div class="stat-item">
-              <span class="stat-value">{{ projectStore.projectCount }}</span>
-              <span class="stat-label">我的项目</span>
+          <div class="stats-overview" v-if="!isAdmin">
+            <div class="stat-card">
+              <div class="stat-icon projs"><el-icon><Folder /></el-icon></div>
+              <div class="stat-content">
+                <span class="stat-value">{{ projectStore.projectCount }}</span>
+                <span class="stat-label">已参与项目</span>
+              </div>
             </div>
-            <el-divider direction="vertical" />
-            <div class="stat-item">
-              <span class="stat-value">10</span>
-              <span class="stat-label">额度上限</span>
+            <div class="stat-card">
+              <div class="stat-icon limit"><el-icon><DataLine /></el-icon></div>
+              <div class="stat-content">
+                <span class="stat-value">10</span>
+                <span class="stat-label">总项目额度</span>
+              </div>
             </div>
           </div>
         </div>
       </section>
 
-      <!-- Main Grid -->
-      <el-main class="main-layout">
+      <!-- Main Layout Grid -->
+      <div class="main-content-layout">
         <el-row :gutter="24">
-          <!-- Left Column: Quick Links (Admin Only) -->
-          <el-col :span="6" v-if="isAdmin">
-            <el-card class="quick-links-card">
-              <template #header>
-                <div class="sidebar-header">
-                  <el-icon><Tools /></el-icon>
-                  <span>快速入口</span>
-                </div>
-              </template>
-              <el-button type="primary" class="full-width-btn" @click="router.push('/admin')">
-                进入管理后台
-              </el-button>
-            </el-card>
-          </el-col>
-
-          <!-- Right Column: Projects -->
-          <el-col :span="isAdmin ? 18 : 24">
+          <!-- Left Column: Projects (Focus Area) -->
+          <el-col :span="isAdmin ? 24 : 17">
             <div class="projects-section" v-if="!isAdmin">
-              <div class="section-header">
-                <h3>我的项目列表</h3>
+              <div class="section-header-pro">
+                <div class="title-group">
+                  <h3>我的项目列表</h3>
+                  <span class="subtitle">管理你的所有实践项目</span>
+                </div>
+                <el-button link type="primary" @click="router.push('/topics')">查看更多课题 <el-icon><ArrowRight /></el-icon></el-button>
               </div>
 
               <!-- Project Cards Grid -->
-              <div v-if="projectStore.projects.length > 0" class="project-grid">
+              <div v-if="projectStore.projects.length > 0" class="project-grid-pro">
                 <el-card
                   v-for="project in projectStore.projects"
                   :key="project.id"
                   shadow="hover"
-                  class="project-card-modern"
+                  class="project-card-pro"
                   @click="handleProjectClick(project)"
                 >
-                  <div class="project-card-body">
-                    <div class="project-type-badge" :class="project.topic?.domain">
+                  <div class="project-card-header">
+                    <div class="project-type-tag" :class="project.topic?.domain">
                       {{ project.topic?.domain === 'SE' ? '软件工程' : '大数据' }}
                     </div>
-                    <h4 class="project-title">{{ project.topic?.title }}</h4>
-                    <p class="project-date">创建于 {{ formatDate(project.createdAt) }}</p>
-
-                    <div class="project-footer">
-                      <el-tag :type="projectStore.getStatusTagType(project.status)" size="small">
-                        {{ projectStore.getStatusText(project.status) }}
-                      </el-tag>
-                      <el-button
-                        type="danger"
-                        size="small"
-                        link
-                        @click.stop="handleDeleteProject(project.id)"
-                      >
-                        <el-icon><Delete /></el-icon>删除
-                      </el-button>
-                    </div>
+                    <el-tag :type="projectStore.getStatusTagType(project.status)" effect="light" size="small">
+                      {{ projectStore.getStatusText(project.status) }}
+                    </el-tag>
+                  </div>
+                  <div class="project-card-main">
+                    <h4 class="project-title-pro">{{ project.topic?.title }}</h4>
+                    <p class="project-desc">{{ project.topic?.description }}</p>
+                  </div>
+                  <div class="project-card-footer">
+                    <span class="create-time">
+                      <el-icon><Calendar /></el-icon> {{ formatDate(project.createdAt) }}
+                    </span>
+                    <el-button
+                      type="danger"
+                      size="small"
+                      link
+                      class="delete-btn"
+                      @click.stop="handleDeleteProject(project.id)"
+                    >
+                      <el-icon><Delete /></el-icon>
+                    </el-button>
                   </div>
                 </el-card>
               </div>
@@ -134,64 +141,159 @@
               <!-- Empty State -->
               <el-empty
                 v-else
-                description="暂无项目，快去选题吧！"
-                class="empty-projects"
+                description="暂无进行中的项目"
+                class="empty-projects-pro"
+                :image-size="160"
               >
-                <el-button type="primary" @click="router.push('/topics')" size="large">
-                  前往选题池
-                </el-button>
+                <template #extra>
+                  <p class="empty-hint">探索课题池，开启你的第一个项目</p>
+                  <el-button type="primary" @click="router.push('/topics')" size="large" class="action-btn-pro">
+                    前往选题池
+                  </el-button>
+                </template>
               </el-empty>
             </div>
 
-            <!-- Admin Placeholder -->
-            <div v-else class="admin-placeholder">
-              <el-card class="placeholder-card">
-                <el-empty description="管理员控制面板">
+            <!-- Admin Content Placeholder -->
+            <div v-else class="admin-full-view">
+              <el-card shadow="never" class="admin-welcome-card">
+                <el-result
+                  icon="success"
+                  title="管理员控制台"
+                  sub-title="欢迎使用 VibeCoding 管理系统"
+                >
                   <template #extra>
-                    <p class="placeholder-text">完整管理功能正在开发中...</p>
-                    <el-button type="primary" @click="router.push('/admin')">
-                      进入管理后台 (Phase 5)
-                    </el-button>
+                    <el-button type="primary" @click="router.push('/admin')">进入后台管理系统</el-button>
                   </template>
-                </el-empty>
+                </el-result>
+              </el-card>
+            </div>
+          </el-col>
+
+          <!-- Right Column: Info & Tools (Secondary Area) -->
+          <el-col :span="7" v-if="!isAdmin">
+            <div class="sidebar-info-stack">
+              <!-- Announcement Card -->
+              <el-card class="side-info-card" shadow="never">
+                <template #header>
+                  <div class="side-card-header">
+                    <div class="side-card-title">
+                      <el-icon><Bell /></el-icon>
+                      <span>平台公告</span>
+                    </div>
+                  </div>
+                </template>
+                <div v-if="systemConfig.announcement" class="side-announcement-box">
+                  <div class="announcement-text">{{ systemConfig.announcement }}</div>
+                  <div class="announcement-date" v-if="systemConfig.updatedAt.announcement">
+                    {{ formatDateTime(systemConfig.updatedAt.announcement) }}
+                  </div>
+                </div>
+                <el-empty v-else description="暂无公告" :image-size="48" class="mini-empty" />
+              </el-card>
+
+              <!-- Guide Card -->
+              <el-card class="side-info-card" shadow="never">
+                <template #header>
+                  <div class="side-card-header">
+                    <div class="side-card-title">
+                      <el-icon><Reading /></el-icon>
+                      <span>使用指南</span>
+                    </div>
+                  </div>
+                </template>
+                <div v-if="systemConfig.guide" class="side-guide-box">
+                  <div class="guide-text">{{ systemConfig.guide }}</div>
+                </div>
+                <el-empty v-else description="暂无指南" :image-size="48" class="mini-empty" />
+              </el-card>
+
+              <!-- Quick Start Card -->
+              <el-card class="side-info-card quick-start-card" shadow="never">
+                <div class="quick-start-content">
+                  <h4>遇到问题？</h4>
+                  <p>查看常见问题解答或联系导师指导</p>
+                  <el-button type="primary" plain class="full-width" @click="contactDialogVisible = true">联系支持</el-button>
+                </div>
               </el-card>
             </div>
           </el-col>
         </el-row>
-      </el-main>
+      </div>
     </div>
+
+    <el-dialog
+      v-model="contactDialogVisible"
+      title="联系支持"
+      width="420px"
+      :close-on-click-modal="true"
+      align-center
+    >
+      <div class="contact-dialog-content">
+        <p>如有问题，请通过以下邮箱联系：</p>
+        <div class="email-box">liuxm2011@gmail.com</div>
+      </div>
+      <template #footer>
+        <el-button type="primary" @click="contactDialogVisible = false">关闭</el-button>
+      </template>
+    </el-dialog>
+
+    <SelfPasswordDialog
+      v-model:visible="passwordDialogVisible"
+      @success="handlePasswordChanged"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import {
   Monitor,
   FolderAdd,
-  User,
+  Folder,
+  DataLine,
+  Key,
+  Bell,
+  Reading,
   ArrowDown,
-  SwitchButton,
-  InfoFilled,
-  Tools,
   ArrowRight,
+  Calendar,
+  SwitchButton,
   Delete
 } from '@element-plus/icons-vue';
 import { useAuthStore } from '@/stores/auth.store';
 import { useProjectStore } from '@/stores/project.store';
 import type { Project } from '@/types/project';
+import SelfPasswordDialog from '@/components/SelfPasswordDialog.vue';
+import { fetchStudentSystemConfigApi } from '@/api/auth.api';
 
 const router = useRouter();
 const authStore = useAuthStore();
 const projectStore = useProjectStore();
+const passwordDialogVisible = ref(false);
+const contactDialogVisible = ref(false);
+const systemConfig = ref({
+  announcement: '',
+  guide: '',
+  updatedAt: {
+    announcement: null as string | null,
+    guide: null as string | null
+  }
+});
 
 const user = computed(() => authStore.user);
 const isAdmin = computed(() => authStore.user?.role === 'ADMIN');
 
 onMounted(async () => {
   if (!isAdmin.value) {
-    const success = await projectStore.fetchProjects();
+    const [projectsLoaded] = await Promise.all([
+      projectStore.fetchProjects(),
+      loadStudentSystemConfig()
+    ]);
+
+    const success = projectsLoaded;
     if (!success) {
       ElMessage.error(projectStore.error || '获取项目列表失败');
     }
@@ -204,12 +306,35 @@ async function handleLogout() {
   router.push('/login');
 }
 
+function handlePasswordChanged() {
+  ElMessage.success('密码已更新，下次登录请使用新密码');
+}
+
+async function loadStudentSystemConfig() {
+  try {
+    systemConfig.value = await fetchStudentSystemConfigApi();
+  } catch (error: any) {
+    ElMessage.error(error?.message || '获取平台公告失败');
+  }
+}
+
 function formatDate(dateStr: string): string {
   const date = new Date(dateStr);
   return date.toLocaleDateString('zh-CN', {
     year: 'numeric',
     month: '2-digit',
     day: '2-digit'
+  });
+}
+
+function formatDateTime(dateStr: string): string {
+  const date = new Date(dateStr);
+  return date.toLocaleString('zh-CN', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit'
   });
 }
 
@@ -245,304 +370,459 @@ async function handleDeleteProject(projectId: number): Promise<void> {
 <style scoped>
 .dashboard-container {
   min-height: 100vh;
-  background-color: #f8fafc;
+  background-color: #f6f8fb;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
 }
 
-/* Header Styles */
+/* Header Refinement */
 .dashboard-header {
-  background: white;
-  border-bottom: 1px solid #e2e8f0;
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid #edf2f7;
   padding: 0;
   position: sticky;
   top: 0;
-  z-index: 100;
+  z-index: 1000;
 }
 
 .header-content {
-  max-width: 1400px;
+  max-width: 1440px;
   margin: 0 auto;
   height: 100%;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0 24px;
+  padding: 0 40px;
 }
 
 .header-left {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 16px;
 }
 
-.logo-mini {
-  width: 32px;
-  height: 32px;
-  background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
-  color: white;
-  font-weight: 800;
-  font-size: 14px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 8px;
-}
-
-.platform-name {
-  font-size: 18px;
-  font-weight: 700;
-  color: #1e293b;
-  margin: 0;
-}
-
-.platform-name span {
-  font-weight: 400;
-  color: #64748b;
-  font-size: 14px;
-  margin-left: 8px;
-}
-
-.header-right {
+.logo-box {
   display: flex;
   align-items: center;
   gap: 16px;
 }
 
-.nav-actions {
+.logo-mini {
+  width: 42px;
+  height: 42px;
+  background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);
+  color: white;
+  font-weight: 800;
+  font-size: 18px;
   display: flex;
-  gap: 12px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
 }
 
-.action-btn {
-  background: linear-gradient(to right, #4f46e5, #7c3aed) !important;
+.logo-text {
+  display: flex;
+  flex-direction: column;
+}
+
+.platform-name {
+  font-size: 20px;
+  font-weight: 800;
+  color: #1e293b;
+  margin: 0;
+  line-height: 1.2;
+}
+
+.platform-tag {
+  font-weight: 500;
+  color: #94a3b8;
+  font-size: 12px;
+  letter-spacing: 0.05em;
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  flex-shrink: 0;
+}
+
+.header-divider {
+  height: 24px !important;
+  margin: 0 4px !important;
+}
+
+.nav-actions {
+  display: flex;
+  align-items: center;
+}
+
+.action-btn-pro {
+  background: linear-gradient(135deg, #6366f1, #8b5cf6) !important;
   border: none !important;
+  padding: 0 20px;
+  height: 40px;
+  line-height: 40px;
+  font-weight: 600;
+  box-shadow: 0 4px 14px rgba(99, 102, 241, 0.4);
+  transition: all 0.3s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.action-btn-pro:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(99, 102, 241, 0.5);
+}
+
+.user-profile {
+  display: flex;
+  align-items: center;
 }
 
 .user-info-trigger {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 12px;
   cursor: pointer;
-  padding: 4px 8px;
-  border-radius: 8px;
-  transition: background-color 0.2s;
+  padding: 4px 12px;
+  border-radius: 12px;
+  transition: all 0.2s;
+  height: 48px;
 }
 
 .user-info-trigger:hover {
   background-color: #f1f5f9;
 }
 
-.user-avatar {
-  background-color: #4f46e5;
-  font-weight: 600;
+.user-meta {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  line-height: 1.2;
 }
 
 .user-name {
   font-size: 14px;
-  font-weight: 600;
-  color: #334155;
+  font-weight: 700;
+  color: #1e293b;
 }
 
-/* Welcome Section */
-.welcome-section {
-  max-width: 1400px;
-  margin: 24px auto 0;
-  padding: 0 24px;
+.user-role {
+  font-size: 11px;
+  color: #64748b;
+  font-weight: 500;
 }
 
-.welcome-card-modern {
+/* Welcome Banner */
+.welcome-banner {
   background: white;
-  padding: 32px;
-  border-radius: 20px;
-  border: 1px solid #e2e8f0;
+  margin-bottom: 32px;
+  border-bottom: 1px solid #edf2f7;
+}
+
+.banner-inner {
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: 40px 40px;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background-image: radial-gradient(at 100% 0%, rgba(79, 70, 229, 0.05) 0px, transparent 50%),
-                    radial-gradient(at 0% 100%, rgba(124, 58, 237, 0.05) 0px, transparent 50%);
 }
 
 .welcome-text {
-  font-size: 24px;
+  font-size: 28px;
   font-weight: 800;
-  color: #1e293b;
+  color: #0f172a;
   margin: 0;
 }
 
 .welcome-subtext {
   color: #64748b;
   margin: 8px 0 0;
+  font-size: 16px;
 }
 
-.stats-row {
+.stats-overview {
+  display: flex;
+  gap: 24px;
+}
+
+.stat-card {
+  background: #f8fafc;
+  padding: 16px 24px;
+  border-radius: 16px;
   display: flex;
   align-items: center;
-  gap: 32px;
+  gap: 16px;
+  border: 1px solid #f1f5f9;
 }
 
-.stat-item {
+.stat-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+}
+
+.stat-icon.projs { background: #e0e7ff; color: #4f46e5; }
+.stat-icon.limit { background: #fef2f2; color: #ef4444; }
+
+.stat-content {
   display: flex;
   flex-direction: column;
-  align-items: center;
 }
 
 .stat-value {
-  font-size: 24px;
+  font-size: 20px;
   font-weight: 800;
-  color: #4f46e5;
+  color: #1e293b;
 }
 
 .stat-label {
   font-size: 12px;
   color: #94a3b8;
   font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
 }
 
-/* Main Layout */
-.dashboard-content {
-  max-width: 1400px;
+/* Main Layout Wrapper */
+.dashboard-content-wrapper {
+  padding-bottom: 60px;
+}
+
+.main-content-layout {
+  max-width: 1440px;
   margin: 0 auto;
+  padding: 0 40px;
 }
 
-.main-layout {
-  padding: 24px;
-}
-
-.sidebar-header {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-weight: 700;
-  color: #334155;
-}
-
-.info-list {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.info-item {
+/* Projects Section */
+.section-header-pro {
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  align-items: flex-end;
+  margin-bottom: 24px;
 }
 
-.info-item .label {
-  font-size: 13px;
-  color: #64748b;
-}
-
-.info-item .value {
-  font-size: 14px;
-  font-weight: 600;
-  color: #1e293b;
-}
-
-.quick-links-card {
-  margin-top: 24px;
-}
-
-.full-width-btn {
-  width: 100%;
-}
-
-/* Projects Grid */
-.projects-section {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.section-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.section-header h3 {
-  font-size: 18px;
-  font-weight: 700;
+.title-group h3 {
+  font-size: 22px;
+  font-weight: 800;
   color: #1e293b;
   margin: 0;
 }
 
-.project-grid {
+.subtitle {
+  font-size: 14px;
+  color: #94a3b8;
+  font-weight: 500;
+}
+
+.project-grid-pro {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: 20px;
+  grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+  gap: 24px;
 }
 
-.project-card-modern {
+.project-card-pro {
+  border-radius: 20px;
+  border: 1px solid #f1f5f9;
   cursor: pointer;
-  border-radius: 16px;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex;
+  flex-direction: column;
 }
 
-.project-card-modern:hover {
-  transform: translateY(-4px);
-  border-color: #4f46e5;
+.project-card-pro:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.05);
+  border-color: #6366f1;
 }
 
-.project-card-body {
-  padding: 4px;
+.project-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
 }
 
-.project-type-badge {
-  display: inline-block;
-  padding: 4px 10px;
+.project-type-tag {
+  padding: 4px 12px;
   font-size: 11px;
   font-weight: 700;
-  border-radius: 6px;
-  margin-bottom: 12px;
-  text-transform: uppercase;
+  border-radius: 8px;
+  letter-spacing: 0.02em;
 }
 
-.project-type-badge.SE {
-  background-color: #ecfeff;
-  color: #0891b2;
-}
+.project-type-tag.SE { background: #eff6ff; color: #2563eb; }
+.project-type-tag.BD { background: #fff1f2; color: #e11d48; }
 
-.project-type-badge.BD {
-  background-color: #fef2f2;
-  color: #dc2626;
-}
-
-.project-title {
-  font-size: 16px;
+.project-title-pro {
+  font-size: 18px;
   font-weight: 700;
-  color: #1e293b;
-  margin: 0 0 8px;
+  color: #0f172a;
+  margin: 0 0 12px;
+  line-height: 1.4;
+}
+
+.project-desc {
+  font-size: 14px;
+  color: #64748b;
+  margin-bottom: 20px;
+  line-height: 1.6;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
-  line-height: 1.4;
-  height: 2.8em;
+  height: 3.2em;
 }
 
-.project-date {
-  font-size: 12px;
-  color: #94a3b8;
-  margin-bottom: 16px;
-}
-
-.project-footer {
+.project-card-footer {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding-top: 12px;
+  padding-top: 16px;
   border-top: 1px solid #f1f5f9;
 }
 
-.empty-projects {
-  background: white;
+.create-time {
+  font-size: 12px;
+  color: #94a3b8;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.delete-btn {
+  color: #94a3b8 !important;
+}
+
+.delete-btn:hover {
+  color: #ef4444 !important;
+}
+
+/* Sidebar Info Stack */
+.sidebar-info-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.side-info-card {
   border-radius: 20px;
-  padding: 60px 0;
+  border: 1px solid #f1f5f9;
+}
+
+.side-card-header {
+  display: flex;
+  align-items: center;
+}
+
+.side-card-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 15px;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.side-card-title .el-icon {
+  color: #6366f1;
+}
+
+.side-announcement-box, .side-guide-box {
+  padding: 4px 0;
+}
+
+.announcement-text, .guide-text {
+  font-size: 14px;
+  color: #475569;
+  line-height: 1.6;
+  white-space: pre-wrap;
+}
+
+.announcement-date {
+  font-size: 11px;
+  color: #94a3b8;
+  margin-top: 12px;
+}
+
+.quick-start-card {
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+}
+
+.quick-start-content h4 {
+  margin: 0 0 8px;
+  font-size: 16px;
+  color: #1e293b;
+}
+
+.quick-start-content p {
+  font-size: 13px;
+  color: #64748b;
+  margin-bottom: 16px;
+}
+
+.full-width {
+  width: 100%;
+}
+
+.contact-dialog-content {
+  text-align: center;
+  padding: 16px 0;
+}
+
+.contact-dialog-content p {
+  font-size: 14px;
+  color: #64748b;
+  margin: 0 0 16px;
+}
+
+.email-box {
+  font-size: 16px;
+  font-weight: 700;
+  color: #4338ca;
+  background: #eef2ff;
+  padding: 12px 20px;
+  border-radius: 12px;
+  word-break: break-all;
+}
+
+.empty-projects-pro {
+  background: white;
+  border-radius: 24px;
+  padding: 80px 40px;
+  border: 2px dashed #e2e8f0;
+}
+
+.empty-hint {
+  color: #94a3b8;
+  margin-bottom: 24px;
+}
+
+.admin-full-view {
+  background: white;
+  border-radius: 24px;
+  padding: 40px;
 }
 
 .logout-item {
   color: #ef4444 !important;
+  font-weight: 600;
+}
+
+.mini-empty {
+  padding: 20px 0 !important;
+}
+
+@media (max-width: 1200px) {
+  .project-grid-pro {
+    grid-template-columns: 1fr;
+  }
 }
 </style>

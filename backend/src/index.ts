@@ -35,10 +35,30 @@ validateEnvironment();
 export const prisma = new PrismaClient();
 export const app = express();
 
+function getAllowedOrigins(): string[] {
+  const configuredOrigin = process.env.FRONTEND_URL?.trim();
+  const defaults = ['http://127.0.0.1:5173', 'http://localhost:5173'];
+
+  if (!configuredOrigin) {
+    return defaults;
+  }
+
+  const normalized = configuredOrigin.replace(/\/+$/, '');
+  return Array.from(new Set([normalized, ...defaults]));
+}
+
 // Middleware setup
 app.use(helmet());
+const allowedOrigins = getAllowedOrigins();
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+  origin(origin, callback) {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+      return;
+    }
+
+    callback(new Error('CORS origin not allowed'));
+  },
   credentials: true  // Required for httpOnly cookies (D-12)
 }));
 app.use(cookieParser());

@@ -33,11 +33,20 @@
         <el-option label="软件工程" value="SE" />
         <el-option label="大数据" value="BD" />
       </el-select>
-      <el-select v-model="typeFilter" placeholder="类型筛选" clearable @change="handleFilter">
+      <el-select v-model="platformFilter" placeholder="平台筛选" clearable @change="handleFilter">
         <el-option label="全部" value="" />
-        <el-option label="系统选题" value="SYSTEM" />
-        <el-option label="自拟选题" value="CUSTOM" />
+        <el-option label="Web App" value="WEB" />
+        <el-option label="iOS" value="IOS" />
+        <el-option label="Android" value="ANDROID" />
+        <el-option label="微信小程序" value="WECHAT_MINI" />
+        <el-option label="Windows桌面端" value="WINDOWS_DESKTOP" />
+        <el-option label="Mac桌面端" value="MAC_DESKTOP" />
       </el-select>
+      <el-radio-group v-model="typeFilter" @change="handleFilter">
+        <el-radio-button value="">全部</el-radio-button>
+        <el-radio-button value="SYSTEM">仅查看内置</el-radio-button>
+        <el-radio-button value="CUSTOM">仅查看自拟</el-radio-button>
+      </el-radio-group>
       <el-button @click="refresh">
         <el-icon><Refresh /></el-icon>刷新
       </el-button>
@@ -52,6 +61,11 @@
           <el-tag :type="row.domain === 'SE' ? 'primary' : 'warning'" size="small">
             {{ row.domain === 'SE' ? '软件工程' : '大数据' }}
           </el-tag>
+        </template>
+      </el-table-column>
+      <el-table-column label="平台" width="120">
+        <template #default="{ row }">
+          <el-tag type="info" size="small">{{ platformLabel(row.platform) }}</el-tag>
         </template>
       </el-table-column>
       <el-table-column label="类型" width="100">
@@ -123,6 +137,16 @@
             <el-radio value="BD">大数据</el-radio>
           </el-radio-group>
         </el-form-item>
+        <el-form-item label="运行平台" prop="platform">
+          <el-select v-model="formData.platform" placeholder="请选择运行平台" style="width: 100%">
+            <el-option label="Web App" value="WEB" />
+            <el-option label="iOS" value="IOS" />
+            <el-option label="Android" value="ANDROID" />
+            <el-option label="微信小程序" value="WECHAT_MINI" />
+            <el-option label="Windows桌面端" value="WINDOWS_DESKTOP" />
+            <el-option label="Mac桌面端" value="MAC_DESKTOP" />
+          </el-select>
+        </el-form-item>
         <el-form-item label="技术栈">
           <el-select
             v-model="formData.techStack"
@@ -182,6 +206,7 @@ const store = useAdminStore();
 const searchKeyword = ref('');
 const domainFilter = ref('');
 const typeFilter = ref('');
+const platformFilter = ref('');
 const currentPage = ref(1);
 const dialogVisible = ref(false);
 const importDialogVisible = ref(false);
@@ -200,13 +225,15 @@ const formData = ref({
   background: '',
   objectives: '',
   domain: 'SE' as 'SE' | 'BD',
+  platform: 'WEB' as 'WEB' | 'IOS' | 'ANDROID' | 'WECHAT_MINI' | 'WINDOWS_DESKTOP' | 'MAC_DESKTOP',
   techStack: [] as string[]
 });
 
 const formRules: FormRules = {
   title: [{ required: true, message: '请输入标题', trigger: 'blur' }, { min: 2, max: 100, message: '标题长度2-100字符', trigger: 'blur' }],
   description: [{ required: true, message: '请输入描述', trigger: 'blur' }, { min: 10, max: 500, message: '描述长度10-500字符', trigger: 'blur' }],
-  domain: [{ required: true, message: '请选择领域', trigger: 'change' }]
+  domain: [{ required: true, message: '请选择领域', trigger: 'change' }],
+  platform: [{ required: true, message: '请选择运行平台', trigger: 'change' }]
 };
 
 const debouncedSearch = useDebounceFn(() => {
@@ -233,7 +260,8 @@ async function loadTopics() {
     page: currentPage.value,
     search: searchKeyword.value || undefined,
     domain: domainFilter.value || undefined,
-    type: typeFilter.value || undefined
+    type: typeFilter.value || undefined,
+    platform: platformFilter.value || undefined
   });
 }
 
@@ -245,7 +273,7 @@ async function refresh() {
 function showCreateDialog() {
   isEdit.value = false;
   editId.value = 0;
-  formData.value = { title: '', description: '', background: '', objectives: '', domain: 'SE', techStack: [] };
+  formData.value = { title: '', description: '', background: '', objectives: '', domain: 'SE', platform: 'WEB', techStack: [] };
   dialogVisible.value = true;
 }
 
@@ -258,6 +286,7 @@ function showEditDialog(row: any) {
     background: row.background || '',
     objectives: row.objectives || '',
     domain: row.domain,
+    platform: row.platform || 'WEB',
     techStack: row.techStack || []
   };
   dialogVisible.value = true;
@@ -331,6 +360,11 @@ async function handleImport() {
   } finally {
     importing.value = false;
   }
+}
+
+function platformLabel(platform: string): string {
+  const labels: Record<string, string> = { WEB: 'Web App', IOS: 'iOS', ANDROID: 'Android', WECHAT_MINI: '微信小程序', WINDOWS_DESKTOP: 'Windows桌面端', MAC_DESKTOP: 'Mac桌面端' };
+  return labels[platform] ?? platform;
 }
 
 onMounted(() => {

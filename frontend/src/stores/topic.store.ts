@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
 import { fetchTopicsApi, getTopicDetailApi, createCustomTopicApi } from '@/api/topic.api';
-import type { Topic, Domain, CustomTopicInput } from '@/types/topic';
+import type { Topic, Domain, CustomTopicInput, Platform } from '@/types/topic';
 
 /**
  * Topic Pinia store (TOPIC-01, TOPIC-02, TOPIC-05)
@@ -14,16 +14,35 @@ export const useTopicStore = defineStore('topic', () => {
   const loading = ref(false);
   const error = ref<string | null>(null);
   const selectedDomain = ref<Domain | null>(null);
+  const selectedType = ref<'SYSTEM' | 'CUSTOM' | null>(null);
+  const selectedPlatform = ref<Platform | null>(null);
+  const searchQuery = ref('');
 
-  // Computed: TOPIC-02 domain filtering
+  // Computed: TOPIC-02 domain + type + platform + keyword filtering
   const filteredTopics = computed(() => {
-    if (!selectedDomain.value) {
-      return topics.value;
+    let result = topics.value;
+    if (selectedDomain.value) {
+      result = result.filter(t => t.domain === selectedDomain.value);
     }
-    return topics.value.filter(t => t.domain === selectedDomain.value);
+    if (selectedType.value === 'SYSTEM') {
+      result = result.filter(t => t.type === 'SYSTEM');
+    } else if (selectedType.value === 'CUSTOM') {
+      result = result.filter(t => t.type === 'CUSTOM');
+    }
+    if (selectedPlatform.value) {
+      result = result.filter(t => t.platform === selectedPlatform.value);
+    }
+    if (searchQuery.value.trim()) {
+      const q = searchQuery.value.toLowerCase();
+      result = result.filter(t =>
+        t.title.toLowerCase().includes(q) ||
+        t.description.toLowerCase().includes(q)
+      );
+    }
+    return result;
   });
 
-  // Computed: Separate system and custom topics
+  // Computed: Separate system and custom topics (kept for reference)
   const systemTopics = computed(() =>
     topics.value.filter(t => t.type === 'SYSTEM')
   );
@@ -105,6 +124,14 @@ export const useTopicStore = defineStore('topic', () => {
     selectedDomain.value = domain;
   }
 
+  function setTypeFilter(type: 'SYSTEM' | 'CUSTOM' | null): void {
+    selectedType.value = type;
+  }
+
+  function setPlatformFilter(platform: Platform | null): void {
+    selectedPlatform.value = platform;
+  }
+
   /**
    * Clear current topic detail
    */
@@ -121,6 +148,8 @@ export const useTopicStore = defineStore('topic', () => {
     loading.value = false;
     error.value = null;
     selectedDomain.value = null;
+    selectedType.value = null;
+    selectedPlatform.value = null;
   }
 
   return {
@@ -130,6 +159,9 @@ export const useTopicStore = defineStore('topic', () => {
     loading,
     error,
     selectedDomain,
+    selectedType,
+    selectedPlatform,
+    searchQuery,
     // Computed
     filteredTopics,
     systemTopics,
@@ -140,6 +172,8 @@ export const useTopicStore = defineStore('topic', () => {
     getTopicDetail,
     createCustomTopic,
     setDomainFilter,
+    setTypeFilter,
+    setPlatformFilter,
     clearCurrentTopic,
     $reset
   };

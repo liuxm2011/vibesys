@@ -9,6 +9,10 @@ export interface AdminUser {
   status: 'ACTIVE' | 'BANNED';
   projectCount: number;
   createdAt: string;
+  passwordStatus: 'DEFAULT' | 'CUSTOM';
+  passwordHint: string;
+  revealedPassword: string | null;
+  canRevealPassword: boolean;
 }
 
 export interface PaginationInfo {
@@ -40,7 +44,40 @@ export interface CreateStudentRequest {
 }
 
 export interface CreateStudentResponse {
-  user: AdminUser;
+  user: {
+    id: number;
+    studentId: string;
+    name: string;
+    major: string;
+    grade: string;
+    class: string;
+    role: 'STUDENT' | 'ADMIN';
+    status: 'ACTIVE' | 'BANNED';
+    createdAt: string;
+  };
+  initialPassword: string;
+}
+
+export interface UserPasswordInfo {
+  userId: number;
+  name: string;
+  passwordStatus: 'DEFAULT' | 'CUSTOM';
+  passwordHint: string;
+  revealedPassword: string | null;
+  canRevealPassword: boolean;
+}
+
+export interface UpdateUserPasswordRequest {
+  action: 'RESET_TO_DEFAULT' | 'SET_CUSTOM';
+  newPassword?: string;
+}
+
+export interface UpdateUserPasswordResponse {
+  message: string;
+  userId: number;
+  passwordStatus: 'DEFAULT' | 'CUSTOM';
+  passwordHint: string;
+  revealedPassword: string;
 }
 
 export interface AdminTopic {
@@ -50,6 +87,7 @@ export interface AdminTopic {
   background: string;
   objectives: string;
   domain: 'SE' | 'BD';
+  platform: 'WEB' | 'IOS' | 'ANDROID' | 'WECHAT_MINI' | 'WINDOWS_DESKTOP' | 'MAC_DESKTOP';
   techStack: string[];
   type: 'SYSTEM' | 'CUSTOM';
   creatorId?: number | null;
@@ -99,4 +137,5 @@ export interface ImportResult {
   imported: number;
   failed: number;
   errors: { row: number; reason: string }[];
+  defaultPasswordRule?: string;
 }

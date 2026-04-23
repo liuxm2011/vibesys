@@ -18,6 +18,7 @@
             </span>
             <template #dropdown>
               <el-dropdown-menu>
+                <el-dropdown-item command="password" :icon="Key">修改密码</el-dropdown-item>
                 <el-dropdown-item command="logout" :icon="SwitchButton">退出登录</el-dropdown-item>
               </el-dropdown-menu>
             </template>
@@ -61,26 +62,43 @@
         <router-view />
       </main>
     </div>
+
+    <SelfPasswordDialog
+      v-model:visible="passwordDialogVisible"
+      @success="handlePasswordChanged"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
+import { ElMessage } from 'element-plus';
 import { useAuthStore } from '@/stores/auth.store';
-import { Back, User, Collection, TrendCharts, Setting, SwitchButton } from '@element-plus/icons-vue';
+import { Back, User, Collection, TrendCharts, Setting, SwitchButton, Key } from '@element-plus/icons-vue';
+import SelfPasswordDialog from '@/components/SelfPasswordDialog.vue';
 
 const router = useRouter();
 const route = useRoute();
 const authStore = useAuthStore();
+const passwordDialogVisible = ref(false);
 
 const activeMenu = computed(() => route.path);
 
 async function handleCommand(command: string) {
+  if (command === 'password') {
+    passwordDialogVisible.value = true;
+    return;
+  }
+
   if (command === 'logout') {
     await authStore.logout();
     router.push('/login');
   }
+}
+
+function handlePasswordChanged() {
+  ElMessage.success('密码已更新，下次登录请使用新密码');
 }
 </script>
 

@@ -102,6 +102,7 @@ router.get('/', authMiddleware, async (req: Request, res: Response) => {
           select: {
             id: true,
             title: true,
+            description: true,
             domain: true,
             type: true,
             techStack: true
@@ -186,6 +187,7 @@ router.get('/:id', authMiddleware, async (req: Request, res: Response) => {
         topic: {
           select: {
             title: true,
+            description: true,
             domain: true
           }
         }
