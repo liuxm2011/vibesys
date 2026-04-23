@@ -1377,8 +1377,7 @@ ${getAgentsPromptTemplate(domain)}
       onProgress
     );
 
-    const cleaned = this.cleanGeneratedContent(rawContent);
-    const parsedResult = this.parseReviewResult(cleaned);
+    const parsedResult = this.parseReviewResult(rawContent);
     const finalized = await this.ensureReviewPatchHints(topicInfo, allDocs, parsedResult);
 
     onProgress('\n\n审核完成');
@@ -1566,29 +1565,156 @@ ${getAgentsPromptTemplate(domain)}
   }
 
   private parseReviewResult(rawContent: string): ReviewResult {
-    const jsonMatch = rawContent.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) {
-      return { issues: [], summary: '审核完成，未发现明显问题。' };
+    const candidates = this.extractReviewJsonCandidates(rawContent);
+
+    for (const candidate of candidates) {
+      try {
+        const parsed = JSON.parse(candidate) as unknown;
+        if (this.isReviewResultLike(parsed)) {
+          return this.normalizeReviewResult(parsed);
+        }
+      } catch {
+        // Continue trying later candidates. Model output often contains
+        // a fenced JSON object plus surrounding prose or earlier examples.
+      }
     }
 
-    try {
-      const parsed = JSON.parse(jsonMatch[0]) as Partial<ReviewResult>;
-      return {
-        issues: Array.isArray(parsed.issues) ? parsed.issues.map((issue, i) => ({
-          id: issue.id ?? (i + 1),
-          severity: (issue.severity as ReviewIssue['severity']) ?? 'suggestion',
-          category: (issue.category as ReviewIssue['category']) ?? 'overall',
-          title: issue.title ?? '未命名问题',
-          description: issue.description ?? '',
-          affectedDocTypes: Array.isArray(issue.affectedDocTypes) ? issue.affectedDocTypes : [],
-          suggestion: issue.suggestion ?? '',
-          patchHints: this.parseReviewPatchHints(issue.patchHints)
-        })) : [],
-        summary: typeof parsed.summary === 'string' ? parsed.summary : '审核完成。'
-      };
-    } catch {
+    if (candidates.length > 0) {
+      console.warn('[AI Review] Failed to parse structured review JSON', {
+        candidateCount: candidates.length,
+        tail: rawContent.slice(-1000)
+      });
       return { issues: [], summary: '审核结果解析失败，请重试。' };
     }
+
+    return { issues: [], summary: '审核完成，未发现明显问题。' };
+  }
+
+  private extractReviewJsonCandidates(rawContent: string): string[] {
+    const content = rawContent.trim().replace(/^\uFEFF/, '');
+    const candidates: string[] = [];
+
+    const fencedBlockRegex = /```(?:json)?\s*([\s\S]*?)```/gi;
+    let fencedMatch: RegExpExecArray | null;
+    while ((fencedMatch = fencedBlockRegex.exec(content)) !== null) {
+      const fencedContent = fencedMatch[1]?.trim();
+      if (fencedContent) {
+        candidates.push(fencedContent);
+        candidates.push(...this.extractBalancedJsonObjects(fencedContent));
+      }
+    }
+
+    candidates.push(...this.extractBalancedJsonObjects(content));
+
+    return Array.from(new Set(candidates))
+      .filter(candidate => candidate.trim().startsWith('{') && candidate.trim().endsWith('}'))
+      .sort((left, right) => this.scoreReviewJsonCandidate(right) - this.scoreReviewJsonCandidate(left));
+  }
+
+  private extractBalancedJsonObjects(content: string): string[] {
+    const candidates: string[] = [];
+    let startIndex = -1;
+    let depth = 0;
+    let inString = false;
+    let escaped = false;
+
+    for (let index = 0; index < content.length; index += 1) {
+      const char = content[index];
+
+      if (inString) {
+        if (escaped) {
+          escaped = false;
+        } else if (char === '\\') {
+          escaped = true;
+        } else if (char === '"') {
+          inString = false;
+        }
+        continue;
+      }
+
+      if (char === '"') {
+        inString = true;
+        continue;
+      }
+
+      if (char === '{') {
+        if (depth === 0) {
+          startIndex = index;
+        }
+        depth += 1;
+        continue;
+      }
+
+      if (char === '}' && depth > 0) {
+        depth -= 1;
+        if (depth === 0 && startIndex >= 0) {
+          candidates.push(content.slice(startIndex, index + 1).trim());
+          startIndex = -1;
+        }
+      }
+    }
+
+    return candidates;
+  }
+
+  private scoreReviewJsonCandidate(candidate: string): number {
+    let score = candidate.length > 0 ? 1 : 0;
+    if (candidate.includes('"issues"')) score += 4;
+    if (candidate.includes('"summary"')) score += 3;
+    if (candidate.includes('"patchHints"')) score += 2;
+    return score;
+  }
+
+  private isReviewResultLike(value: unknown): value is Partial<ReviewResult> {
+    return Boolean(
+      value
+      && typeof value === 'object'
+      && (
+        Array.isArray((value as Partial<ReviewResult>).issues)
+        || typeof (value as Partial<ReviewResult>).summary === 'string'
+      )
+    );
+  }
+
+  private normalizeReviewResult(parsed: Partial<ReviewResult>): ReviewResult {
+    const allowedSeverities = new Set<ReviewIssue['severity']>(['critical', 'warning', 'suggestion']);
+    const allowedCategories = new Set<ReviewIssue['category']>([
+      'prd_vs_frontend',
+      'prd_vs_backend',
+      'backend_vs_api',
+      'frontend_vs_api',
+      'overall'
+    ]);
+    const allowedDocTypes = new Set<string>(Object.values(DocType));
+
+    return {
+      issues: Array.isArray(parsed.issues) ? parsed.issues.map((issue, i) => {
+        const rawIssue = issue as Partial<ReviewIssue>;
+        const severity = allowedSeverities.has(rawIssue.severity as ReviewIssue['severity'])
+          ? rawIssue.severity as ReviewIssue['severity']
+          : 'suggestion';
+        const category = allowedCategories.has(rawIssue.category as ReviewIssue['category'])
+          ? rawIssue.category as ReviewIssue['category']
+          : 'overall';
+        const affectedDocTypes = Array.isArray(rawIssue.affectedDocTypes)
+          ? rawIssue.affectedDocTypes.filter((docType): docType is DocType =>
+            typeof docType === 'string' && allowedDocTypes.has(docType)
+          )
+          : [];
+
+        return {
+          id: typeof rawIssue.id === 'number' ? rawIssue.id : i + 1,
+          severity,
+          category,
+          title: typeof rawIssue.title === 'string' && rawIssue.title.trim() ? rawIssue.title.trim() : '未命名问题',
+          description: typeof rawIssue.description === 'string' ? rawIssue.description.trim() : '',
+          affectedDocTypes,
+          suggestion: typeof rawIssue.suggestion === 'string' ? rawIssue.suggestion.trim() : '',
+          patchHints: this.parseReviewPatchHints(rawIssue.patchHints)
+        };
+      }) : [],
+      summary: typeof parsed.summary === 'string' && parsed.summary.trim() ? parsed.summary.trim() : '审核完成。'
+    };
   }
 
   private generateMockReviewResult(): ReviewResult {
