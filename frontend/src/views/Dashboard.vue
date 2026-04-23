@@ -97,7 +97,6 @@
                   <h3>我的项目列表</h3>
                   <span class="subtitle">管理你的所有实践项目</span>
                 </div>
-                <el-button link type="primary" @click="router.push('/topics')">查看更多课题 <el-icon><ArrowRight /></el-icon></el-button>
               </div>
 
               <!-- Project Cards Grid -->
@@ -258,7 +257,6 @@ import {
   Bell,
   Reading,
   ArrowDown,
-  ArrowRight,
   Calendar,
   SwitchButton,
   Delete
