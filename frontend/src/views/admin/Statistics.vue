@@ -149,23 +149,22 @@
         <el-table
           :data="store.aiUsageStats?.userUsage || []"
           style="width: 100%"
-          size="small"
           v-loading="store.statsLoading"
         >
-          <el-table-column prop="name" label="姓名" width="120" />
-          <el-table-column prop="studentId" label="学号" width="140" />
-          <el-table-column prop="requestCount" label="请求次数" width="100" sortable />
-          <el-table-column prop="promptTokens" label="Prompt Tokens" width="140" sortable>
+          <el-table-column prop="name" label="姓名" min-width="100" />
+          <el-table-column prop="studentId" label="学号" min-width="120" />
+          <el-table-column prop="requestCount" label="请求次数" min-width="100" sortable />
+          <el-table-column prop="promptTokens" label="Prompt Tokens" min-width="130" sortable>
             <template #default="scope">{{ formatTokens(scope.row.promptTokens) }}</template>
           </el-table-column>
-          <el-table-column prop="completionTokens" label="Completion Tokens" width="160" sortable>
+          <el-table-column prop="completionTokens" label="Completion Tokens" min-width="150" sortable>
             <template #default="scope">{{ formatTokens(scope.row.completionTokens) }}</template>
           </el-table-column>
-          <el-table-column prop="totalTokens" label="总 Tokens" width="140" sortable>
+          <el-table-column prop="totalTokens" label="总 Tokens" min-width="130" sortable>
             <template #default="scope">{{ formatTokens(scope.row.totalTokens) }}</template>
           </el-table-column>
         </el-table>
-        <el-empty v-if="!store.aiUsageStats?.userUsage.length" description="暂无数据" :image-size="60" />
+        <el-empty v-if="!store.aiUsageStats?.userUsage.length" description="暂无数据" />
       </el-card>
 
       <!-- DocType & Operation Distribution -->
@@ -173,27 +172,27 @@
         <el-col :span="12">
           <el-card shadow="hover">
             <template #header>按文档类型分布</template>
-            <el-table :data="store.aiUsageStats?.docTypeUsage || []" size="small">
-              <el-table-column prop="docType" label="文档类型" />
-              <el-table-column prop="requestCount" label="请求数" width="90" />
-              <el-table-column prop="totalTokens" label="Tokens" width="120">
+            <el-table :data="store.aiUsageStats?.docTypeUsage || []">
+              <el-table-column prop="docType" label="文档类型" min-width="100" />
+              <el-table-column prop="requestCount" label="请求数" min-width="90" />
+              <el-table-column prop="totalTokens" label="Tokens" min-width="120">
                 <template #default="scope">{{ formatTokens(scope.row.totalTokens) }}</template>
               </el-table-column>
             </el-table>
-            <el-empty v-if="!store.aiUsageStats?.docTypeUsage.length" description="暂无数据" :image-size="60" />
+            <el-empty v-if="!store.aiUsageStats?.docTypeUsage.length" description="暂无数据" />
           </el-card>
         </el-col>
         <el-col :span="12">
           <el-card shadow="hover">
             <template #header>按操作类型分布</template>
-            <el-table :data="store.aiUsageStats?.operationUsage || []" size="small">
-              <el-table-column prop="operation" label="操作类型" />
-              <el-table-column prop="requestCount" label="请求数" width="90" />
-              <el-table-column prop="totalTokens" label="Tokens" width="120">
+            <el-table :data="store.aiUsageStats?.operationUsage || []">
+              <el-table-column prop="operation" label="操作类型" min-width="100" />
+              <el-table-column prop="requestCount" label="请求数" min-width="90" />
+              <el-table-column prop="totalTokens" label="Tokens" min-width="120">
                 <template #default="scope">{{ formatTokens(scope.row.totalTokens) }}</template>
               </el-table-column>
             </el-table>
-            <el-empty v-if="!store.aiUsageStats?.operationUsage.length" description="暂无数据" :image-size="60" />
+            <el-empty v-if="!store.aiUsageStats?.operationUsage.length" description="暂无数据" />
           </el-card>
         </el-col>
       </el-row>
@@ -206,25 +205,24 @@
         <el-table
           :data="store.aiUsageStats?.recentFailedRequests || []"
           style="width: 100%"
-          size="small"
         >
-          <el-table-column prop="createdAt" label="时间" width="180">
+          <el-table-column prop="createdAt" label="时间" min-width="160">
             <template #default="scope">{{ formatDate(scope.row.createdAt) }}</template>
           </el-table-column>
-          <el-table-column prop="name" label="用户" width="120" />
-          <el-table-column prop="studentId" label="学号" width="140" />
-          <el-table-column prop="operation" label="操作" width="140" />
-          <el-table-column prop="docType" label="文档类型" width="120" />
-          <el-table-column prop="status" label="状态" width="100">
+          <el-table-column prop="name" label="用户" min-width="100" />
+          <el-table-column prop="studentId" label="学号" min-width="120" />
+          <el-table-column prop="operation" label="操作" min-width="120" />
+          <el-table-column prop="docType" label="文档类型" min-width="100" />
+          <el-table-column prop="status" label="状态" min-width="90">
             <template #default="scope">
-              <el-tag :type="scope.row.status === 'timeout' ? 'warning' : 'danger'" size="small">
+              <el-tag :type="scope.row.status === 'timeout' ? 'warning' : 'danger'">
                 {{ scope.row.status === 'timeout' ? '超时' : '失败' }}
               </el-tag>
             </template>
           </el-table-column>
-          <el-table-column prop="errorMessage" label="错误信息" show-overflow-tooltip />
+          <el-table-column prop="errorMessage" label="错误信息" min-width="160" show-overflow-tooltip />
         </el-table>
-        <el-empty v-if="!store.aiUsageStats?.recentFailedRequests.length" description="暂无失败记录" :image-size="60" />
+        <el-empty v-if="!store.aiUsageStats?.recentFailedRequests.length" description="暂无失败记录" />
       </el-card>
     </div>
   </div>
