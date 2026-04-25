@@ -190,8 +190,8 @@ async function handleStartReview() {
 
   if (success) {
     ElMessage.success('审核完成');
-  } else {
-    ElMessage.error(documentStore.error || '审核失败');
+  } else if (documentStore.error) {
+    ElMessage.error(documentStore.error);
   }
 }
 

@@ -25,6 +25,7 @@
             <span>{{ currentGeneratingLabel }}文档正在生成中...</span>
           </div>
           <el-button
+            v-if="docSetMode === 'standard'"
             type="primary"
             class="generate-all-btn"
             :loading="documentStore.generating"
@@ -33,6 +34,7 @@
             <el-icon><MagicStick /></el-icon>一键生成全部
           </el-button>
           <el-button
+            v-if="docSetMode === 'standard'"
             class="export-btn"
             :loading="exporting"
             :disabled="!allDocsGenerated"
@@ -56,302 +58,590 @@
           status="generating"
           :stats="{ tokenCount: 0, tokensPerSecond: 0, elapsedSeconds: 0 }"
           mode="review"
+          @close="handleReviewOverlayClose"
         />
 
         <!-- Document Tabs & Editor -->
         <el-card class="editor-container-card" :body-style="{ padding: '0' }">
-          <DocumentTabs
-            :documents="documentStore.documents"
-            :active-doc-type="activeDocType"
-            :generating="documentStore.generating"
-            @update:active-doc-type="activeDocType = $event"
-          >
-            <template #prd="{ document }">
-              <div v-if="document && document.content" class="document-wrapper">
-                <TerminalGenerationOverlay
-                  :visible="isGeneratingDoc('PRD')"
-                  title="正在生成 PRD 文档"
-                  :content="documentStore.generationContent"
-                  :status="documentStore.generating && isGeneratingDoc('PRD') ? 'generating' : 'idle'"
-                  :stats="documentStore.generationStats"
-                />
-                <DocumentModeToggle v-model:mode="docModes.PRD" class="mode-toggle" />
-                <MarkdownEditor
-                  v-if="docModes.PRD === 'edit'"
-                  :content="document.content"
-                  :document-id="document.id"
-                  @save="handleDocumentSave"
-                />
-                <MarkdownPreview
-                  v-else
-                  :content="document.content"
-                />
-              </div>
-              <div v-else class="empty-doc-placeholder">
-                <TerminalGenerationOverlay
-                  v-if="isGeneratingDoc('PRD')"
-                  :visible="true"
-                  title="正在生成 PRD 文档"
-                  :content="documentStore.generationContent"
-                  :status="'generating'"
-                  :stats="documentStore.generationStats"
-                />
-                <DocumentEmptyState
-                  v-if="!isGeneratingDoc('PRD')"
-                  description="PRD文档尚未生成"
-                  button-label="立即生成 PRD"
-                  :disabled="documentStore.generating"
-                  @generate="handleGenerateSingle('PRD')"
-                />
-              </div>
-            </template>
+          <div class="editor-tabs-wrapper">
+            <!-- Standard Development Document Tabs -->
+            <DocumentTabs
+              v-if="docSetMode === 'standard'"
+              :documents="documentStore.documents"
+              :active-doc-type="activeDocType"
+              :generating="documentStore.generating"
+              @update:active-doc-type="activeDocType = $event"
+            >
+              <template #prd="{ document }">
+                <div v-if="document && document.content" class="document-wrapper">
+                  <TerminalGenerationOverlay
+                    :visible="isGeneratingDoc('PRD')"
+                    title="正在生成 PRD 文档"
+                    :content="documentStore.generationContent"
+                    :status="documentStore.generating && isGeneratingDoc('PRD') ? 'generating' : 'idle'"
+                    :stats="documentStore.generationStats"
+                    @close="handleStandardGenerationOverlayClose"
+                  />
+                  <DocumentModeToggle v-model:mode="docModes.PRD" class="mode-toggle" />
+                  <MarkdownEditor
+                    v-if="docModes.PRD === 'edit'"
+                    :content="document.content"
+                    :document-id="document.id"
+                    @save="handleDocumentSave"
+                  />
+                  <MarkdownPreview
+                    v-else
+                    :content="document.content"
+                  />
+                </div>
+                <div v-else class="empty-doc-placeholder">
+                  <TerminalGenerationOverlay
+                    v-if="isGeneratingDoc('PRD')"
+                    :visible="true"
+                    title="正在生成 PRD 文档"
+                    :content="documentStore.generationContent"
+                    :status="'generating'"
+                    :stats="documentStore.generationStats"
+                    @close="handleStandardGenerationOverlayClose"
+                  />
+                  <DocumentEmptyState
+                    v-if="!isGeneratingDoc('PRD')"
+                    description="PRD文档尚未生成"
+                    button-label="立即生成 PRD"
+                    :disabled="documentStore.generating"
+                    @generate="handleGenerateSingle('PRD')"
+                  />
+                </div>
+              </template>
 
-            <template #frontend="{ document }">
-              <div v-if="document && document.content" class="document-wrapper">
-                <TerminalGenerationOverlay
-                  :visible="isGeneratingDoc('FRONTEND')"
-                  title="正在生成前端文档"
-                  :content="documentStore.generationContent"
-                  :status="documentStore.generating && isGeneratingDoc('FRONTEND') ? 'generating' : 'idle'"
-                  :stats="documentStore.generationStats"
-                />
-                <DocumentModeToggle v-model:mode="docModes.FRONTEND" class="mode-toggle" />
-                <MarkdownEditor
-                  v-if="docModes.FRONTEND === 'edit'"
-                  :content="document.content"
-                  :document-id="document.id"
-                  @save="handleDocumentSave"
-                />
-                <MarkdownPreview
-                  v-else
-                  :content="document.content"
-                />
-              </div>
-              <div v-else class="empty-doc-placeholder">
-                <TerminalGenerationOverlay
-                  v-if="isGeneratingDoc('FRONTEND')"
-                  :visible="true"
-                  title="正在生成前端文档"
-                  :content="documentStore.generationContent"
-                  :status="'generating'"
-                  :stats="documentStore.generationStats"
-                />
-                <DocumentEmptyState
-                  v-if="!isGeneratingDoc('FRONTEND')"
-                  description="前端文档尚未生成"
-                  button-label="立即生成前端文档"
-                  :blocked-reason="getGenerateBlockedReason('FRONTEND')"
-                  :disabled="!canGenerateDoc('FRONTEND')"
-                  @generate="handleGenerateSingle('FRONTEND')"
-                />
-              </div>
-            </template>
+              <template #frontend="{ document }">
+                <div v-if="document && document.content" class="document-wrapper">
+                  <TerminalGenerationOverlay
+                    :visible="isGeneratingDoc('FRONTEND')"
+                    title="正在生成前端文档"
+                    :content="documentStore.generationContent"
+                    :status="documentStore.generating && isGeneratingDoc('FRONTEND') ? 'generating' : 'idle'"
+                    :stats="documentStore.generationStats"
+                    @close="handleStandardGenerationOverlayClose"
+                  />
+                  <DocumentModeToggle v-model:mode="docModes.FRONTEND" class="mode-toggle" />
+                  <MarkdownEditor
+                    v-if="docModes.FRONTEND === 'edit'"
+                    :content="document.content"
+                    :document-id="document.id"
+                    @save="handleDocumentSave"
+                  />
+                  <MarkdownPreview
+                    v-else
+                    :content="document.content"
+                  />
+                </div>
+                <div v-else class="empty-doc-placeholder">
+                  <TerminalGenerationOverlay
+                    v-if="isGeneratingDoc('FRONTEND')"
+                    :visible="true"
+                    title="正在生成前端文档"
+                    :content="documentStore.generationContent"
+                    :status="'generating'"
+                    :stats="documentStore.generationStats"
+                    @close="handleStandardGenerationOverlayClose"
+                  />
+                  <DocumentEmptyState
+                    v-if="!isGeneratingDoc('FRONTEND')"
+                    description="前端文档尚未生成"
+                    button-label="立即生成前端文档"
+                    :blocked-reason="getGenerateBlockedReason('FRONTEND')"
+                    :disabled="!canGenerateDoc('FRONTEND')"
+                    @generate="handleGenerateSingle('FRONTEND')"
+                  />
+                </div>
+              </template>
 
-            <template #backend="{ document }">
-              <div v-if="document && document.content" class="document-wrapper">
-                <TerminalGenerationOverlay
-                  :visible="isGeneratingDoc('BACKEND')"
-                  title="正在生成后端文档"
-                  :content="documentStore.generationContent"
-                  :status="documentStore.generating && isGeneratingDoc('BACKEND') ? 'generating' : 'idle'"
-                  :stats="documentStore.generationStats"
-                />
-                <DocumentModeToggle v-model:mode="docModes.BACKEND" class="mode-toggle" />
-                <MarkdownEditor
-                  v-if="docModes.BACKEND === 'edit'"
-                  :content="document.content"
-                  :document-id="document.id"
-                  @save="handleDocumentSave"
-                />
-                <MarkdownPreview
-                  v-else
-                  :content="document.content"
-                />
-              </div>
-              <div v-else class="empty-doc-placeholder">
-                <TerminalGenerationOverlay
-                  v-if="isGeneratingDoc('BACKEND')"
-                  :visible="true"
-                  title="正在生成后端文档"
-                  :content="documentStore.generationContent"
-                  :status="'generating'"
-                  :stats="documentStore.generationStats"
-                />
-                <DocumentEmptyState
-                  v-if="!isGeneratingDoc('BACKEND')"
-                  description="后端文档尚未生成"
-                  button-label="立即生成后端文档"
-                  :blocked-reason="getGenerateBlockedReason('BACKEND')"
-                  :disabled="!canGenerateDoc('BACKEND')"
-                  @generate="handleGenerateSingle('BACKEND')"
-                />
-              </div>
-            </template>
+              <template #backend="{ document }">
+                <div v-if="document && document.content" class="document-wrapper">
+                  <TerminalGenerationOverlay
+                    :visible="isGeneratingDoc('BACKEND')"
+                    title="正在生成后端文档"
+                    :content="documentStore.generationContent"
+                    :status="documentStore.generating && isGeneratingDoc('BACKEND') ? 'generating' : 'idle'"
+                    :stats="documentStore.generationStats"
+                    @close="handleStandardGenerationOverlayClose"
+                  />
+                  <DocumentModeToggle v-model:mode="docModes.BACKEND" class="mode-toggle" />
+                  <MarkdownEditor
+                    v-if="docModes.BACKEND === 'edit'"
+                    :content="document.content"
+                    :document-id="document.id"
+                    @save="handleDocumentSave"
+                  />
+                  <MarkdownPreview
+                    v-else
+                    :content="document.content"
+                  />
+                </div>
+                <div v-else class="empty-doc-placeholder">
+                  <TerminalGenerationOverlay
+                    v-if="isGeneratingDoc('BACKEND')"
+                    :visible="true"
+                    title="正在生成后端文档"
+                    :content="documentStore.generationContent"
+                    :status="'generating'"
+                    :stats="documentStore.generationStats"
+                    @close="handleStandardGenerationOverlayClose"
+                  />
+                  <DocumentEmptyState
+                    v-if="!isGeneratingDoc('BACKEND')"
+                    description="后端文档尚未生成"
+                    button-label="立即生成后端文档"
+                    :blocked-reason="getGenerateBlockedReason('BACKEND')"
+                    :disabled="!canGenerateDoc('BACKEND')"
+                    @generate="handleGenerateSingle('BACKEND')"
+                  />
+                </div>
+              </template>
 
-            <template #api="{ document }">
-              <div v-if="document && document.content" class="document-wrapper">
-                <TerminalGenerationOverlay
-                  :visible="isGeneratingDoc('API')"
-                  title="正在生成 API 文档"
-                  :content="documentStore.generationContent"
-                  :status="documentStore.generating && isGeneratingDoc('API') ? 'generating' : 'idle'"
-                  :stats="documentStore.generationStats"
-                />
-                <DocumentModeToggle v-model:mode="docModes.API" class="mode-toggle" />
-                <MarkdownEditor
-                  v-if="docModes.API === 'edit'"
-                  :content="document.content"
-                  :document-id="document.id"
-                  @save="handleDocumentSave"
-                />
-                <MarkdownPreview
-                  v-else
-                  :content="document.content"
-                />
-              </div>
-              <div v-else class="empty-doc-placeholder">
-                <TerminalGenerationOverlay
-                  v-if="isGeneratingDoc('API')"
-                  :visible="true"
-                  title="正在生成 API 文档"
-                  :content="documentStore.generationContent"
-                  :status="'generating'"
-                  :stats="documentStore.generationStats"
-                />
-                <DocumentEmptyState
-                  v-if="!isGeneratingDoc('API')"
-                  description="API 文档尚未生成"
-                  button-label="立即生成 API 文档"
-                  :blocked-reason="getGenerateBlockedReason('API')"
-                  :disabled="!canGenerateDoc('API')"
-                  @generate="handleGenerateSingle('API')"
-                />
-              </div>
-            </template>
+              <template #api="{ document }">
+                <div v-if="document && document.content" class="document-wrapper">
+                  <TerminalGenerationOverlay
+                    :visible="isGeneratingDoc('API')"
+                    title="正在生成 API 文档"
+                    :content="documentStore.generationContent"
+                    :status="documentStore.generating && isGeneratingDoc('API') ? 'generating' : 'idle'"
+                    :stats="documentStore.generationStats"
+                    @close="handleStandardGenerationOverlayClose"
+                  />
+                  <DocumentModeToggle v-model:mode="docModes.API" class="mode-toggle" />
+                  <MarkdownEditor
+                    v-if="docModes.API === 'edit'"
+                    :content="document.content"
+                    :document-id="document.id"
+                    @save="handleDocumentSave"
+                  />
+                  <MarkdownPreview
+                    v-else
+                    :content="document.content"
+                  />
+                </div>
+                <div v-else class="empty-doc-placeholder">
+                  <TerminalGenerationOverlay
+                    v-if="isGeneratingDoc('API')"
+                    :visible="true"
+                    title="正在生成 API 文档"
+                    :content="documentStore.generationContent"
+                    :status="'generating'"
+                    :stats="documentStore.generationStats"
+                    @close="handleStandardGenerationOverlayClose"
+                  />
+                  <DocumentEmptyState
+                    v-if="!isGeneratingDoc('API')"
+                    description="API 文档尚未生成"
+                    button-label="立即生成 API 文档"
+                    :blocked-reason="getGenerateBlockedReason('API')"
+                    :disabled="!canGenerateDoc('API')"
+                    @generate="handleGenerateSingle('API')"
+                  />
+                </div>
+              </template>
 
-            <template #task="{ document }">
-              <div v-if="document && document.content" class="document-wrapper">
-                <TerminalGenerationOverlay
-                  :visible="isGeneratingDoc('TASK')"
-                  title="正在生成任务清单"
-                  :content="documentStore.generationContent"
-                  :status="documentStore.generating && isGeneratingDoc('TASK') ? 'generating' : 'idle'"
-                  :stats="documentStore.generationStats"
-                />
-                <DocumentModeToggle v-model:mode="docModes.TASK" class="mode-toggle" />
-                <MarkdownEditor
-                  v-if="docModes.TASK === 'edit'"
-                  :content="document.content"
-                  :document-id="document.id"
-                  @save="handleDocumentSave"
-                />
-                <MarkdownPreview
-                  v-else
-                  :content="document.content"
-                />
-              </div>
-              <div v-else class="empty-doc-placeholder">
-                <TerminalGenerationOverlay
-                  v-if="isGeneratingDoc('TASK')"
-                  :visible="true"
-                  title="正在生成任务清单"
-                  :content="documentStore.generationContent"
-                  :status="'generating'"
-                  :stats="documentStore.generationStats"
-                />
-                <DocumentEmptyState
-                  v-if="!isGeneratingDoc('TASK')"
-                  description="任务清单尚未生成"
-                  button-label="立即生成任务清单"
-                  :blocked-reason="getGenerateBlockedReason('TASK')"
-                  :disabled="!canGenerateDoc('TASK')"
-                  @generate="handleGenerateSingle('TASK')"
-                />
-              </div>
-            </template>
+              <template #task="{ document }">
+                <div v-if="document && document.content" class="document-wrapper">
+                  <TerminalGenerationOverlay
+                    :visible="isGeneratingDoc('TASK')"
+                    title="正在生成任务清单"
+                    :content="documentStore.generationContent"
+                    :status="documentStore.generating && isGeneratingDoc('TASK') ? 'generating' : 'idle'"
+                    :stats="documentStore.generationStats"
+                    @close="handleStandardGenerationOverlayClose"
+                  />
+                  <DocumentModeToggle v-model:mode="docModes.TASK" class="mode-toggle" />
+                  <MarkdownEditor
+                    v-if="docModes.TASK === 'edit'"
+                    :content="document.content"
+                    :document-id="document.id"
+                    @save="handleDocumentSave"
+                  />
+                  <MarkdownPreview
+                    v-else
+                    :content="document.content"
+                  />
+                </div>
+                <div v-else class="empty-doc-placeholder">
+                  <TerminalGenerationOverlay
+                    v-if="isGeneratingDoc('TASK')"
+                    :visible="true"
+                    title="正在生成任务清单"
+                    :content="documentStore.generationContent"
+                    :status="'generating'"
+                    :stats="documentStore.generationStats"
+                    @close="handleStandardGenerationOverlayClose"
+                  />
+                  <DocumentEmptyState
+                    v-if="!isGeneratingDoc('TASK')"
+                    description="任务清单尚未生成"
+                    button-label="立即生成任务清单"
+                    :blocked-reason="getGenerateBlockedReason('TASK')"
+                    :disabled="!canGenerateDoc('TASK')"
+                    @generate="handleGenerateSingle('TASK')"
+                  />
+                </div>
+              </template>
 
-            <template #contextState="{ document }">
-              <div v-if="document && document.content" class="document-wrapper">
-                <TerminalGenerationOverlay
-                  :visible="isGeneratingDoc('CONTEXT_STATE')"
-                  title="正在生成状态追踪文档"
-                  :content="documentStore.generationContent"
-                  :status="documentStore.generating && isGeneratingDoc('CONTEXT_STATE') ? 'generating' : 'idle'"
-                  :stats="documentStore.generationStats"
-                />
-                <DocumentModeToggle v-model:mode="docModes.CONTEXT_STATE" class="mode-toggle" />
-                <MarkdownEditor
-                  v-if="docModes.CONTEXT_STATE === 'edit'"
-                  :content="document.content"
-                  :document-id="document.id"
-                  @save="handleDocumentSave"
-                />
-                <MarkdownPreview
-                  v-else
-                  :content="document.content"
-                />
-              </div>
-              <div v-else class="empty-doc-placeholder">
-                <TerminalGenerationOverlay
-                  v-if="isGeneratingDoc('CONTEXT_STATE')"
-                  :visible="true"
-                  title="正在生成状态追踪文档"
-                  :content="documentStore.generationContent"
-                  :status="'generating'"
-                  :stats="documentStore.generationStats"
-                />
-                <DocumentEmptyState
-                  v-if="!isGeneratingDoc('CONTEXT_STATE')"
-                  description="状态追踪文档尚未生成"
-                  button-label="立即生成状态文档"
-                  :blocked-reason="getGenerateBlockedReason('CONTEXT_STATE')"
-                  :disabled="!canGenerateDoc('CONTEXT_STATE')"
-                  @generate="handleGenerateSingle('CONTEXT_STATE')"
-                />
-              </div>
-            </template>
+              <template #contextState="{ document }">
+                <div v-if="document && document.content" class="document-wrapper">
+                  <TerminalGenerationOverlay
+                    :visible="isGeneratingDoc('CONTEXT_STATE')"
+                    title="正在生成状态追踪文档"
+                    :content="documentStore.generationContent"
+                    :status="documentStore.generating && isGeneratingDoc('CONTEXT_STATE') ? 'generating' : 'idle'"
+                    :stats="documentStore.generationStats"
+                    @close="handleStandardGenerationOverlayClose"
+                  />
+                  <DocumentModeToggle v-model:mode="docModes.CONTEXT_STATE" class="mode-toggle" />
+                  <MarkdownEditor
+                    v-if="docModes.CONTEXT_STATE === 'edit'"
+                    :content="document.content"
+                    :document-id="document.id"
+                    @save="handleDocumentSave"
+                  />
+                  <MarkdownPreview
+                    v-else
+                    :content="document.content"
+                  />
+                </div>
+                <div v-else class="empty-doc-placeholder">
+                  <TerminalGenerationOverlay
+                    v-if="isGeneratingDoc('CONTEXT_STATE')"
+                    :visible="true"
+                    title="正在生成状态追踪文档"
+                    :content="documentStore.generationContent"
+                    :status="'generating'"
+                    :stats="documentStore.generationStats"
+                    @close="handleStandardGenerationOverlayClose"
+                  />
+                  <DocumentEmptyState
+                    v-if="!isGeneratingDoc('CONTEXT_STATE')"
+                    description="状态追踪文档尚未生成"
+                    button-label="立即生成状态文档"
+                    :blocked-reason="getGenerateBlockedReason('CONTEXT_STATE')"
+                    :disabled="!canGenerateDoc('CONTEXT_STATE')"
+                    @generate="handleGenerateSingle('CONTEXT_STATE')"
+                  />
+                </div>
+              </template>
 
-            <template #agents="{ document }">
-              <div v-if="document && document.content" class="document-wrapper">
-                <TerminalGenerationOverlay
-                  :visible="isGeneratingDoc('AGENTS')"
-                  title="正在生成 AI 规则文档"
-                  :content="documentStore.generationContent"
-                  :status="documentStore.generating && isGeneratingDoc('AGENTS') ? 'generating' : 'idle'"
-                  :stats="documentStore.generationStats"
-                />
-                <DocumentModeToggle v-model:mode="docModes.AGENTS" class="mode-toggle" />
-                <MarkdownEditor
-                  v-if="docModes.AGENTS === 'edit'"
-                  :content="document.content"
-                  :document-id="document.id"
-                  @save="handleDocumentSave"
-                />
-                <MarkdownPreview
-                  v-else
-                  :content="document.content"
-                />
-              </div>
-              <div v-else class="empty-doc-placeholder">
-                <TerminalGenerationOverlay
-                  v-if="isGeneratingDoc('AGENTS')"
-                  :visible="true"
-                  title="正在生成 AI 规则文档"
-                  :content="documentStore.generationContent"
-                  :status="'generating'"
-                  :stats="documentStore.generationStats"
-                />
-                <DocumentEmptyState
-                  v-if="!isGeneratingDoc('AGENTS')"
-                  description="AI 规则文档尚未生成"
-                  button-label="立即生成规则文档"
-                  :blocked-reason="getGenerateBlockedReason('AGENTS')"
-                  :disabled="!canGenerateDoc('AGENTS')"
-                  @generate="handleGenerateSingle('AGENTS')"
-                />
-              </div>
-            </template>
-          </DocumentTabs>
+              <template #agents="{ document }">
+                <div v-if="document && document.content" class="document-wrapper">
+                  <TerminalGenerationOverlay
+                    :visible="isGeneratingDoc('AGENTS')"
+                    title="正在生成 AI 规则文档"
+                    :content="documentStore.generationContent"
+                    :status="documentStore.generating && isGeneratingDoc('AGENTS') ? 'generating' : 'idle'"
+                    :stats="documentStore.generationStats"
+                    @close="handleStandardGenerationOverlayClose"
+                  />
+                  <DocumentModeToggle v-model:mode="docModes.AGENTS" class="mode-toggle" />
+                  <MarkdownEditor
+                    v-if="docModes.AGENTS === 'edit'"
+                    :content="document.content"
+                    :document-id="document.id"
+                    @save="handleDocumentSave"
+                  />
+                  <MarkdownPreview
+                    v-else
+                    :content="document.content"
+                  />
+                </div>
+                <div v-else class="empty-doc-placeholder">
+                  <TerminalGenerationOverlay
+                    v-if="isGeneratingDoc('AGENTS')"
+                    :visible="true"
+                    title="正在生成 AI 规则文档"
+                    :content="documentStore.generationContent"
+                    :status="'generating'"
+                    :stats="documentStore.generationStats"
+                    @close="handleStandardGenerationOverlayClose"
+                  />
+                  <DocumentEmptyState
+                    v-if="!isGeneratingDoc('AGENTS')"
+                    description="AI 规则文档尚未生成"
+                    button-label="立即生成规则文档"
+                    :blocked-reason="getGenerateBlockedReason('AGENTS')"
+                    :disabled="!canGenerateDoc('AGENTS')"
+                    @generate="handleGenerateSingle('AGENTS')"
+                  />
+                </div>
+              </template>
+            </DocumentTabs>
+
+            <!-- Graduation Design Document Tabs -->
+            <GraduationDocumentTabs
+              v-else
+              :documents="graduationStore.documents"
+              :active-doc-type="activeGraduationDocType"
+              :generating="graduationStore.generating"
+              @update:active-doc-type="activeGraduationDocType = $event"
+            >
+              <template #taskBook="{ document }">
+                <div v-if="document && document.content" class="document-wrapper">
+                  <TerminalGenerationOverlay
+                    :visible="isGeneratingGradDoc('TASK_BOOK')"
+                    title="正在生成任务书"
+                    :content="graduationStore.generationContent"
+                    :status="graduationStore.generating && isGeneratingGradDoc('TASK_BOOK') ? 'generating' : 'idle'"
+                    :stats="graduationStore.generationStats"
+                    @close="handleGraduationGenerationOverlayClose"
+                  />
+                  <el-button
+                    class="grad-doc-download-btn"
+                    :disabled="graduationStore.generating"
+                    @click="handleDownloadGraduationDocument('TASK_BOOK')"
+                  >
+                    <el-icon><Download /></el-icon>
+                    下载
+                  </el-button>
+                  <MarkdownPreview
+                    :content="document.content"
+                  />
+                </div>
+                <div v-else class="empty-doc-placeholder">
+                  <TerminalGenerationOverlay
+                    v-if="isGeneratingGradDoc('TASK_BOOK')"
+                    :visible="true"
+                    title="正在生成任务书"
+                    :content="graduationStore.generationContent"
+                    :status="'generating'"
+                    :stats="graduationStore.generationStats"
+                    @close="handleGraduationGenerationOverlayClose"
+                  />
+                  <DocumentEmptyState
+                    v-if="!isGeneratingGradDoc('TASK_BOOK')"
+                    description="任务书尚未生成"
+                    button-label="立即生成任务书"
+                    :disabled="graduationStore.generating"
+                    @generate="handleGenerateGraduationSingle('TASK_BOOK')"
+                  />
+                </div>
+              </template>
+              <template #proposal="{ document }">
+                <div v-if="document && document.content" class="document-wrapper">
+                  <TerminalGenerationOverlay
+                    :visible="isGeneratingGradDoc('PROPOSAL')"
+                    title="正在生成开题报告"
+                    :content="graduationStore.generationContent"
+                    :status="graduationStore.generating && isGeneratingGradDoc('PROPOSAL') ? 'generating' : 'idle'"
+                    :stats="graduationStore.generationStats"
+                    @close="handleGraduationGenerationOverlayClose"
+                  />
+                  <el-button
+                    class="grad-doc-download-btn"
+                    :disabled="graduationStore.generating"
+                    @click="handleDownloadGraduationDocument('PROPOSAL')"
+                  >
+                    <el-icon><Download /></el-icon>
+                    下载
+                  </el-button>
+                  <MarkdownPreview
+                    :content="document.content"
+                  />
+                </div>
+                <div v-else class="empty-doc-placeholder">
+                  <TerminalGenerationOverlay
+                    v-if="isGeneratingGradDoc('PROPOSAL')"
+                    :visible="true"
+                    title="正在生成开题报告"
+                    :content="graduationStore.generationContent"
+                    :status="'generating'"
+                    :stats="graduationStore.generationStats"
+                    @close="handleGraduationGenerationOverlayClose"
+                  />
+                  <DocumentEmptyState
+                    v-if="!isGeneratingGradDoc('PROPOSAL')"
+                    description="开题报告尚未生成"
+                    button-label="立即生成开题报告"
+                    :disabled="graduationStore.generating"
+                    @generate="handleGenerateGraduationSingle('PROPOSAL')"
+                  />
+                </div>
+              </template>
+              <template #preparation="{ document }">
+                <div v-if="document && document.content" class="document-wrapper">
+                  <TerminalGenerationOverlay
+                    :visible="isGeneratingGradDoc('PREPARATION')"
+                    title="正在生成前期准备"
+                    :content="graduationStore.generationContent"
+                    :status="graduationStore.generating && isGeneratingGradDoc('PREPARATION') ? 'generating' : 'idle'"
+                    :stats="graduationStore.generationStats"
+                    @close="handleGraduationGenerationOverlayClose"
+                  />
+                  <el-button
+                    class="grad-doc-download-btn"
+                    :disabled="graduationStore.generating"
+                    @click="handleDownloadGraduationDocument('PREPARATION')"
+                  >
+                    <el-icon><Download /></el-icon>
+                    下载
+                  </el-button>
+                  <MarkdownPreview
+                    :content="document.content"
+                  />
+                </div>
+                <div v-else class="empty-doc-placeholder">
+                  <TerminalGenerationOverlay
+                    v-if="isGeneratingGradDoc('PREPARATION')"
+                    :visible="true"
+                    title="正在生成前期准备"
+                    :content="graduationStore.generationContent"
+                    :status="'generating'"
+                    :stats="graduationStore.generationStats"
+                    @close="handleGraduationGenerationOverlayClose"
+                  />
+                  <DocumentEmptyState
+                    v-if="!isGeneratingGradDoc('PREPARATION')"
+                    description="前期准备尚未生成"
+                    button-label="立即生成前期准备"
+                    :disabled="graduationStore.generating"
+                    @generate="handleGenerateGraduationSingle('PREPARATION')"
+                  />
+                </div>
+              </template>
+              <template #drafting="{ document }">
+                <div v-if="document && document.content" class="document-wrapper">
+                  <TerminalGenerationOverlay
+                    :visible="isGeneratingGradDoc('DRAFTING')"
+                    title="正在生成撰写阶段"
+                    :content="graduationStore.generationContent"
+                    :status="graduationStore.generating && isGeneratingGradDoc('DRAFTING') ? 'generating' : 'idle'"
+                    :stats="graduationStore.generationStats"
+                    @close="handleGraduationGenerationOverlayClose"
+                  />
+                  <el-button
+                    class="grad-doc-download-btn"
+                    :disabled="graduationStore.generating"
+                    @click="handleDownloadGraduationDocument('DRAFTING')"
+                  >
+                    <el-icon><Download /></el-icon>
+                    下载
+                  </el-button>
+                  <MarkdownPreview
+                    :content="document.content"
+                  />
+                </div>
+                <div v-else class="empty-doc-placeholder">
+                  <TerminalGenerationOverlay
+                    v-if="isGeneratingGradDoc('DRAFTING')"
+                    :visible="true"
+                    title="正在生成撰写阶段"
+                    :content="graduationStore.generationContent"
+                    :status="'generating'"
+                    :stats="graduationStore.generationStats"
+                    @close="handleGraduationGenerationOverlayClose"
+                  />
+                  <DocumentEmptyState
+                    v-if="!isGeneratingGradDoc('DRAFTING')"
+                    description="撰写阶段尚未生成"
+                    button-label="立即生成撰写阶段"
+                    :disabled="graduationStore.generating"
+                    @generate="handleGenerateGraduationSingle('DRAFTING')"
+                  />
+                </div>
+              </template>
+              <template #midtermCheck="{ document }">
+                <div v-if="document && document.content" class="document-wrapper">
+                  <TerminalGenerationOverlay
+                    :visible="isGeneratingGradDoc('MIDTERM_CHECK')"
+                    title="正在生成中期检查"
+                    :content="graduationStore.generationContent"
+                    :status="graduationStore.generating && isGeneratingGradDoc('MIDTERM_CHECK') ? 'generating' : 'idle'"
+                    :stats="graduationStore.generationStats"
+                    @close="handleGraduationGenerationOverlayClose"
+                  />
+                  <el-button
+                    class="grad-doc-download-btn"
+                    :disabled="graduationStore.generating"
+                    @click="handleDownloadGraduationDocument('MIDTERM_CHECK')"
+                  >
+                    <el-icon><Download /></el-icon>
+                    下载
+                  </el-button>
+                  <MarkdownPreview
+                    :content="document.content"
+                  />
+                </div>
+                <div v-else class="empty-doc-placeholder">
+                  <TerminalGenerationOverlay
+                    v-if="isGeneratingGradDoc('MIDTERM_CHECK')"
+                    :visible="true"
+                    title="正在生成中期检查"
+                    :content="graduationStore.generationContent"
+                    :status="'generating'"
+                    :stats="graduationStore.generationStats"
+                    @close="handleGraduationGenerationOverlayClose"
+                  />
+                  <DocumentEmptyState
+                    v-if="!isGeneratingGradDoc('MIDTERM_CHECK')"
+                    description="中期检查尚未生成"
+                    button-label="立即生成中期检查"
+                    :disabled="graduationStore.generating"
+                    @generate="handleGenerateGraduationSingle('MIDTERM_CHECK')"
+                  />
+                </div>
+              </template>
+              <template #refinement="{ document }">
+                <div v-if="document && document.content" class="document-wrapper">
+                  <TerminalGenerationOverlay
+                    :visible="isGeneratingGradDoc('REFINEMENT')"
+                    title="正在生成完善"
+                    :content="graduationStore.generationContent"
+                    :status="graduationStore.generating && isGeneratingGradDoc('REFINEMENT') ? 'generating' : 'idle'"
+                    :stats="graduationStore.generationStats"
+                    @close="handleGraduationGenerationOverlayClose"
+                  />
+                  <el-button
+                    class="grad-doc-download-btn"
+                    :disabled="graduationStore.generating"
+                    @click="handleDownloadGraduationDocument('REFINEMENT')"
+                  >
+                    <el-icon><Download /></el-icon>
+                    下载
+                  </el-button>
+                  <MarkdownPreview
+                    :content="document.content"
+                  />
+                </div>
+                <div v-else class="empty-doc-placeholder">
+                  <TerminalGenerationOverlay
+                    v-if="isGeneratingGradDoc('REFINEMENT')"
+                    :visible="true"
+                    title="正在生成完善"
+                    :content="graduationStore.generationContent"
+                    :status="'generating'"
+                    :stats="graduationStore.generationStats"
+                    @close="handleGraduationGenerationOverlayClose"
+                  />
+                  <DocumentEmptyState
+                    v-if="!isGeneratingGradDoc('REFINEMENT')"
+                    description="完善尚未生成"
+                    button-label="立即生成完善"
+                    :disabled="graduationStore.generating"
+                    @generate="handleGenerateGraduationSingle('REFINEMENT')"
+                  />
+                </div>
+              </template>
+            </GraduationDocumentTabs>
+
+            <!-- Doc Set Toggle Button -->
+            <div class="doc-set-toggle-wrapper">
+              <el-button
+                class="doc-set-toggle-btn"
+                :type="docSetMode === 'graduation' ? 'primary' : 'default'"
+                @click="toggleDocSet"
+                plain
+              >
+                <el-icon><Files v-if="docSetMode === 'graduation'" /><Notebook v-else /></el-icon>
+                {{ docSetMode === 'standard' ? '毕设文档' : '开发文档' }}
+              </el-button>
+            </div>
+          </div>
         </el-card>
       </div>
 
@@ -365,7 +655,7 @@
         />
 
         <!-- Quick Actions -->
-        <el-card class="actions-card">
+        <el-card class="actions-card" v-if="docSetMode === 'standard'">
           <template #header>
             <div class="sidebar-header">
               <el-icon><Cpu /></el-icon>
@@ -388,9 +678,31 @@
           </div>
         </el-card>
 
+        <el-card class="actions-card" v-else>
+          <template #header>
+            <div class="sidebar-header">
+              <el-icon><Cpu /></el-icon>
+              <span>AI 辅助工具</span>
+            </div>
+          </template>
+          <div class="action-list">
+            <el-button
+              v-for="type in ALL_GRAD_DOC_TYPES"
+              :key="type"
+              class="action-item"
+              :disabled="graduationStore.generating"
+              :loading="isGeneratingGradDoc(type)"
+              @click="handleGenerateGraduationSingle(type)"
+            >
+              <el-icon><RefreshRight /></el-icon>
+              重新生成 {{ getGradDocLabel(type) }}
+            </el-button>
+          </div>
+        </el-card>
+
         <!-- Expert Review Panel -->
         <ExpertReviewPanel
-          v-if="documentStore.allDocsGenerated"
+          v-if="docSetMode === 'standard' && documentStore.allDocsGenerated"
           :project-id="projectId"
           @fixed="handleReviewFixed"
         />
@@ -399,7 +711,8 @@
         <el-card class="help-card">
           <div class="help-info">
             <el-icon><InfoFilled /></el-icon>
-            <p>编辑器支持实时自动保存。生成的文档可以根据需要自行修改完善。全部 7 份文档生成后可导出 ZIP 包。</p>
+            <p v-if="docSetMode === 'standard'">编辑器支持实时自动保存。生成的文档可以根据需要自行修改完善。全部 7 份文档生成后可导出 ZIP 包。</p>
+            <p v-else>毕设文档是毕业设计全过程管理工具，涵盖任务书、开题报告、前期准备、撰写阶段、中期检查和完善等文档的生成与管理。</p>
           </div>
         </el-card>
       </div>
@@ -418,6 +731,7 @@
 import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue';
 import { useRoute, useRouter, onBeforeRouteLeave } from 'vue-router';
 import { ElMessage, ElMessageBox } from 'element-plus';
+import DOMPurify from 'dompurify';
 import {
   Back,
   Loading,
@@ -425,15 +739,19 @@ import {
   Cpu,
   RefreshRight,
   InfoFilled,
-  Download
+  Download,
+  Notebook,
+  Files
 } from '@element-plus/icons-vue';
 import { useDocumentStore } from '@/stores/document.store';
+import { useGraduationDocumentStore } from '@/stores/graduation.store';
 import { useProjectStore } from '@/stores/project.store';
 import { updateProjectTechStackApi, fetchProjectDetailApi } from '@/api/project.api';
 import JSZip from 'jszip';
 import { saveAs } from 'file-saver';
 import TerminalGenerationOverlay from '@/components/TerminalGenerationOverlay.vue';
 import DocumentTabs from '@/components/DocumentTabs.vue';
+import GraduationDocumentTabs from '@/components/GraduationDocumentTabs.vue';
 import DocumentEmptyState from '@/components/DocumentEmptyState.vue';
 import MarkdownEditor from '@/components/MarkdownEditor.vue';
 import MarkdownPreview from '@/components/MarkdownPreview.vue';
@@ -441,6 +759,7 @@ import DocumentModeToggle from '@/components/DocumentModeToggle.vue';
 import TechStackPanel from '@/components/TechStackPanel.vue';
 import ExpertReviewPanel from '@/components/ExpertReviewPanel.vue';
 import type { DocType } from '@/types/document';
+import type { GraduationDocType } from '@/types/graduation-document';
 import type { ProjectStatus } from '@/types/project';
 import {
   DOC_GENERATION_ORDER,
@@ -448,10 +767,14 @@ import {
   canGenerateDocument,
   getGenerationBlockedReason
 } from '@/utils/document-generation';
-
+import {
+  GRAD_DOC_GENERATION_ORDER,
+  GRAD_DOC_TYPE_LABELS
+} from '@/utils/graduation-document-generation';
 const route = useRoute();
 const router = useRouter();
 const documentStore = useDocumentStore();
+const graduationStore = useGraduationDocumentStore();
 const projectStore = useProjectStore();
 
 const projectId = computed(() => {
@@ -469,6 +792,20 @@ const docModes = ref<Record<DocType, 'read' | 'edit'>>({
   CONTEXT_STATE: 'edit',
   AGENTS: 'edit',
 });
+
+// Graduation document set mode
+const docSetMode = ref<'standard' | 'graduation'>('standard');
+const activeGraduationDocType = ref<GraduationDocType>('TASK_BOOK');
+
+function toggleDocSet(): void {
+  if (docSetMode.value === 'standard') {
+    docSetMode.value = 'graduation';
+    activeGraduationDocType.value = 'TASK_BOOK';
+  } else {
+    docSetMode.value = 'standard';
+    activeDocType.value = 'PRD';
+  }
+}
 const project = computed(() =>
   projectStore.projects.find(p => p.id === projectId.value)
 );
@@ -476,6 +813,7 @@ const project = computed(() =>
 const exporting = ref(false);
 
 const ALL_DOC_TYPES: DocType[] = DOC_GENERATION_ORDER;
+const ALL_GRAD_DOC_TYPES: GraduationDocType[] = GRAD_DOC_GENERATION_ORDER;
 
 const allDocsGenerated = computed(() => {
   return ALL_DOC_TYPES.every(dt => {
@@ -495,6 +833,7 @@ onMounted(async () => {
   }
   if (projectId.value) {
     const documentsPromise = documentStore.fetchDocuments(projectId.value);
+    const gradDocsPromise = graduationStore.fetchDocuments(projectId.value);
     const detailPromise = fetchProjectDetailApi(projectId.value)
       .then(detail => {
         documentStore.hydrateReviewState(
@@ -505,13 +844,17 @@ onMounted(async () => {
       })
       .catch(() => false);
 
-    const [documentsSuccess, detailSuccess] = await Promise.all([
+    const [documentsSuccess, gradSuccess, detailSuccess] = await Promise.all([
       documentsPromise,
+      gradDocsPromise,
       detailPromise
     ]);
 
     if (!documentsSuccess) {
       ElMessage.error(documentStore.error || '获取文档失败');
+    }
+    if (!gradSuccess) {
+      ElMessage.error(graduationStore.error || '获取毕设文档失败');
     }
     if (!detailSuccess) {
       ElMessage.warning('项目审核状态恢复失败，已使用当前页面默认状态');
@@ -521,12 +864,18 @@ onMounted(async () => {
 
 onBeforeRouteLeave(() => {
   documentStore.abortGeneration();
+  documentStore.abortReview();
   documentStore.clearGenerationDisplay();
+  graduationStore.abortGeneration();
+  graduationStore.clearGenerationDisplay();
 });
 
 onUnmounted(() => {
   documentStore.abortGeneration();
+  documentStore.abortReview();
   documentStore.clearGenerationDisplay();
+  graduationStore.abortGeneration();
+  graduationStore.clearGenerationDisplay();
 });
 
 async function handleDocumentSave(docId: number, content: string): Promise<void> {
@@ -550,6 +899,23 @@ function canGenerateDoc(docType: DocType): boolean {
 
 function isGeneratingDoc(docType: DocType): boolean {
   return documentStore.isGeneratingDocument(docType);
+}
+
+function handleStandardGenerationOverlayClose(): void {
+  documentStore.abortGeneration();
+  documentStore.clearGenerationDisplay();
+  ElMessage.info('已停止生成');
+}
+
+function handleGraduationGenerationOverlayClose(): void {
+  graduationStore.abortGeneration();
+  graduationStore.clearGenerationDisplay();
+  ElMessage.info('已停止生成');
+}
+
+function handleReviewOverlayClose(): void {
+  documentStore.abortReview();
+  ElMessage.info('已停止审核');
 }
 
 async function handleGenerateSingle(docType: DocType): Promise<void> {
@@ -582,8 +948,8 @@ async function handleGenerateSingle(docType: DocType): Promise<void> {
   });
   if (success) {
     ElMessage.success(`${getDocTypeLabel(docType)}文档生成成功`);
-  } else {
-    ElMessage.error(documentStore.error || '生成失败');
+  } else if (documentStore.error) {
+    ElMessage.error(documentStore.error);
   }
 }
 
@@ -613,7 +979,9 @@ async function handleGenerateAll(): Promise<void> {
       forceRegenerate
     });
     if (!success) {
-      ElMessage.error(documentStore.error || `${getDocTypeLabel(docType)}文档生成失败`);
+      if (documentStore.error) {
+        ElMessage.error(documentStore.error || `${getDocTypeLabel(docType)}文档生成失败`);
+      }
       return;
     }
   }
@@ -673,6 +1041,82 @@ async function handleExportDocuments(): Promise<void> {
   }
 }
 
+async function handleDownloadGraduationDocument(docType: GraduationDocType): Promise<void> {
+  const document = graduationStore.getDocumentByType(docType);
+  if (!document?.content?.trim()) {
+    ElMessage.warning('当前文档暂无可下载内容');
+    return;
+  }
+
+  try {
+    const detail = await fetchProjectDetailApi(projectId.value);
+    const projectName = detail.project.topic.title;
+    const safeProjectName = projectName.replace(/[<>:"/\\|?*\x00-\x1f]/g, '_');
+    const safeDocName = getGradDocLabel(docType).replace(/[<>:"/\\|?*\x00-\x1f]/g, '_');
+    const content = buildGraduationDownloadHtml(projectName, getGradDocLabel(docType), document.content);
+    const blob = new Blob([content], { type: 'text/html;charset=utf-8' });
+    saveAs(blob, `${safeProjectName}_${safeDocName}.html`);
+    ElMessage.success(`${getGradDocLabel(docType)}下载成功`);
+  } catch (error) {
+    console.error('Graduation document download error:', error);
+    ElMessage.error('下载失败，请重试');
+  }
+}
+
+function buildGraduationDownloadHtml(projectName: string, docName: string, content: string): string {
+  const bodyContent = content.trim().startsWith('<')
+    ? DOMPurify.sanitize(content)
+    : markdownToSimpleHtml(content);
+  return `<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <title>${escapeHtml(projectName)} - ${escapeHtml(docName)}</title>
+  <style>
+    body { margin: 0; padding: 40px; background: #f8fafc; color: #1f2937; font-family: SimSun, "Songti SC", serif; }
+    .page { max-width: 820px; min-height: 1120px; margin: 0 auto; padding: 48px 56px; background: #fff; box-shadow: 0 8px 30px rgba(15, 23, 42, 0.08); }
+    h1, h2, h3 { color: #111827; }
+    p, li { font-size: 14px; line-height: 1.8; }
+    table { width: 100%; border-collapse: collapse; margin: 16px 0; }
+    th, td { border: 1px solid #d1d5db; padding: 8px 10px; text-align: left; }
+    @media print {
+      body { padding: 0; background: #fff; }
+      .page { box-shadow: none; min-height: auto; }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    ${bodyContent}
+  </main>
+</body>
+</html>`;
+}
+
+function markdownToSimpleHtml(markdown: string): string {
+  return markdown
+    .split('\n')
+    .map(line => line.trim())
+    .filter(Boolean)
+    .map(line => {
+      if (line.startsWith('### ')) return `<h3>${escapeHtml(line.slice(4))}</h3>`;
+      if (line.startsWith('## ')) return `<h2>${escapeHtml(line.slice(3))}</h2>`;
+      if (line.startsWith('# ')) return `<h1>${escapeHtml(line.slice(2))}</h1>`;
+      if (line.startsWith('- ')) return `<p>• ${escapeHtml(line.slice(2))}</p>`;
+      return `<p>${escapeHtml(line)}</p>`;
+    })
+    .join('\n');
+}
+
+function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
 async function handleTechStackUpdate(techStack: string): Promise<void> {
   try {
     await updateProjectTechStackApi(projectId.value, techStack);
@@ -680,6 +1124,43 @@ async function handleTechStackUpdate(techStack: string): Promise<void> {
     ElMessage.success('技术栈更新成功');
   } catch (e) {
     ElMessage.error('更新失败');
+  }
+}
+
+function getGradDocLabel(type: GraduationDocType): string {
+  return GRAD_DOC_TYPE_LABELS[type];
+}
+
+function isGeneratingGradDoc(docType: GraduationDocType): boolean {
+  return graduationStore.isGeneratingDocument(docType);
+}
+
+async function handleGenerateGraduationSingle(docType: GraduationDocType): Promise<void> {
+  const existingDoc = graduationStore.getDocumentByType(docType);
+  const forceRegenerate = Boolean(existingDoc?.content.trim());
+
+  if (existingDoc && existingDoc.content.length > 0) {
+    try {
+      await ElMessageBox.confirm(
+        '文档已有内容，重新生成将覆盖现有内容。是否继续？',
+        '重新生成',
+        { confirmButtonText: '确定', cancelButtonText: '取消', type: 'warning' }
+      );
+    } catch {
+      return;
+    }
+  }
+
+  activeGraduationDocType.value = docType;
+  await nextTick();
+
+  const success = await graduationStore.generateDocument(projectId.value, docType, {
+    forceRegenerate
+  });
+  if (success) {
+    ElMessage.success(`${getGradDocLabel(docType)}生成成功`);
+  } else if (graduationStore.error) {
+    ElMessage.error(graduationStore.error);
   }
 }
 
@@ -799,6 +1280,47 @@ function getStatusTagType(status: ProjectStatus | undefined): 'info' | 'warning'
   flex-direction: column;
 }
 
+/* Tabs wrapper with toggle button */
+.editor-tabs-wrapper {
+  position: relative;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.doc-set-toggle-wrapper {
+  position: absolute;
+  right: 8px;
+  top: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  height: 56px;
+  padding: 0 8px;
+  background: linear-gradient(to right, transparent 0%, #f8fafc 40%, #f8fafc 100%);
+}
+
+.doc-set-toggle-btn {
+  height: 36px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  transition: all 0.25s ease;
+  border: 1px solid #e2e8f0;
+}
+
+.doc-set-toggle-btn:hover {
+  border-color: #4f46e5;
+  color: #4f46e5;
+  background-color: #eef2ff;
+  box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.1);
+}
+
+.doc-set-toggle-btn .el-icon {
+  margin-right: 4px;
+}
+
 .document-wrapper {
   height: calc(100vh - 200px);
   position: relative;
@@ -809,6 +1331,28 @@ function getStatusTagType(status: ProjectStatus | undefined): 'info' | 'warning'
   top: 8px;
   right: 12px;
   z-index: 10;
+}
+
+.grad-doc-download-btn {
+  position: absolute;
+  top: 12px;
+  right: 16px;
+  z-index: 10;
+  height: 36px;
+  min-width: 88px;
+  border-radius: 10px;
+  border-color: #d1d5db;
+  background-color: rgba(255, 255, 255, 0.94);
+  color: #374151;
+  font-weight: 600;
+  box-shadow: 0 8px 22px rgba(15, 23, 42, 0.08);
+  backdrop-filter: blur(8px);
+}
+
+.grad-doc-download-btn:hover {
+  border-color: #4f46e5;
+  color: #4f46e5;
+  background-color: #eef2ff;
 }
 
 .empty-doc-placeholder {

@@ -82,6 +82,7 @@ export interface GenerationProgress {
 
 interface GenerationOptions {
   bypassCache?: boolean;
+  signal?: AbortSignal;
 }
 
 interface PendingRequest {
@@ -407,7 +408,7 @@ These guidelines are working if: fewer unnecessary changes in diffs, fewer rewri
       { role: 'user', content: userPrompt }
     ];
 
-    const result = await this.executeStreamWithRetry(messages, onProgress);
+    const result = await this.executeStreamWithRetry(messages, onProgress, options.signal);
     const finalized = this.postProcessGeneratedContent(docType, result.content);
 
     if (finalized !== result.content) {
@@ -482,7 +483,8 @@ These guidelines are working if: fewer unnecessary changes in diffs, fewer rewri
 
   private async executeStreamWithRetry(
     messages: Array<{ role: 'system' | 'user' | 'assistant'; content: string }>,
-    onProgress: (progress: GenerationProgress) => void
+    onProgress: (progress: GenerationProgress) => void,
+    signal?: AbortSignal
   ): Promise<ExecuteResult> {
     const { baseURL, apiKey, model } = this.getConfig();
     const maxAttempts = 3;
@@ -491,7 +493,7 @@ These guidelines are working if: fewer unnecessary changes in diffs, fewer rewri
 
     for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
       try {
-        const result = await this.requestStreamingCompletion(baseURL, apiKey, model, messages, onProgress);
+        const result = await this.requestStreamingCompletion(baseURL, apiKey, model, messages, onProgress, signal);
 
         const cleanedContent = result.contentText.trim();
         if (!cleanedContent) {
@@ -647,7 +649,8 @@ ${baseInfo}${contextSection}
     apiKey: string,
     model: string,
     messages: Array<{ role: 'system' | 'user' | 'assistant'; content: string }>,
-    onProgress: (progress: GenerationProgress) => void
+    onProgress: (progress: GenerationProgress) => void,
+    signal?: AbortSignal
   ): Promise<{ reasoningText: string; contentText: string; finishReason: string | null; tokenCount: number; usage: TokenUsage }> {
     const response = await fetch(`${baseURL}/chat/completions`, {
       method: 'POST',
@@ -663,7 +666,7 @@ ${baseInfo}${contextSection}
         stream: true,
         reasoning_split: true
       }),
-      signal: AbortSignal.timeout(this.REQUEST_TIMEOUT),
+      signal: this.createRequestSignal(this.REQUEST_TIMEOUT, signal),
     });
 
     if (!response.ok) {
@@ -1406,23 +1409,30 @@ ${getAgentsPromptTemplate(domain)}
   async reviewDocumentsStream(
     topicInfo: TopicInfo,
     allDocs: Record<string, string>,
-    onProgress: (phase: string) => void
+    onProgress: (phase: string) => void,
+    signal?: AbortSignal
   ): Promise<ReviewResult> {
     const config = this.getConfig();
 
     if (config.mockMode) {
       onProgress('正在加载并解析 7 份文档内容...\n');
       await this.delay(500);
+      signal?.throwIfAborted();
       onProgress('产品经理：检查 PRD 与前端/后端的一致性...\n');
       await this.delay(500);
+      signal?.throwIfAborted();
       onProgress('前端架构师：验证前端文档与 API 契约...\n');
       await this.delay(500);
+      signal?.throwIfAborted();
       onProgress('后端架构师：检查后端与 API 的对齐...\n');
       await this.delay(500);
+      signal?.throwIfAborted();
       onProgress('总协调员：汇总整体评估意见...\n');
       await this.delay(500);
+      signal?.throwIfAborted();
       onProgress('正在生成结构化审核结果...\n');
       await this.delay(500);
+      signal?.throwIfAborted();
       const result = this.generateMockReviewResult();
       onProgress(JSON.stringify(result, null, 2));
       onProgress('\n审核完成');
@@ -1432,14 +1442,19 @@ ${getAgentsPromptTemplate(domain)}
     // Emit initial phases
     onProgress('正在加载并解析 7 份文档内容...\n');
     await this.delay(500);
+    signal?.throwIfAborted();
     onProgress('产品经理：检查 PRD 与前端/后端的一致性...\n');
     await this.delay(300);
+    signal?.throwIfAborted();
     onProgress('前端架构师：验证前端文档与 API 契约...\n');
     await this.delay(300);
+    signal?.throwIfAborted();
     onProgress('后端架构师：检查后端与 API 的对齐...\n');
     await this.delay(300);
+    signal?.throwIfAborted();
     onProgress('总协调员：汇总整体评估意见...\n');
     await this.delay(300);
+    signal?.throwIfAborted();
     onProgress('正在生成结构化审核结果...\n\n');
 
     const systemPrompt = getReviewSystemPrompt(topicInfo.domain);
@@ -1457,7 +1472,8 @@ ${getAgentsPromptTemplate(domain)}
       config.apiKey,
       config.model,
       messages,
-      onProgress
+      onProgress,
+      signal
     );
 
     const parsedResult = this.parseReviewResult(rawContent);
@@ -1477,7 +1493,8 @@ ${getAgentsPromptTemplate(domain)}
     apiKey: string,
     model: string,
     messages: Array<{ role: 'system' | 'user' | 'assistant'; content: string }>,
-    onRawContent: (rawContent: string) => void
+    onRawContent: (rawContent: string) => void,
+    signal?: AbortSignal
   ): Promise<string> {
     const response = await fetch(`${baseURL}/chat/completions`, {
       method: 'POST',
@@ -1493,7 +1510,7 @@ ${getAgentsPromptTemplate(domain)}
         stream: true,
         reasoning_split: true
       }),
-      signal: AbortSignal.timeout(this.REVIEW_TIMEOUT),
+      signal: this.createRequestSignal(this.REVIEW_TIMEOUT, signal),
     });
 
     if (!response.ok) {
@@ -1574,6 +1591,29 @@ ${getAgentsPromptTemplate(domain)}
 
   private async delay(ms: number): Promise<void> {
     return new Promise(resolve => setTimeout(resolve, ms));
+  }
+
+  private createRequestSignal(timeoutMs: number, externalSignal?: AbortSignal): AbortSignal {
+    const timeoutSignal = AbortSignal.timeout(timeoutMs);
+    if (!externalSignal) {
+      return timeoutSignal;
+    }
+
+    const controller = new AbortController();
+    const abortFrom = (signal: AbortSignal): void => {
+      if (!controller.signal.aborted) {
+        controller.abort(signal.reason);
+      }
+    };
+
+    if (externalSignal.aborted) {
+      abortFrom(externalSignal);
+    } else {
+      externalSignal.addEventListener('abort', () => abortFrom(externalSignal), { once: true });
+    }
+    timeoutSignal.addEventListener('abort', () => abortFrom(timeoutSignal), { once: true });
+
+    return controller.signal;
   }
 
   /**

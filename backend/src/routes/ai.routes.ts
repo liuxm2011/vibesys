@@ -222,7 +222,18 @@ router.post('/generate/stream', authMiddleware, checkBannedMiddleware, async (re
     return res.status(400).json({ error: '无效的文档类型' });
   }
 
+  const clientAbortController = new AbortController();
+  let streamFinished = false;
+  res.on('close', () => {
+    if (!streamFinished) {
+      clientAbortController.abort();
+    }
+  });
+
   const sendEvent = (event: string, payload: unknown): void => {
+    if (res.writableEnded) {
+      return;
+    }
     res.write(`event: ${event}\n`);
     res.write(`data: ${JSON.stringify(payload)}\n\n`);
   };
@@ -292,7 +303,8 @@ router.post('/generate/stream', authMiddleware, checkBannedMiddleware, async (re
     }, progress => {
       sendEvent('progress', progress);
     }, {
-      bypassCache: forceRegenerate === true
+      bypassCache: forceRegenerate === true,
+      signal: clientAbortController.signal
     });
     const content = result.content;
 
@@ -336,8 +348,17 @@ router.post('/generate/stream', authMiddleware, checkBannedMiddleware, async (re
     }
 
     sendEvent('complete', { document });
+    streamFinished = true;
     res.end();
   } catch (error) {
+    if (clientAbortController.signal.aborted) {
+      streamFinished = true;
+      if (!res.writableEnded) {
+        res.end();
+      }
+      return;
+    }
+
     console.error('AI streaming generation error:', error);
 
     // Record failed usage
@@ -359,6 +380,7 @@ router.post('/generate/stream', authMiddleware, checkBannedMiddleware, async (re
           ? '文档生成超时，请稍后重试'
           : '文档生成失败，请稍后重试'
       });
+      streamFinished = true;
       return res.end();
     }
 
@@ -559,7 +581,18 @@ router.post('/review/stream', authMiddleware, checkBannedMiddleware, async (req:
     return res.status(400).json({ error: 'stream 端点仅支持 review 模式' });
   }
 
+  const clientAbortController = new AbortController();
+  let streamFinished = false;
+  res.on('close', () => {
+    if (!streamFinished) {
+      clientAbortController.abort();
+    }
+  });
+
   const sendEvent = (event: string, payload: unknown): void => {
+    if (res.writableEnded) {
+      return;
+    }
     res.write(`event: ${event}\n`);
     res.write(`data: ${JSON.stringify(payload)}\n\n`);
   };
@@ -611,9 +644,14 @@ router.post('/review/stream', authMiddleware, checkBannedMiddleware, async (req:
     res.setHeader('Connection', 'keep-alive');
     res.flushHeaders?.();
 
-    const reviewResult = await aiService.reviewDocumentsStream(topicInfo, docsMap, phase => {
-      sendEvent('phase', { phase });
-    });
+    const reviewResult = await aiService.reviewDocumentsStream(
+      topicInfo,
+      docsMap,
+      phase => {
+        sendEvent('phase', { phase });
+      },
+      clientAbortController.signal
+    );
 
     await prisma.project.update({
       where: { id: parsedProjectId },
@@ -624,8 +662,17 @@ router.post('/review/stream', authMiddleware, checkBannedMiddleware, async (req:
     });
 
     sendEvent('complete', { review: reviewResult });
+    streamFinished = true;
     res.end();
   } catch (error) {
+    if (clientAbortController.signal.aborted) {
+      streamFinished = true;
+      if (!res.writableEnded) {
+        res.end();
+      }
+      return;
+    }
+
     console.error('AI review streaming error:', error);
 
     if (res.headersSent) {
@@ -634,6 +681,7 @@ router.post('/review/stream', authMiddleware, checkBannedMiddleware, async (req:
           ? '审核超时，请稍后重试'
           : '审核失败，请稍后重试'
       });
+      streamFinished = true;
       return res.end();
     }
 

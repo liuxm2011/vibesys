@@ -182,6 +182,7 @@ export const useDocumentStore = defineStore('document', () => {
 
   // AbortController for interrupting in-progress generation (cross-project concurrency guard)
   let generationAbortController: AbortController | null = null;
+  let reviewAbortController: AbortController | null = null;
 
   /**
    * Generate document via AI (DOC-04)
@@ -251,6 +252,8 @@ export const useDocumentStore = defineStore('document', () => {
   function abortGeneration(): void {
     generationAbortController?.abort();
     generationAbortController = null;
+    generating.value = false;
+    generatingDocType.value = null;
   }
 
   /**
@@ -313,6 +316,9 @@ export const useDocumentStore = defineStore('document', () => {
    * Trigger expert panel review (streaming)
    */
   async function triggerReview(projectId: number): Promise<boolean> {
+    reviewAbortController?.abort();
+    reviewAbortController = new AbortController();
+
     reviewing.value = true;
     reviewStatus.value = 'reviewing';
     reviewPhase.value = '';
@@ -323,6 +329,7 @@ export const useDocumentStore = defineStore('document', () => {
 
     try {
       const response = await reviewDocumentsStreamApi(projectId, 'review', {
+        signal: reviewAbortController.signal,
         onPhase(phase) {
           reviewLog.value += `${phase}\n`;
           reviewPhase.value = reviewLog.value;
@@ -337,12 +344,26 @@ export const useDocumentStore = defineStore('document', () => {
       error.value = '审核返回数据异常';
       return false;
     } catch (e) {
+      if (e instanceof DOMException && e.name === 'AbortError') {
+        reviewStatus.value = 'idle';
+        return false;
+      }
       error.value = e instanceof Error ? e.message : '审核失败';
       reviewStatus.value = 'idle';
       return false;
     } finally {
       reviewing.value = false;
+      reviewAbortController = null;
     }
+  }
+
+  function abortReview(): void {
+    reviewAbortController?.abort();
+    reviewAbortController = null;
+    reviewing.value = false;
+    reviewStatus.value = 'idle';
+    reviewPhase.value = '';
+    reviewLog.value = '';
   }
 
   /**
@@ -456,6 +477,8 @@ export const useDocumentStore = defineStore('document', () => {
     reviewStatus.value = 'idle';
     reviewPhase.value = '';
     reviewLog.value = '';
+    generationAbortController = null;
+    reviewAbortController = null;
   }
 
   return {
@@ -502,6 +525,7 @@ export const useDocumentStore = defineStore('document', () => {
     createDocument,
     generateDocument,
     abortGeneration,
+    abortReview,
     isGeneratingDocument,
     getDocumentByType,
     clearGenerationDisplay,

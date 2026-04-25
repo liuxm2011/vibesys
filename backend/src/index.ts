@@ -10,6 +10,7 @@ import topicsRoutes from './routes/topics.routes.js';
 import aiRoutes from './routes/ai.routes.js';
 import documentsRoutes from './routes/documents.routes.js';
 import adminRoutes from './routes/admin.routes.js';
+import graduationRoutes from './routes/graduation.routes.js';
 import { generalLimiter } from './middleware/rate-limit.middleware.js';
 
 dotenv.config();
@@ -90,6 +91,9 @@ app.use('/api/documents', documentsRoutes);
 
 // Admin routes (Phase 5: ADM-01~07)
 app.use('/api/admin', adminRoutes);
+
+// Graduation document routes (毕设文档 CRUD + AI generation)
+app.use('/api/graduation', graduationRoutes);
 
 // Error handling middleware
 app.use((err: Error, req: express.Request, res: express.Response, next: express.NextFunction) => {
