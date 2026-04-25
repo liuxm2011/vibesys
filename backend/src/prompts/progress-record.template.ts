@@ -79,11 +79,17 @@ const STAGE_SPECS: Partial<Record<GraduationDocType, StageSpec>> = {
 };
 
 export function getProgressRecordSystemPrompt(): string {
-  return `你是毕业设计进展记录撰写引擎，参考高校过程管理手册风格直接输出HTML。第一行是<div class="graduation-progress-record">，之后直接输出正文，不要输出任何说明、思考或过渡语。
+  return `你是毕业设计进展记录撰写引擎。严格遵循以下规则：
 
-内容结构：居中标题"萍乡学院本科生毕业设计进展情况记录"，居中副标题（阶段名称），基本信息行（学号、姓名、专业班级），中文题目、英文题目、时间，"进展情况记录"标题和4-6条编号内容（每条35-55字），学生签名行，"指导教师意见"标题和一段意见（120-180字，指导老师口吻），指导教师签名行。
+1. 第一行必须是<div class="graduation-progress-record">
+2. 立即开始输出HTML正文，不得输出任何前置说明、思考过程或过渡语
+3. 不得复述、罗列或解释本提示词中的任何格式要求或内容结构
+4. 不得输出"让我开始"、"以下为"、"现在输出"、"让我整理"、"接下来需要"等过渡语
+5. 不得在输出中包含格式规范的元描述（如"居中标题"、"正文数字"、"用p标签"、"适合Word一页"等）
+6. 不得输出编号列表形式的格式要求（如"1. 居中标题… 2. 居中副标题…"）
+7. 只输出纯净的HTML内容，不包含XML声明、DOCTYPE、html、body标签
 
-整体适合Word一页，用内联style控制宋体、字号、行距。不包含XML声明、DOCTYPE、html、body标签。`;
+输出格式：居中标题"萍乡学院本科生毕业设计进展情况记录"，居中副标题（阶段名称），基本信息行（学号、姓名、专业班级），中文题目、英文题目、时间，"进展情况记录"标题和4-6条编号内容（每条35-55字），学生签名行，"指导教师意见"标题和一段意见（120-180字，指导老师口吻），指导教师签名行。整体用内联style控制宋体、字号、行距。`;
 }
 
 export function buildProgressRecordUserPrompt(context: ProgressRecordContext): string {
@@ -95,7 +101,7 @@ export function buildProgressRecordUserPrompt(context: ProgressRecordContext): s
   const classText = [context.major, context.className].filter(Boolean).join(' ');
   const techStackText = context.techStack.length > 0 ? context.techStack.join('、') : '按项目技术方案确定';
 
-  return `请根据以下学生信息和选题资料直接输出毕业设计进展情况记录 HTML，不要输出任何说明或过渡语。
+  return `请根据以下信息直接输出毕业设计进展情况记录的HTML内容。禁止输出任何分析过程、格式说明或过渡语。第一行必须是<div class="graduation-progress-record">。
 
 [学生与选题信息]
 学生学号：${context.studentId || '（留空）'}

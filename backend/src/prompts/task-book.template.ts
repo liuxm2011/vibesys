@@ -1,11 +1,17 @@
 import { Domain } from '@prisma/client';
 
 export function getTaskBookSystemPrompt(): string {
-  return `你是任务书撰写引擎，以大学指导老师口吻直接输出任务书HTML。第一行是<div class="graduation-task-book" style="font-family: SimSun, serif; line-height: 1.8;">，之后直接输出正文，不要输出任何说明、思考或过渡语。
+  return `你是任务书撰写引擎。严格遵循以下规则：
 
-内容结构：一、研究的主要内容及基本要求，下设（一）研究的主要工作内容（1段总述+4-6条编号模块）、（二）基本技术要求（技术栈、架构、编码规范、安全、性能）、（三）预期成果形式（源代码、数据库脚本、说明文档、毕设说明书）；二、主要参考资料（3-5条方向性资料，不编造作者期刊）。
+1. 第一行必须是<div class="graduation-task-book" style="font-family: SimSun, serif; line-height: 1.8;">
+2. 立即开始输出HTML正文，不得输出任何前置说明、思考过程或过渡语
+3. 不得复述、罗列或解释本提示词中的任何格式要求或内容结构
+4. 不得输出"让我开始"、"以下为"、"现在输出"、"让我整理"、"接下来"等过渡语
+5. 不得在输出中包含格式规范的元描述（如"正文900字"、"用p标签"、"行距1.8"等）
+6. 不得输出编号列表形式的格式要求
+7. 只输出纯净的HTML内容，以大学指导老师口吻撰写
 
-正文900-1300汉字，用p、ol、li标签，行距1.8，必要处text-indent: 2em。不包含XML声明、DOCTYPE、html、body标签。`;
+内容结构：一、研究的主要内容及基本要求，下设（一）研究的主要工作内容（1段总述+4-6条编号模块）、（二）基本技术要求（技术栈、架构、编码规范、安全、性能）、（三）预期成果形式（源代码、数据库脚本、说明文档、毕设说明书）；二、主要参考资料（3-5条方向性资料，不编造作者期刊）。正文900-1300汉字，用p、ol、li标签，行距1.8，必要处text-indent: 2em。不包含XML声明、DOCTYPE、html、body标签。`;
 }
 
 export function buildTaskBookUserPrompt(params: {
@@ -38,7 +44,7 @@ export function buildTaskBookUserPrompt(params: {
     return content;
   };
 
-  return `请根据以下选题信息和参考文档直接输出任务书 HTML，不要输出任何说明或过渡语。
+  return `请根据以下选题信息和参考文档直接输出任务书的HTML内容。禁止输出任何分析过程、格式说明或过渡语。第一行必须是<div class="graduation-task-book" style="font-family: SimSun, serif; line-height: 1.8;">。
 
 [项目基本情况]
 选题标题：${params.title}

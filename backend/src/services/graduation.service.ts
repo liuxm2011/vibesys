@@ -276,6 +276,9 @@ export class GraduationService {
       /现在开始编写开题报告内容。[^\n]*(?:\n)+/i,
       /现在开始编写任务书内容。[^\n]*(?:\n)+/i,
       /现在开始编写[^\n]*内容。[^\n]*(?:\n)+/i,
+      /让我整理内容[。.]?[^\n]*(?:\n)+/i,
+      /现在开始生成\s*HTML[^\n]*(?:\n)+/i,
+      /直接输出正文[，,]?\s*[^\n]*(?:\n)+/i,
     ];
 
     for (const marker of finalAnswerMarkers) {
@@ -295,7 +298,7 @@ export class GraduationService {
     if (firstExpectedHeading > 0) {
       const precedingText = result.slice(0, firstExpectedHeading).trim();
       const looksLikeReasoning =
-        /开始输出|让我根据|让我开始|我需要|参考文档|PRD文档|前端技术文档|后端技术文档|选题数据|技术栈|功能模块|核心功能|现在我来|现在开始|提取关键信息|需要包含的内容|输出规范|生成规范|必须包含|让我开始编写|现在我来编写|以下是我编写的|标签\s*-|正文\s*\d+|汉字|行距|不要输出|不要复述|不要编造|参考资料方向/.test(precedingText);
+        /开始输出|让我根据|让我开始|让我整理|接下来需要|我需要|参考文档|PRD文档|前端技术文档|后端技术文档|选题数据|技术栈|功能模块|核心功能|现在我来|现在开始|提取关键信息|需要包含的内容|输出规范|生成规范|必须包含|让我开始编写|现在我来编写|以下是我编写的|标签\s*-|正文\s*\d+|汉字|行距|不要输出|不要复述|不要编造|参考资料方向|居中标题|居中副标题|基本信息行|中文题目|英文题目|进展情况|指导教师|整体适合|内联style|建议进展|禁止输出|禁止复述|禁止先列/.test(precedingText);
       if (looksLikeReasoning) {
         result = result.slice(firstExpectedHeading).trim();
       }
@@ -356,6 +359,24 @@ export class GraduationService {
       /^\s*使用.*标签.*行距.*$/i,
       /^\s*不包含.*XML.*$/i,
       /^\s*现在开始编写.*内容[。.]?\s*$/i,
+      /^\s*\d+[、.．)）、]\s*居中标题/i,
+      /^\s*\d+[、.．)）、]\s*居中副标题/i,
+      /^\s*\d+[、.．)）、]\s*基本信息行/i,
+      /^\s*\d+[、.．)）、]\s*(中文|英文)题目/i,
+      /^\s*\d+[、.．)）、]\s*进展情况记录/i,
+      /^\s*\d+[、.．)）、]\s*学生签名/i,
+      /^\s*\d+[、.．)）、]\s*指导教师(意见|签名)/i,
+      /^\s*整体适合.*Word.*一页/i,
+      /^\s*用内联\s*style\s*控制/i,
+      /^\s*建议进展要点/i,
+      /^\s*让我整理内容/i,
+      /^\s*接下来需要根据/i,
+      /^\s*现在开始编写开题报告/i,
+      /^\s*直接输出正文/i,
+      /^\s*不要输出任何说明/i,
+      /^\s*不包含.*DOCTYPE.*html.*body/i,
+      /^\s*中文题目[、,，]?\s*英文题目[、,，]?\s*时间/i,
+      /^\s*指导教师需要撰写/i,
     ];
     return leakedLinePatterns.some(pattern => pattern.test(line));
   }
@@ -391,7 +412,7 @@ export class GraduationService {
 
     const betweenDivAndH2 = afterDiv.slice(0, firstH2);
     const leakIndicators = [
-      /^\s*(?:项目[：:]|技术栈[：:]|需要包含的内容[：:]|输出规范[：:]|生成规范[：:]|必须包含[：:]|让我开始编写|现在我来编写|以下是我编写的|让我根据)/m,
+      /^\s*(?:项目[：:]|技术栈[：:]|需要包含的内容[：:]|输出规范[：:]|生成规范[：:]|必须包含[：:]|让我开始编写|现在我来编写|以下是我编写的|让我根据|让我整理)/m,
       /\n\s*(?:项目[：:]|技术栈[：:]|需要包含的内容[：:]|输出规范[：:]|生成规范[：:]|必须包含[：:]|研究的主要内容[：:]|基本技术要求[：:]|预期成果形式[：:])/m,
       /标签\s*-\s*正文|正文\s*\d+.*汉字|行距约\s*\d|不要输出任何说明|不要复述输入材料|不要编造参考资料|参考资料方向包括/m,
       /研究的主要内容[：:]\s*\n\s*用户管理|研究的主要内容[：:]\s*\n\s*图书管理|研究的主要内容[：:]\s*\n\s*借阅管理/m,
@@ -399,6 +420,8 @@ export class GraduationService {
       /内容结构要求|居中标题|篇幅与版式|正文总量.*汉字|使用.*标签.*行距|不包含.*XML/m,
       /现在开始编写.*内容[。.]?\s*$/m,
       /一[、.．]\s*文献综述|二[、.．]\s*主要内容|三[、.．]\s*详细提纲|四[、.．]\s*进度安排|五[、.．]\s*参考文献/m,
+      /居中副标题|基本信息行|中文题目|英文题目|进展情况记录|指导教师(意见|签名)|整体适合|内联style|建议进展/m,
+      /接下来需要根据|直接输出正文|不包含.*DOCTYPE|禁止.*输出.*说明.*过渡语/m,
     ];
     const hasLeakContent = leakIndicators.some(pattern => pattern.test(betweenDivAndH2));
 
@@ -477,6 +500,8 @@ export class GraduationService {
     let rawContentChars = 0;
     let apiReportedCompletionTokens = 0;
     let apiReportedTotalTokens = 0;
+    let lastStreamCleanLength = 0;
+    const STREAM_CLEAN_INTERVAL = 300;
     const startTime = Date.now();
 
     const estimateTokensFromText = (text: string): number => {
@@ -519,16 +544,23 @@ export class GraduationService {
             }
 
             const elapsedSeconds = Math.round((Date.now() - startTime) / 1000);
-            // Use API-reported tokens if available; otherwise estimate from content length
             const estimatedTokens = estimateTokensFromText(contentText);
             const displayTokens = apiReportedTotalTokens > 0 ? apiReportedTotalTokens : estimatedTokens;
             const displayCompletion = apiReportedCompletionTokens > 0 ? apiReportedCompletionTokens : estimatedTokens;
             const promptTokens = displayTokens - displayCompletion;
 
+            let displayContent = contentText;
+            if (contentText.length - lastStreamCleanLength >= STREAM_CLEAN_INTERVAL || elapsedSeconds % 3 === 0) {
+              displayContent = this.stripIncrementalStreamLeak(contentText);
+              lastStreamCleanLength = contentText.length;
+            } else {
+              displayContent = this.stripIncrementalStreamLeak(contentText);
+            }
+
             onProgress({
               phase: contentText.length > 0 ? 'writing' : 'reasoning',
               reasoningText,
-              contentText,
+              contentText: displayContent,
               tokenCount: displayTokens,
               tokensPerSecond: elapsedSeconds > 0 ? Math.round(displayTokens / elapsedSeconds) : 0,
               elapsedSeconds
@@ -551,7 +583,7 @@ export class GraduationService {
     onProgress({
       phase: 'finalizing',
       reasoningText: '正在定稿...',
-      contentText,
+      contentText: this.stripIncrementalStreamLeak(contentText),
       tokenCount: finalTokens,
       tokensPerSecond: elapsedSeconds > 0 ? Math.round(finalTokens / elapsedSeconds) : 0,
       elapsedSeconds
@@ -613,6 +645,68 @@ export class GraduationService {
     timeoutSignal.addEventListener('abort', () => abortFrom(timeoutSignal), { once: true });
 
     return controller.signal;
+  }
+
+  /** Lightweight streaming leak cleanup — returns content unchanged if no leak detected. */
+  private stripIncrementalStreamLeak(text: string): string {
+    let result = text;
+
+    const divMatch = result.match(/<div\b[^>]*class="graduation-[^"]*"[^>]*>/i);
+    if (divMatch && divMatch.index !== undefined) {
+      const beforeDiv = result.slice(0, divMatch.index).trim();
+      if (beforeDiv.length > 0 && this.looksLikeReasoningLeak(beforeDiv)) {
+        result = result.slice(divMatch.index);
+      }
+    }
+
+    const graduationDivMatch = result.match(/<div\b[^>]*class="graduation-[^"]*"[^>]*>/i);
+    if (graduationDivMatch && graduationDivMatch.index !== undefined) {
+      const divEnd = graduationDivMatch.index + graduationDivMatch[0].length;
+      const afterDiv = result.slice(divEnd);
+      const firstContent = afterDiv.search(/<h[2-6]\b|<p\b|<table\b|<ol\b/i);
+      if (firstContent > 0) {
+        const between = afterDiv.slice(0, firstContent);
+        if (this.looksLikeReasoningLeak(between)) {
+          result = result.slice(0, divEnd) + '\n' + result.slice(divEnd + firstContent).trimStart();
+        }
+      }
+    }
+
+    if (!graduationDivMatch) {
+      const headingLookahead = '(?=<h[2-6]\\b|<div\\b|<p\\b)';
+      const preamblePatterns = [
+        new RegExp(`^[\\s\\S]*?${headingLookahead}`, 'i'),
+      ];
+      for (const pattern of preamblePatterns) {
+        const m = result.match(pattern);
+        if (m && m.index !== undefined && m[0].length < result.length * 0.6) {
+          const after = result.slice(m.index + m[0].length);
+          if (after.length > 200) {
+            const preamble = result.slice(0, m.index + m[0].length - m[0].length);
+            if (this.looksLikeReasoningLeak(preamble)) {
+              result = after;
+            }
+          }
+        }
+      }
+    }
+
+    result = result
+      .split('\n')
+      .filter(line => !this.isLeakedGenerationLine(line))
+      .join('\n')
+      .trim();
+
+    return result;
+  }
+
+  private looksLikeReasoningLeak(text: string): boolean {
+    const leakIndicators = [
+      /居中标题|居中副标题|基本信息行|中文题目|英文题目|进展情况记录|指导教师签名|指导教师意见/,
+      /整体适合|内联style|Word一页|不包含XML|DOCTYPE|html.*body标签/,
+      /内容结构[：:]|篇幅与版式|正文总?量|使用.*标签|行距|不要输出/i,
+    ];
+    return leakIndicators.some(pattern => pattern.test(text));
   }
 }
 

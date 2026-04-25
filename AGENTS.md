@@ -50,6 +50,8 @@
 |------|--------|
 | 云服务器公网 IP | `101.43.175.201` |
 | SSH 用户 | `ubuntu` |
+| SSH 本机别名 | `vibecoding-vps` |
+| SSH 私钥 | `~/.ssh/vibecoding_vps_ed25519` |
 | 操作系统 | Ubuntu 24.04 LTS |
 | 主域名 | `https://miaofu.work` |
 | Cloudflare | `miaofu.work` 和 `www.miaofu.work` 已开启代理访问 |
@@ -60,6 +62,47 @@
 - `llm.miaofu.work` 连接独立的大模型服务，DNS 与反代配置不要删除、覆盖或改指向本项目。
 - Cloudflare 代理已可正常访问主站；如果排查源站，可用 `curl --resolve miaofu.work:443:101.43.175.201 https://miaofu.work` 绕过 Cloudflare 直连源站验证。
 - 不要把 SSH 密码、数据库密码、JWT secret、AI key 写入 Git 或本文档。真实生产环境变量保存在服务器 `/opt/vibecoding/backend/.env`。
+
+### SSH 密钥连接方式
+
+这台开发电脑已经为生产 VPS 配置专用 SSH 密钥，后续维护优先使用密钥登录，不再使用密码或 `sshpass`：
+
+```bash
+ssh vibecoding-vps
+```
+
+本机 SSH 配置位于 `~/.ssh/config`，核心条目如下：
+
+```sshconfig
+Host vibecoding-vps
+  HostName 101.43.175.201
+  User ubuntu
+  Port 22
+  IdentityFile ~/.ssh/vibecoding_vps_ed25519
+  IdentitiesOnly yes
+  IPQoS none
+  ServerAliveInterval 30
+  ServerAliveCountMax 3
+  StrictHostKeyChecking accept-new
+```
+
+密钥指纹：
+
+```text
+SHA256:/eK3WRKNV5NV7xEyJuSc3Jgy5FrpaY8+xlDk7xA7upc vibecoding-vps-ubuntu@101.43.175.201
+```
+
+连接验证命令：
+
+```bash
+ssh -o BatchMode=yes -o PreferredAuthentications=publickey vibecoding-vps 'echo key-login-ok && hostname && whoami'
+```
+
+上传文件使用别名：
+
+```bash
+scp /tmp/vibecoding-src.tar.gz vibecoding-vps:/tmp/vibecoding-src.tar.gz
+```
 
 ### 服务器上的应用布局
 
@@ -139,15 +182,12 @@ pnpm run db:seed
 4. 从本地当前 Git 版本生成源码包并上传：
    ```bash
    git archive --format=tar.gz -o /tmp/vibecoding-src.tar.gz HEAD
-   sshpass -p '<服务器 SSH 密码>' scp \
-     -o IPQoS=none \
-     -o StrictHostKeyChecking=no \
-     -o UserKnownHostsFile=/dev/null \
-     /tmp/vibecoding-src.tar.gz \
-     ubuntu@101.43.175.201:/tmp/vibecoding-src.tar.gz
+   scp /tmp/vibecoding-src.tar.gz vibecoding-vps:/tmp/vibecoding-src.tar.gz
    ```
 5. 在服务器解包并更新：
    ```bash
+   ssh vibecoding-vps
+
    APP_DIR=/opt/vibecoding
    WEB_DIR=/var/www/vibecoding
 
