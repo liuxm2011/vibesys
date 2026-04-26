@@ -190,8 +190,62 @@ export class GraduationService {
     if (codeFenceMatch) {
       clean = codeFenceMatch[1].trim();
     }
+
+    // Deterministic wrapper extraction: anything before <div class="graduation-..."> or
+    // after the matching last </div> is treated as leaked reasoning/preamble and dropped.
+    const wrapperOpenRegex = /<div\s+class="(graduation-[a-z-]+)"[^>]*>/i;
+    const wrapperMatch = clean.match(wrapperOpenRegex);
+    if (wrapperMatch && wrapperMatch.index !== undefined) {
+      const fromWrapper = clean.slice(wrapperMatch.index);
+      const openTag = wrapperMatch[0];
+      const className = wrapperMatch[1];
+      const afterOpen = fromWrapper.slice(openTag.length);
+      const lastClose = afterOpen.lastIndexOf('</div>');
+      const innerRaw = lastClose >= 0 ? afterOpen.slice(0, lastClose) : afterOpen;
+
+      let inner = innerRaw.trim();
+      // Strip leaked instruction lines that may still appear inside the wrapper before the first heading.
+      const wrappedForLeakStrip = `${openTag}\n${inner}\n</div>`;
+      const afterLeakStrip = this.stripLeadingLeakInsideDiv(wrappedForLeakStrip);
+      const reMatched = afterLeakStrip.match(wrapperOpenRegex);
+      if (reMatched && reMatched.index !== undefined) {
+        const innerAfterStrip = afterLeakStrip.slice(reMatched.index + reMatched[0].length);
+        const innerLastClose = innerAfterStrip.lastIndexOf('</div>');
+        inner = (innerLastClose >= 0 ? innerAfterStrip.slice(0, innerLastClose) : innerAfterStrip).trim();
+      }
+
+      // Normalize inline styles inside the wrapper so all six documents render with the
+      // same fonts/sizes regardless of what the model emitted.
+      inner = this.normalizeInnerInlineStyles(inner);
+
+      const canonicalOpen = `<div class="${className}" style="font-family: 'SimSun', '宋体', serif; line-height: 1.8;">`;
+      return `${canonicalOpen}\n${inner}\n</div>`;
+    }
+
+    // Fallback: model omitted the wrapper — use heuristic preamble stripping.
     clean = this.stripPreamble(clean, 'html');
     return clean;
+  }
+
+  /**
+   * Remove font-family / font-size / line-height / color from inline styles on
+   * common block/inline tags inside the document body. This lets the front-end
+   * MarkdownPreview CSS dictate consistent sizing across all generated documents.
+   */
+  private normalizeInnerInlineStyles(html: string): string {
+    const tagPattern = /<(h[1-6]|p|span|li|ol|ul|table|tr|td|th|strong|em|b|i|div)(\s[^>]*)?>/gi;
+    return html.replace(tagPattern, (match, tagName: string, attrs: string | undefined) => {
+      if (!attrs) return match;
+      const cleanedAttrs = attrs.replace(/\s+style="([^"]*)"/i, (_full, style: string) => {
+        const filtered = style
+          .split(';')
+          .map(s => s.trim())
+          .filter(s => s && !/^(font-family|font-size|line-height|color)\s*:/i.test(s))
+          .join('; ');
+        return filtered ? ` style="${filtered}"` : '';
+      });
+      return `<${tagName}${cleanedAttrs}>`;
+    });
   }
 
   /**
