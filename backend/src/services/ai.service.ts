@@ -227,7 +227,7 @@ These guidelines are working if: fewer unnecessary changes in diffs, fewer rewri
   private resultCache = new Map<string, CachedResult>();
 
   private readonly CACHE_TTL = 24 * 60 * 60 * 1000; // 24 hours
-  private readonly REQUEST_TIMEOUT = 300_000; // 300 seconds (5 min) timeout - long docs need time
+  private readonly REQUEST_TIMEOUT = 600_000; // 600 seconds (10 min) timeout
   private readonly REVIEW_TIMEOUT = 360_000; // 360 seconds (6 minutes) timeout for expert panel review
 
   /**

@@ -54,7 +54,7 @@ interface StreamChunkResponse {
 }
 
 export class GraduationService {
-  private readonly REQUEST_TIMEOUT = 300_000;
+  private readonly REQUEST_TIMEOUT = 600_000;
 
   private getConfig() {
     if (!process.env.MINIMAX_API_KEY) {
