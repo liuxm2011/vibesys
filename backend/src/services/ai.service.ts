@@ -873,7 +873,7 @@ ${baseInfo}${contextSection}
     let cleaned = this.cleanGeneratedContent(content);
 
     if (this.isMarkdownGeneratedDoc(docType)) {
-      cleaned = this.removeRepeatedMarkdownRestart(cleaned);
+      cleaned = this.removeRepeatedMarkdownRestarts(cleaned);
     }
 
     if (docType !== 'AGENTS') {
@@ -952,6 +952,39 @@ ${baseInfo}${contextSection}
     }
 
     return cleaned;
+  }
+
+  private removeRepeatedMarkdownRestarts(content: string): string {
+    let cleaned = this.removeRepeatedMarkdownRestart(content);
+    cleaned = this.removeRepeatedSecondLevelSectionRestart(cleaned);
+    return cleaned;
+  }
+
+  private removeRepeatedSecondLevelSectionRestart(content: string): string {
+    const sectionMatches = [...content.matchAll(/^##\s+(.+)$/gm)];
+    if (sectionMatches.length <= 1) {
+      return content;
+    }
+
+    const seenHeadings = new Set<string>();
+    for (const section of sectionMatches) {
+      if (section.index === undefined) {
+        continue;
+      }
+
+      const heading = section[1].trim();
+      if (!seenHeadings.has(heading)) {
+        seenHeadings.add(heading);
+        continue;
+      }
+
+      const prefix = content.slice(0, section.index).trim();
+      const restartBlock = content.slice(section.index).trim();
+      const novel = this.sliceFromFirstNovelSecondLevelSection(prefix, restartBlock);
+      return novel ? `${prefix}\n\n${novel}`.trim() : prefix;
+    }
+
+    return content;
   }
 
   private sliceFromFirstNovelSecondLevelSection(existing: string, incoming: string): string {
@@ -1058,7 +1091,7 @@ ${baseInfo}${contextSection}
   }
 
   private extractPreviewContent(content: string): string {
-    const cleaned = this.cleanGeneratedContent(content);
+    const cleaned = this.removeRepeatedMarkdownRestarts(this.cleanGeneratedContent(content));
     const firstHeadingIndex = cleaned.search(/^#\s+/m);
 
     if (firstHeadingIndex === -1) {
