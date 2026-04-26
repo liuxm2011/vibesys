@@ -436,7 +436,7 @@ These guidelines are working if: fewer unnecessary changes in diffs, fewer rewri
     const { baseURL, apiKey, model } = this.getConfig();
     const contentParts: string[] = [];
     let totalUsage: TokenUsage = { promptTokens: 0, completionTokens: 0, totalTokens: 0 };
-    const maxAttempts = 3; // Reduced from 5 to 3
+    const maxAttempts = 3;
 
     for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
       try {
@@ -450,7 +450,6 @@ These guidelines are working if: fewer unnecessary changes in diffs, fewer rewri
 
         contentParts.push(content);
 
-        // Accumulate usage from API response
         if (data.usage) {
           totalUsage.promptTokens += data.usage.prompt_tokens || 0;
           totalUsage.completionTokens += data.usage.completion_tokens || 0;
@@ -461,20 +460,22 @@ These guidelines are working if: fewer unnecessary changes in diffs, fewer rewri
           break;
         }
 
-        messages.push({ role: 'assistant', content });
-        messages.push({
-          role: 'user',
-          content: this.buildContinuationPrompt()
-        });
+        // CRITICAL: Replace messages with a focused continuation context.
+        // Sending the FULL previous response (~16000 tokens) fills the context
+        // window and causes the model to "restart" from the beginning instead
+        // of continuing. We only send the system prompt + a user prompt
+        // containing the tail of the previous response as anchor.
+        messages = [
+          messages[0],
+          { role: 'user', content: this.buildContinuationUserPrompt(content) }
+        ];
       } catch (error) {
         if (attempt === maxAttempts - 1) throw error;
-        // Exponential backoff
         await new Promise(resolve => setTimeout(resolve, 1000 * (attempt + 1)));
       }
     }
 
     const finalContent = this.cleanGeneratedContent(this.mergeContinuationParts(contentParts));
-    // Fallback to estimation if API didn't return usage
     if (totalUsage.totalTokens === 0) {
       totalUsage = this.estimateTokens(finalContent);
     }
@@ -502,7 +503,6 @@ These guidelines are working if: fewer unnecessary changes in diffs, fewer rewri
 
         contentParts.push(cleanedContent);
 
-        // Accumulate usage from API response (last chunk usually contains usage)
         if (result.usage) {
           totalUsage.promptTokens += result.usage.promptTokens || 0;
           totalUsage.completionTokens += result.usage.completionTokens || 0;
@@ -513,11 +513,13 @@ These guidelines are working if: fewer unnecessary changes in diffs, fewer rewri
           break;
         }
 
-        messages.push({ role: 'assistant', content: cleanedContent });
-        messages.push({
-          role: 'user',
-          content: this.buildContinuationPrompt()
-        });
+        // CRITICAL: Replace messages with a focused continuation context.
+        // Sending the FULL previous response fills the context window and
+        // causes the model to restart from the beginning instead of continuing.
+        messages = [
+          messages[0],
+          { role: 'user', content: this.buildContinuationUserPrompt(cleanedContent) }
+        ];
       } catch (error) {
         if (attempt === maxAttempts - 1) throw error;
         await new Promise(resolve => setTimeout(resolve, 1000 * (attempt + 1)));
@@ -525,7 +527,6 @@ These guidelines are working if: fewer unnecessary changes in diffs, fewer rewri
     }
 
     const finalContent = this.cleanGeneratedContent(this.mergeContinuationParts(contentParts));
-    // Fallback to estimation if API didn't return usage
     if (totalUsage.totalTokens === 0) {
       totalUsage = this.estimateTokens(finalContent);
     }
@@ -819,15 +820,32 @@ ${baseInfo}${contextSection}
     return delta?.reasoning_content || reasoningDetails;
   }
 
-  private buildContinuationPrompt(): string {
+  /**
+   * Build a focused continuation user prompt.
+   * CRITICAL: Only sends the TAIL of the previous response (~800 chars),
+   * not the full ~16000-token output. This prevents the context window
+   * from being filled, which is the root cause of AI "restarting" from
+   * the beginning instead of continuing.
+   */
+  private buildContinuationUserPrompt(previousTail: string): string {
+    // Grab the last ~800 meaningful characters as continuation anchor
+    const tailText = previousTail.slice(-800).trim();
+    const truncationNote = tailText.length < previousTail.trim().length
+      ? '（以上为上一轮输出的最后部分，完整内容已省略）\n\n'
+      : '';
+
     return [
-      '上一条回答因长度限制被截断。请只续写剩余内容。',
-      '必须从上一条回答最后一个未完成句子、列表项、表格或章节之后继续。',
-      '严禁重新输出文档标题。',
-      '严禁重复已经输出过的任何一级标题、二级标题、章节、表格、代码块或列表。',
-      '如果无法判断准确续写位置，只输出尚未出现过的后续章节。',
-      '不要从 # 标题、## 项目概述、## 功能需求、## 组件结构设计、## API接口设计 等已出现章节重新开始。',
-      '直接输出 Markdown 正文，不要解释、不要道歉、不要说明“继续”。'
+      truncationNote + '上一条回答因长度限制被截断。以下是截断前的最后一段：',
+      '',
+      '```',
+      tailText,
+      '```',
+      '',
+      '请严格从上述内容之后继续生成剩余部分：',
+      '- 严禁输出文档标题（# 开头的内容）',
+      '- 严禁重复已输出过的任何章节、段落、表格、代码块或列表',
+      '- 如果上一个句子或表格不完整，先补全再继续新内容',
+      '- 直接输出 Markdown 正文，不要解释、道歉或说明"继续"'
     ].join('\n');
   }
 
@@ -900,8 +918,19 @@ ${baseInfo}${contextSection}
         continue;
       }
 
-      const withoutRestart = this.removeRepeatedDocumentRestart(merged, next);
-      const novel = this.removeOverlappingPrefix(merged, withoutRestart);
+      let novel: string;
+
+      // If `next` is a continuation (no H1 title), just append it.
+      // If `next` has an H1 that matches the existing document's H1,
+      // treat it as a restart and extract only novel sections.
+      const nextHasH1 = /^#\s+/m.test(next);
+      if (!nextHasH1) {
+        novel = this.removeOverlappingPrefix(merged, next);
+      } else {
+        const withoutRestart = this.removeRepeatedDocumentRestart(merged, next);
+        novel = this.removeOverlappingPrefix(merged, withoutRestart);
+      }
+
       if (novel) {
         merged = `${merged}\n\n${novel}`.trim();
       }
@@ -919,7 +948,11 @@ ${baseInfo}${contextSection}
     }
 
     const incomingTitle = incomingTitleMatch[1].trim();
-    if (incomingTitle !== existingTitle) {
+
+    // Fuzzy title comparison to handle minor rephrasing by the model
+    const normExisting = existingTitle.replace(/\s+/g, ' ').toLowerCase();
+    const normIncoming = incomingTitle.replace(/\s+/g, ' ').toLowerCase();
+    if (normIncoming !== normExisting) {
       return incoming;
     }
 
