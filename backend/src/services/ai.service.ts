@@ -1534,7 +1534,7 @@ ${topicInfo.techStack.map(tech => `- ${tech}`).join('\n')}
    * D-05/D-08: PRD system prompt with SE/BD differentiation
    */
   private getPRDSystemPrompt(domain: Domain): string {
-    return `你是一位专业的产品经理，负责产出可直接交付的中文 Markdown PRD。
+    return `你是一位专业的产品经理，负责产出可直接交付的**精简**中文 Markdown PRD。
 
 ${getPRDPromptTemplate(domain)}
 
@@ -1544,14 +1544,15 @@ ${getPRDPromptTemplate(domain)}
 - 第一轮必须从文档标题开始，到最后一个章节完整结束
 - 如果是在续写上一轮被截断内容，必须从截断位置之后继续，禁止重新输出文档标题或已输出章节
 - 全文只允许出现一个一级标题（# ）
-- 如果包含流程或结构图，优先使用 Markdown 列表或代码块，避免输出半截内容`;
+- **全文总计不超过 300 行，超过将被视为不合格输出**
+- 用列表和表格代替长段落，每个要点一句话即可`;
   }
 
   /**
    * D-06/D-08: Frontend system prompt with SE/BD differentiation
    */
   private getFrontendSystemPrompt(domain: Domain): string {
-    return `你是一位专业的前端架构师，负责产出可直接交付的中文 Markdown 前端技术文档。
+    return `你是一位专业的前端架构师，负责产出可直接交付的**精简**中文 Markdown 前端技术文档。
 
 ${getFrontendPromptTemplate(domain)}
 
@@ -1561,14 +1562,15 @@ ${getFrontendPromptTemplate(domain)}
 - 第一轮必须从文档标题开始，并把所有主要章节完整写完
 - 如果是在续写上一轮被截断内容，必须从截断位置之后继续，禁止重新输出文档标题或已输出章节
 - 全文只允许出现一个一级标题（# ）
-- 优先给出完整结构，避免输出未闭合的代码块或未完成的 ASCII 图`;
+- **全文总计不超过 300 行，超过将被视为不合格输出**
+- 组件描述用列表，不要为每个组件写大段说明`;
   }
 
   /**
    * D-07/D-08: Backend system prompt with SE/BD differentiation
    */
   private getBackendSystemPrompt(domain: Domain): string {
-    return `你是一位专业的后端架构师，负责产出可直接交付的中文 Markdown 后端技术文档。
+    return `你是一位专业的后端架构师，负责产出可直接交付的**精简**中文 Markdown 后端技术文档。
 
 ${getBackendPromptTemplate(domain)}
 
@@ -1578,22 +1580,26 @@ ${getBackendPromptTemplate(domain)}
 - 第一轮必须从文档标题开始，并把所有主要章节完整写完
 - 如果是在续写上一轮被截断内容，必须从截断位置之后继续，禁止重新输出文档标题或已输出章节
 - 全文只允许出现一个一级标题（# ）
-- 优先给出完整结构，避免输出未闭合的代码块或未完成的表格`;
+- **全文总计不超过 300 行，超过将被视为不合格输出**
+- 用表格和列表代替长段落`;
   }
 
   /**
    * API 接口契约文档 system prompt
    */
   private getAPISystemPrompt(domain: Domain): string {
-    return `你是一位专业的 API 架构师，负责产出可直接交付的中文 Markdown API 接口契约文档。
+    return `你是一位专业的 API 架构师，负责产出可直接交付的**精简**中文 Markdown API 接口契约文档。
 
 ${getAPIPromptTemplate(domain)}
 
 输出约束：
 - 只输出最终 Markdown 文档
 - 不要输出思考过程、解释、备注、前言或后记
-- 接口必须使用 Markdown 表格或代码块详细描述
-- 请求/响应示例必须使用 JSON 格式`;
+- 接口必须使用 Markdown 表格或代码块描述，但要精简
+- 请求/响应示例使用 JSON 格式，每个示例不超过 5 行
+- **全文总计不超过 1500 行，严禁超长输出**
+- **每个接口描述不超过 10 行，不要为每个接口写一大段说明**
+- **如果发现内容即将超长，只列出接口路径和一句话描述，省略示例**`;
   }
 
   /**
@@ -1608,7 +1614,8 @@ ${getTaskPromptTemplate(domain)}
 - 只输出最终 Markdown 文档
 - 不要输出思考过程、解释、备注、前言或后记
 - 任务编号使用 T-01, T-02 格式
-- 每个任务必须包含明确的验收标准`;
+- 每个任务必须包含明确的验收标准
+- **全文总计不超过 200 行，8-12 个核心任务即可**`;
   }
 
   /**
