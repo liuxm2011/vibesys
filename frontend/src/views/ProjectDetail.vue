@@ -399,7 +399,15 @@
                     <el-icon><Download /></el-icon>
                     下载
                   </el-button>
+                  <DocumentModeToggle v-model:mode="gradDocModes.TASK_BOOK" class="mode-toggle" />
+                  <MarkdownEditor
+                    v-if="gradDocModes.TASK_BOOK === 'edit'"
+                    :content="document.content"
+                    :document-id="document.id"
+                    @save="handleGraduationDocumentSave"
+                  />
                   <MarkdownPreview
+                    v-else
                     :content="document.content"
                   />
                 </div>
@@ -440,7 +448,15 @@
                     <el-icon><Download /></el-icon>
                     下载
                   </el-button>
+                  <DocumentModeToggle v-model:mode="gradDocModes.PROPOSAL" class="mode-toggle" />
+                  <MarkdownEditor
+                    v-if="gradDocModes.PROPOSAL === 'edit'"
+                    :content="document.content"
+                    :document-id="document.id"
+                    @save="handleGraduationDocumentSave"
+                  />
                   <MarkdownPreview
+                    v-else
                     :content="document.content"
                   />
                 </div>
@@ -481,7 +497,15 @@
                     <el-icon><Download /></el-icon>
                     下载
                   </el-button>
+                  <DocumentModeToggle v-model:mode="gradDocModes.PREPARATION" class="mode-toggle" />
+                  <MarkdownEditor
+                    v-if="gradDocModes.PREPARATION === 'edit'"
+                    :content="document.content"
+                    :document-id="document.id"
+                    @save="handleGraduationDocumentSave"
+                  />
                   <MarkdownPreview
+                    v-else
                     :content="document.content"
                   />
                 </div>
@@ -522,7 +546,15 @@
                     <el-icon><Download /></el-icon>
                     下载
                   </el-button>
+                  <DocumentModeToggle v-model:mode="gradDocModes.DRAFTING" class="mode-toggle" />
+                  <MarkdownEditor
+                    v-if="gradDocModes.DRAFTING === 'edit'"
+                    :content="document.content"
+                    :document-id="document.id"
+                    @save="handleGraduationDocumentSave"
+                  />
                   <MarkdownPreview
+                    v-else
                     :content="document.content"
                   />
                 </div>
@@ -563,7 +595,15 @@
                     <el-icon><Download /></el-icon>
                     下载
                   </el-button>
+                  <DocumentModeToggle v-model:mode="gradDocModes.MIDTERM_CHECK" class="mode-toggle" />
+                  <MarkdownEditor
+                    v-if="gradDocModes.MIDTERM_CHECK === 'edit'"
+                    :content="document.content"
+                    :document-id="document.id"
+                    @save="handleGraduationDocumentSave"
+                  />
                   <MarkdownPreview
+                    v-else
                     :content="document.content"
                   />
                 </div>
@@ -604,7 +644,15 @@
                     <el-icon><Download /></el-icon>
                     下载
                   </el-button>
+                  <DocumentModeToggle v-model:mode="gradDocModes.REFINEMENT" class="mode-toggle" />
+                  <MarkdownEditor
+                    v-if="gradDocModes.REFINEMENT === 'edit'"
+                    :content="document.content"
+                    :document-id="document.id"
+                    @save="handleGraduationDocumentSave"
+                  />
                   <MarkdownPreview
+                    v-else
                     :content="document.content"
                   />
                 </div>
@@ -792,6 +840,14 @@ const docModes = ref<Record<DocType, 'read' | 'edit'>>({
   CONTEXT_STATE: 'edit',
   AGENTS: 'edit',
 });
+const gradDocModes = ref<Record<GraduationDocType, 'read' | 'edit'>>({
+  TASK_BOOK: 'edit',
+  PROPOSAL: 'edit',
+  PREPARATION: 'edit',
+  DRAFTING: 'edit',
+  MIDTERM_CHECK: 'edit',
+  REFINEMENT: 'edit',
+});
 
 // Graduation document set mode
 const docSetMode = ref<'standard' | 'graduation'>('standard');
@@ -880,6 +936,13 @@ onUnmounted(() => {
 
 async function handleDocumentSave(docId: number, content: string): Promise<void> {
   const success = await documentStore.updateDocument(docId, content);
+  if (!success) {
+    ElMessage.error('保存失败');
+  }
+}
+
+async function handleGraduationDocumentSave(docId: number, content: string): Promise<void> {
+  const success = await graduationStore.updateDocument(docId, content);
   if (!success) {
     ElMessage.error('保存失败');
   }

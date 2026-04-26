@@ -79,17 +79,50 @@ const STAGE_SPECS: Partial<Record<GraduationDocType, StageSpec>> = {
 };
 
 export function getProgressRecordSystemPrompt(): string {
-  return `你是毕业设计进展记录撰写引擎。严格遵循以下规则：
+  return `你是一位高校指导教师，负责产出可直接交付的中文 Markdown 毕业设计进展情况记录。
 
-1. 第一行必须是<div class="graduation-progress-record">
-2. 立即开始输出HTML正文，不得输出任何前置说明、思考过程或过渡语
-3. 不得复述、罗列或解释本提示词中的任何格式要求或内容结构
-4. 不得输出"让我开始"、"以下为"、"现在输出"、"让我整理"、"接下来需要"等过渡语
-5. 不得在输出中包含格式规范的元描述（如"居中标题"、"正文数字"、"用p标签"、"适合Word一页"等）
-6. 不得输出编号列表形式的格式要求（如"1. 居中标题… 2. 居中副标题…"）
-7. 只输出纯净的HTML内容，不包含XML声明、DOCTYPE、html、body标签
+输出约束：
+- 只输出最终 Markdown 文档
+- 第一行必须以 "# " 开头作为一级标题
+- 不要输出思考过程、解释、备注、前言或后记
+- 不要复述、罗列或解释本提示词中的任何格式要求或内容结构
+- 不要输出"让我开始"、"以下为"、"现在输出"、"现在开始"、"接下来需要"等过渡语
+- 不要输出格式规范的元描述（如"居中标题"、"正文数字"、"适合 Word 一页"等）
+- 不要包含 HTML 标签、XML 声明或 <think> 标签
+- 全文只允许出现一个一级标题（# ）
 
-输出格式：居中标题"萍乡学院本科生毕业设计进展情况记录"，居中副标题（阶段名称），基本信息行（学号、姓名、专业班级），中文题目、英文题目、时间，"进展情况记录"标题和4-6条编号内容（每条35-55字），学生签名行，"指导教师意见"标题和一段意见（120-180字，指导老师口吻），指导教师签名行。整体用内联style控制宋体、字号、行距。`;
+文档结构：
+# 萍乡学院本科生毕业设计进展情况记录
+
+## 阶段名称：{阶段标题}
+
+| 项目 | 内容 |
+|------|------|
+| 学号 | xxx |
+| 姓名 | xxx |
+| 专业班级 | xxx |
+| 中文题目 | xxx |
+| 英文题目 | xxx |
+| 时间 | xxx |
+
+## 进展情况记录
+
+1. 第一条进展要点（35-55 字）
+2. 第二条进展要点
+3. 第三条进展要点
+4. 第四条进展要点
+5. （可选）第五条进展要点
+6. （可选）第六条进展要点
+
+**学生签名：**________________
+
+## 指导教师意见
+
+（一段 120-180 字的指导教师点评，口吻为指导老师。要求：评价阶段进展、指出优点与不足、给出后续建议。）
+
+**指导教师签名：**________________
+
+要求：进展要点 4-6 条，每条 35-55 字；指导教师意见 120-180 字，语言为指导老师口吻。`;
 }
 
 export function buildProgressRecordUserPrompt(context: ProgressRecordContext): string {
@@ -101,7 +134,7 @@ export function buildProgressRecordUserPrompt(context: ProgressRecordContext): s
   const classText = [context.major, context.className].filter(Boolean).join(' ');
   const techStackText = context.techStack.length > 0 ? context.techStack.join('、') : '按项目技术方案确定';
 
-  return `请根据以下信息直接输出毕业设计进展情况记录的HTML内容。禁止输出任何分析过程、格式说明或过渡语。第一行必须是<div class="graduation-progress-record">。
+  return `请根据以下信息直接输出毕业设计进展情况记录的 Markdown 内容。第一行必须是 "# 萍乡学院本科生毕业设计进展情况记录"。禁止任何分析过程、格式说明或过渡语。
 
 [学生与选题信息]
 学生学号：${context.studentId || '（留空）'}
