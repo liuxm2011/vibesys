@@ -460,13 +460,8 @@ These guidelines are working if: fewer unnecessary changes in diffs, fewer rewri
           break;
         }
 
-        // CRITICAL: Replace messages with a focused continuation context.
-        // Sending the FULL previous response (~16000 tokens) fills the context
-        // window and causes the model to "restart" from the beginning instead
-        // of continuing. We only send the system prompt + a user prompt
-        // containing the tail of the previous response as anchor.
         messages = [
-          messages[0],
+          { role: 'system', content: this.buildContinuationSystemPrompt() },
           { role: 'user', content: this.buildContinuationUserPrompt(content) }
         ];
       } catch (error) {
@@ -513,11 +508,8 @@ These guidelines are working if: fewer unnecessary changes in diffs, fewer rewri
           break;
         }
 
-        // CRITICAL: Replace messages with a focused continuation context.
-        // Sending the FULL previous response fills the context window and
-        // causes the model to restart from the beginning instead of continuing.
         messages = [
-          messages[0],
+          { role: 'system', content: this.buildContinuationSystemPrompt() },
           { role: 'user', content: this.buildContinuationUserPrompt(cleanedContent) }
         ];
       } catch (error) {
@@ -632,7 +624,7 @@ ${baseInfo}${contextSection}
         model,
         messages,
         temperature: 0.7,
-        max_tokens: 16384,
+        max_tokens: 65536,
       }),
       signal: AbortSignal.timeout(this.REQUEST_TIMEOUT), // 120 seconds timeout
     });
@@ -663,7 +655,7 @@ ${baseInfo}${contextSection}
         model,
         messages,
         temperature: 0.7,
-        max_tokens: 16384,
+        max_tokens: 65536,
         stream: true,
         reasoning_split: true
       }),
@@ -821,12 +813,23 @@ ${baseInfo}${contextSection}
   }
 
   /**
-   * Build a focused continuation user prompt.
-   * CRITICAL: Only sends the TAIL of the previous response (~800 chars),
-   * not the full ~16000-token output. This prevents the context window
-   * from being filled, which is the root cause of AI "restarting" from
-   * the beginning instead of continuing.
+   * Continuation system prompt - replaces the original system prompt.
+   * The original says "从文档标题开始", which conflicts with continuation.
    */
+  private buildContinuationSystemPrompt(): string {
+    return [
+      '你是一位专业的技术文档续写助手。',
+      '你正在续写一份已被截断、尚未完成的 Markdown 文档。',
+      '',
+      '核心规则：',
+      '- 你收到的上文是截断前的最后一段，请紧接其后继续输出',
+      '- 严禁输出文档标题（# 开头）',
+      '- 严禁重复任何已输出过的章节或内容',
+      '- 如果上一段句子不完整，先补全该句子',
+      '- 直接输出剩余 Markdown 正文，不解释、不道歉'
+    ].join('\n');
+  }
+
   private buildContinuationUserPrompt(previousTail: string): string {
     // Grab the last ~800 meaningful characters as continuation anchor
     const tailText = previousTail.slice(-800).trim();
@@ -1720,7 +1723,7 @@ ${getAgentsPromptTemplate(domain)}
         model,
         messages,
         temperature: 0.7,
-        max_tokens: 16384,
+        max_tokens: 65536,
         stream: true,
         reasoning_split: true
       }),

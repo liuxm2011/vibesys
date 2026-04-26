@@ -110,16 +110,43 @@ export class GraduationService {
     }
 
     const { systemPrompt, userPrompt } = this.buildPrompts(docType, topicContext, previousDocs);
-    const messages = [
+    let messages: Array<{ role: 'system' | 'user'; content: string }> = [
       { role: 'system' as const, content: systemPrompt },
       { role: 'user' as const, content: userPrompt }
     ];
 
-    const { content, usage } = await this.requestCompletionStream(
-      config.baseURL, config.apiKey, config.model, messages, onProgress, signal
-    );
+    const contentParts: string[] = [];
+    let totalUsage: TokenUsage = { promptTokens: 0, completionTokens: 0, totalTokens: 0 };
+    const maxAttempts = 3;
 
-    return { content: this.postProcess(content, docType), usage };
+    for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
+      try {
+        const isContinuation = attempt > 0;
+        const result = await this.requestCompletionStream(
+          config.baseURL, config.apiKey, config.model, messages, onProgress, signal, isContinuation
+        );
+
+        if (!result.content.trim()) break;
+
+        contentParts.push(result.content);
+        totalUsage.promptTokens += result.usage.promptTokens;
+        totalUsage.completionTokens += result.usage.completionTokens;
+        totalUsage.totalTokens += result.usage.totalTokens;
+
+        if (result.finishReason !== 'length') break;
+
+        messages = [
+          { role: 'system', content: this.buildContinuationSystemPrompt() },
+          { role: 'user', content: this.buildContinuationUserPrompt(result.content) }
+        ];
+      } catch (error) {
+        if (attempt === maxAttempts - 1) throw error;
+        await new Promise(resolve => setTimeout(resolve, 1000 * (attempt + 1)));
+      }
+    }
+
+    const mergedContent = this.mergeContentParts(contentParts);
+    return { content: this.postProcess(mergedContent, docType), usage: totalUsage };
   }
 
   private buildPrompts(
@@ -228,6 +255,71 @@ export class GraduationService {
     return trimmed;
   }
 
+  private removeRepeatedTitle(text: string): string {
+    const matches = [...text.matchAll(/^#\s+.+$/gm)];
+    if (matches.length <= 1) return text;
+    const secondMatch = matches[1];
+    if (secondMatch.index === undefined) return text;
+    return text.slice(0, secondMatch.index).trim();
+  }
+
+  private buildContinuationSystemPrompt(): string {
+    return [
+      '你是一位专业的技术文档续写助手。',
+      '你正在续写一份已被截断、尚未完成的 Markdown 文档。',
+      '',
+      '核心规则：',
+      '- 你收到的上文是截断前的最后一段，紧接其后继续输出',
+      '- 严禁输出文档标题（# 开头）',
+      '- 严禁重复任何已输出过的章节或内容',
+      '- 如果上一段句子不完整，先补全该句子',
+      '- 直接输出剩余 Markdown 正文，不解释、不道歉'
+    ].join('\n');
+  }
+
+  private buildContinuationUserPrompt(previousTail: string): string {
+    const tailText = previousTail.slice(-800).trim();
+    return [
+      '上一条回答因长度限制被截断。以下是截断前的最后一段：',
+      '',
+      '```',
+      tailText,
+      '```',
+      '',
+      '请严格从上述内容之后继续生成剩余部分：',
+      '- 严禁输出文档标题（# 开头的内容）',
+      '- 严禁重复已输出过的任何章节、段落、表格、代码块或列表',
+      '- 如果上一个句子或表格不完整，先补全再继续新内容',
+      '- 直接输出 Markdown 正文，不要解释、道歉或说明"继续"'
+    ].join('\n');
+  }
+
+  private mergeContentParts(parts: string[]): string {
+    if (parts.length === 0) return '';
+    let merged = parts[0].trim();
+    for (const part of parts.slice(1)) {
+      const next = part.trim();
+      if (!next) continue;
+      const withoutRestart = this.removeRepeatedTitle(next);
+      const suffix = this.removeContentOverlap(merged, withoutRestart);
+      if (suffix) {
+        merged = `${merged}\n\n${suffix}`.trim();
+      }
+    }
+    return merged;
+  }
+
+  private removeContentOverlap(existing: string, incoming: string): string {
+    if (!incoming || existing.endsWith(incoming)) return '';
+    const maxOverlap = Math.min(existing.length, incoming.length, 4000);
+    for (let len = maxOverlap; len > 4; len -= 1) {
+      if (existing.endsWith(incoming.slice(0, len))) {
+        return incoming.slice(len).trim();
+      }
+    }
+    return incoming;
+  }
+
 
   private async requestCompletion(
     baseURL: string,
@@ -245,7 +337,7 @@ export class GraduationService {
         model,
         messages,
         temperature: 0.7,
-        max_tokens: 16384,
+        max_tokens: 65536,
       }),
       signal: AbortSignal.timeout(this.REQUEST_TIMEOUT),
     });
@@ -264,8 +356,9 @@ export class GraduationService {
     model: string,
     messages: Array<{ role: 'system' | 'user'; content: string }>,
     onProgress: (progress: GenerationProgress) => void,
-    signal?: AbortSignal
-  ): Promise<{ content: string; usage: TokenUsage }> {
+    signal?: AbortSignal,
+    isContinuation = false
+  ): Promise<{ content: string; usage: TokenUsage; finishReason: string | null }> {
     const response = await fetch(`${baseURL}/chat/completions`, {
       method: 'POST',
       headers: {
@@ -276,7 +369,7 @@ export class GraduationService {
         model,
         messages,
         temperature: 0.7,
-        max_tokens: 16384,
+        max_tokens: 65536,
         stream: true,
         reasoning_split: true,
       }),
@@ -296,6 +389,7 @@ export class GraduationService {
     let rawContentChars = 0;
     let apiReportedCompletionTokens = 0;
     let apiReportedTotalTokens = 0;
+    let finishReason: string | null = null;
     let lastStreamCleanLength = 0;
     const STREAM_CLEAN_INTERVAL = 300;
     const startTime = Date.now();
@@ -334,6 +428,10 @@ export class GraduationService {
                 rawContentChars += delta.content.length;
               }
             }
+            const choiceFinishReason = parsed.choices?.[0]?.finish_reason;
+            if (choiceFinishReason) {
+              finishReason = choiceFinishReason;
+            }
             if (parsed.usage) {
               apiReportedCompletionTokens = parsed.usage.completion_tokens ?? 0;
               apiReportedTotalTokens = parsed.usage.total_tokens ?? 0;
@@ -343,9 +441,11 @@ export class GraduationService {
             const estimatedTokens = estimateTokensFromText(contentText);
             const displayTokens = apiReportedTotalTokens > 0 ? apiReportedTotalTokens : estimatedTokens;
             const displayCompletion = apiReportedCompletionTokens > 0 ? apiReportedCompletionTokens : estimatedTokens;
-            const promptTokens = displayTokens - displayCompletion;
 
-            const displayContent = this.cleanStreamingMarkdown(contentText);
+            let displayContent = this.cleanStreamingMarkdown(contentText);
+            if (isContinuation) {
+              displayContent = this.removeRepeatedTitle(displayContent);
+            }
             if (contentText.length - lastStreamCleanLength >= STREAM_CLEAN_INTERVAL) {
               lastStreamCleanLength = contentText.length;
             }
@@ -373,22 +473,14 @@ export class GraduationService {
     const finalCompletion = apiReportedCompletionTokens > 0 ? apiReportedCompletionTokens : finalEstimatedTokens;
     const finalPrompt = finalTokens - finalCompletion;
 
-    onProgress({
-      phase: 'finalizing',
-      reasoningText: '正在定稿...',
-      contentText: this.cleanStreamingMarkdown(contentText),
-      tokenCount: finalTokens,
-      tokensPerSecond: elapsedSeconds > 0 ? Math.round(finalTokens / elapsedSeconds) : 0,
-      elapsedSeconds
-    });
-
     return {
       content: contentText,
       usage: {
         promptTokens: Math.max(0, finalPrompt),
         completionTokens: finalCompletion,
         totalTokens: finalTokens
-      }
+      },
+      finishReason
     };
   }
 
