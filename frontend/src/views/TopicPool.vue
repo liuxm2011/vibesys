@@ -296,8 +296,8 @@ function setType(type: 'SYSTEM' | 'CUSTOM' | null) {
   topicStore.setTypeFilter(type);
 }
 
-function handleLogout() {
-  authStore.logout();
+async function handleLogout() {
+  await authStore.logout();
   router.push('/login');
 }
 

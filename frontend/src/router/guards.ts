@@ -1,3 +1,4 @@
+import { watch } from 'vue';
 import type { Router, RouteLocationNormalized, RouteLocationRaw } from 'vue-router';
 import { useAuthStore } from '@/stores/auth.store';
 
@@ -6,8 +7,15 @@ import { useAuthStore } from '@/stores/auth.store';
  * @param router Vue Router instance
  */
 export function setupRouterGuards(router: Router): void {
+  const authStore = useAuthStore();
+
+  watch(() => authStore.user, (newUser) => {
+    if (!newUser && router.currentRoute.value.meta?.requiresAuth) {
+      router.push({ name: 'Login', query: { redirect: router.currentRoute.value.fullPath } });
+    }
+  });
+
   router.beforeEach(async (to: RouteLocationNormalized): Promise<RouteLocationRaw | boolean | void | undefined> => {
-    const authStore = useAuthStore();
 
     // Check if route requires authentication
     const requiresAuth = to.meta.requiresAuth ?? false;

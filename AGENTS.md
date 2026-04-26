@@ -267,70 +267,74 @@ curl -I https://miaofu.work
 <claude-mem-context>
 # Memory Context
 
-# [学生项目构建-cc] recent context, 2026-04-23 11:32pm GMT+8
+# [学生项目构建-cc] recent context, 2026-04-26 10:28pm GMT+8
 
 Legend: 🎯session 🔴bugfix 🟣feature 🔄refactor ✅change 🔵discovery ⚖️decision 🚨security_alert 🔐security_note
 Format: ID TIME TYPE TITLE
 Fetch details: get_observations([IDs]) | Search: mem-search skill
 
-Stats: 40 obs (5,588t read) | 953,379t work | 99% savings
+Stats: 50 obs (4,270t read) | 569,735t work | 99% savings
 
-### Apr 22, 2026
-1 10:23p 🔵 学校服务器连接配置信息
-2 10:34p 🔵 Read AGENTS.md Documentation
-3 10:36p 🔵 Server configuration for miaofu.work retrieved
-4 10:37p 🔵 Server operations guide snapshot and core rules retrieved
-5 " 🔵 Connected to public VPS (101.43.175.201) and retrieved system info
-6 " 🔵 Comprehensive system audit of public VPS (101.43.175.201)
-7 10:38p 🔵 Nginx configuration and service status audit on VPS
-11 10:40p 🔵 Public IP 101.43.175.201 responds with 301 redirect to HTTPS
-12 10:41p 🔵 miaofu.work DNS records point to Cloudflare, not VPS IP
-13 " 🔵 Full xiaoduangong.conf nginx config retrieved
-14 10:42p 🔵 llm.miaofu.conf nginx config and local endpoint checks retrieved
-15 10:43p 🔵 llm.miaofu.conf nginx config and local endpoint checks retrieved
-16 " 🔵 Upstream LLM services (ports 28020/28080) not running on VPS
 ### Apr 23, 2026
-32 8:11p 🔵 项目文档系统架构分析
-33 8:13p 🔵 项目依赖分析：Markdown渲染与编辑库
-34 8:14p ⚖️ Plan: Document Read/Edit Mode Toggle
 S18 Implement read/edit mode toggle for all document tabs (Apr 23 at 8:14 PM)
 S1 Add a switch button to toggle between reading mode and editing mode for all seven generated documents (Apr 23 at 8:14 PM)
-35 8:19p 🟣 Created MarkdownPreview.vue component for sanitized markdown rendering
-36 8:20p 🟣 Created DocumentModeToggle.vue component for read/edit mode switching
-37 " 🔵 npm install failed for markdown rendering dependencies
-38 8:21p ✅ Successfully installed markdown rendering dependencies via pnpm
-39 " 🟣 Added imports for MarkdownPreview and DocumentModeToggle in ProjectDetail.vue
-40 8:22p 🟣 Added docModes state to track per-document read/edit mode in ProjectDetail.vue
-41 8:24p 🟣 Added read/edit mode toggle for all document tabs in ProjectDetail.vue
-42 8:25p ✅ Type check passed for frontend read/edit mode implementation
-43 8:27p 🔵 Frontend dev server failed to start due to port 5173 conflict
-44 " ✅ Completed test task for read/edit toggle functionality
 S24 查看文档生成的超时设定 (Apr 23 at 8:28 PM)
-45 9:10p 🔵 搜索文档生成超时相关文件
-46 9:11p 🔵 前端代码库中未配置文档生成超时设定
-47 " 🔵 文档生成超时配置为3分钟
-48 " 🔵 审核流式接口未配置超时设置
-49 " 🔵 探索代理完成超时配置调查
 S27 调试启动专家团审核偶尔出现network error的情况 (Apr 23 at 9:12 PM)
-50 9:14p 🔵 文档生成超时配置调查
-51 9:17p 🔵 调查任务清单文档生成超时问题
-52 9:21p 🔵 调查专家团审核偶尔出现network error的问题
-53 9:22p 🔵 探索专家团审核功能代码库
-54 9:24p 🔵 Investigate intermittent network error in oh-my-claudecode expert group review startup
-55 9:25p 🔵 Investigated expert review network error frontend implementation
-56 9:28p 🔵 AI服务超时配置检查
-57 9:29p 🔵 检查后端服务器超时配置
-58 9:30p 🔵 发现 Vite 开发服务器代理配置
 S28 用户询问是否将代码同步到服务器可解决生产环境的文档生成超时问题 (Apr 23 at 9:31 PM)
-S29 调试专家团审核偶尔出现network error的情况，Claude指导配置Nginx长超时 (Apr 23 at 10:02 PM)
-**Investigated**: 专家团审核的网络错误问题，推测是Nginx超时配置导致
+S29 调试专家团审核偶尔出现network error的情况，Claude指导配置Nginx长超时 (Apr 23 at 10:01 PM)
+### Apr 25, 2026
+S50 修改毕设文档UI序列，删除中期检查①，调整第四、第六项标签 (Apr 25 at 1:21 AM)
+85 1:33a 🔵 项目架构与文档生成系统分析
+86 1:34a 🟣 毕设文档模块后端架构设计
+87 " 🟣 毕设文档数据库设计与架构规划
+88 1:35a 🔵 AI服务系统提示词和用户提示词构建方法分析
+89 " 🟣 毕设文档系统提示词实现方案
+90 " 🟣 毕设文档API路由设计
+91 " 🟣 毕设文档开发任务清单
+92 " ✅ 毕设文档Prisma数据库模型设计
+93 1:36a 🟣 毕设文档后端模块设计启动
+95 " 🟣 毕设文档数据库模型设计完成
+96 " ✅ Project模型关联关系更新
+97 1:37a 🔵 Prisma项目结构检查
+98 " 🟣 毕设文档数据库设计完成
+### Apr 26, 2026
+101 9:27p 🔵 文档生成重启问题的潜在原因分析
+102 9:28p 🔵 文档生成提示词与流式输出处理分析
+103 9:33p 🔵 文档生成时重复输出的原因调查
+104 9:34p 🔴 修复技术文档生成时重复输出的问题
+105 9:35p 🔴 优化技术文档提示词和模板，进一步避免重复输出
+106 " 🔵 测试发现 getNovelSuffix() 方法重叠检测存在问题
+107 " 🔴 修复 getNovelSuffix() 方法重叠检测问题
+108 9:36p 🔴 优化 getNovelSuffix() 方法的重叠检测精度
+109 " 🔴 技术文档生成时重复输出问题已完全修复
+110 " 🔴 技术文档生成时重复输出问题的全面修复
+111 9:37p 🔴 修复技术文档生成时重复输出的问题
+112 9:38p ✅ 技术文档生成重复问题修复完成
+113 " ✅ 修复文档生成重复问题的提交
+114 " 🔴 技术文档生成重复问题修复已完成
+115 " ✅ 源代码归档文件已传输到远程服务器
+116 9:39p ✅ 开始部署修复后的项目到生产服务器
+117 " ✅ 项目部署进展：依赖安装和数据库同步完成
+118 9:40p ✅ 项目部署进展：前端正在构建中
+119 " ✅ 前端构建进展：正在进行模块转换
+120 " 🔴 技术文档生成重复问题修复部署完成
+121 9:41p 🔴 技术文档生成重复问题修复验证完成
+122 " 🔴 技术文档生成重复问题修复和部署总结
+154 10:13p 🔴 前端文档重复生成问题
+156 " 🔵 文档生成相关的Git变更
+158 " 🔵 AI服务中文档去重逻辑分析
+160 " 🔴 修复前端文档重复生成问题
+162 10:14p 🔴 修复前端文档重复生成问题
+164 " 🔴 修复前端文档重复生成问题并推送
+165 10:15p ✅ 准备部署修复到远程服务器
+167 " ✅ 执行远程部署脚本
+169 " ✅ 部署过程正在进行中
+170 " ✅ 前端构建进行中
+171 " ✅ 部署完成
+173 10:16p ✅ 部署验证完成
+174 " ✅ 部署后状态检查
+180 10:22p 🔵 检查文档生成逻辑一致性
+184 " ✅ 同步最新变更到远程仓库
 
-**Learned**: 专家团审核使用SSE流式接口，需要更长的Nginx超时配置（600秒）
-
-**Completed**: 提供了完整的Nginx配置修改方案，包括SSH登录、查看配置、添加专用location块、测试重载的步骤
-
-**Next Steps**: 用户需要SSH登录服务器查看当前Nginx配置，确认插入位置
-
-
-Access 953k tokens of past work via get_observations([IDs]) or mem-search skill.
+Access 570k tokens of past work via get_observations([IDs]) or mem-search skill.
 </claude-mem-context>
