@@ -74,7 +74,7 @@ export function getPRDPromptTemplate(domain: Domain): string {
 `;
 
   return `
-# ${domainLabel}项目产品需求文档(PRD)模板
+${domainLabel}项目产品需求文档(PRD)内容结构要求：
 
 ${baseSections}
 

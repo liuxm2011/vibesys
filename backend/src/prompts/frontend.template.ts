@@ -76,7 +76,7 @@ export function getFrontendPromptTemplate(domain: Domain): string {
 `;
 
   return `
-# ${domainLabel}项目前端技术文档模板
+${domainLabel}项目前端技术文档内容结构要求：
 
 ${baseSections}
 

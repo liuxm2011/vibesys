@@ -464,7 +464,7 @@ These guidelines are working if: fewer unnecessary changes in diffs, fewer rewri
         messages.push({ role: 'assistant', content });
         messages.push({
           role: 'user',
-          content: '文档尚未写完。请继续从下一个未完成的章节开始续写，保持 Markdown 格式一致。\n每个章节保持适当的详细程度，直接输出 Markdown 内容，不要添加任何说明。'
+          content: this.buildContinuationPrompt()
         });
       } catch (error) {
         if (attempt === maxAttempts - 1) throw error;
@@ -473,7 +473,7 @@ These guidelines are working if: fewer unnecessary changes in diffs, fewer rewri
       }
     }
 
-    const finalContent = this.cleanGeneratedContent(contentParts.join('\n'));
+    const finalContent = this.cleanGeneratedContent(this.mergeContinuationParts(contentParts));
     // Fallback to estimation if API didn't return usage
     if (totalUsage.totalTokens === 0) {
       totalUsage = this.estimateTokens(finalContent);
@@ -516,7 +516,7 @@ These guidelines are working if: fewer unnecessary changes in diffs, fewer rewri
         messages.push({ role: 'assistant', content: cleanedContent });
         messages.push({
           role: 'user',
-          content: '文档尚未写完。请继续从下一个未完成的章节开始续写，保持 Markdown 格式一致。\n每个章节保持适当的详细程度，直接输出 Markdown 内容，不要添加任何说明。'
+          content: this.buildContinuationPrompt()
         });
       } catch (error) {
         if (attempt === maxAttempts - 1) throw error;
@@ -524,7 +524,7 @@ These guidelines are working if: fewer unnecessary changes in diffs, fewer rewri
       }
     }
 
-    const finalContent = this.cleanGeneratedContent(contentParts.join('\n'));
+    const finalContent = this.cleanGeneratedContent(this.mergeContinuationParts(contentParts));
     // Fallback to estimation if API didn't return usage
     if (totalUsage.totalTokens === 0) {
       totalUsage = this.estimateTokens(finalContent);
@@ -819,6 +819,18 @@ ${baseInfo}${contextSection}
     return delta?.reasoning_content || reasoningDetails;
   }
 
+  private buildContinuationPrompt(): string {
+    return [
+      '上一条回答因长度限制被截断。请只续写剩余内容。',
+      '必须从上一条回答最后一个未完成句子、列表项、表格或章节之后继续。',
+      '严禁重新输出文档标题。',
+      '严禁重复已经输出过的任何一级标题、二级标题、章节、表格、代码块或列表。',
+      '如果无法判断准确续写位置，只输出尚未出现过的后续章节。',
+      '不要从 # 标题、## 项目概述、## 功能需求、## 组件结构设计、## API接口设计 等已出现章节重新开始。',
+      '直接输出 Markdown 正文，不要解释、不要道歉、不要说明“继续”。'
+    ].join('\n');
+  }
+
   private getNovelSuffix(existing: string, incoming: string): string {
     if (!incoming) {
       return '';
@@ -830,6 +842,17 @@ ${baseInfo}${contextSection}
 
     if (incoming.startsWith(existing)) {
       return incoming.slice(existing.length);
+    }
+
+    if (existing.endsWith(incoming)) {
+      return '';
+    }
+
+    const maxOverlap = Math.min(existing.length, incoming.length, 4000);
+    for (let length = maxOverlap; length > 4; length -= 1) {
+      if (existing.endsWith(incoming.slice(0, length))) {
+        return incoming.slice(length);
+      }
     }
 
     return incoming;
@@ -847,13 +870,132 @@ ${baseInfo}${contextSection}
   }
 
   private postProcessGeneratedContent(docType: DocType, content: string): string {
-    const cleaned = this.cleanGeneratedContent(content);
+    let cleaned = this.cleanGeneratedContent(content);
+
+    if (this.isMarkdownGeneratedDoc(docType)) {
+      cleaned = this.removeRepeatedMarkdownRestart(cleaned);
+    }
 
     if (docType !== 'AGENTS') {
       return cleaned;
     }
 
     return this.mergeAgentsRequiredSections(cleaned);
+  }
+
+  private isMarkdownGeneratedDoc(docType: DocType): boolean {
+    return ['PRD', 'FRONTEND', 'BACKEND', 'API', 'TASK', 'CONTEXT_STATE', 'AGENTS'].includes(docType);
+  }
+
+  private mergeContinuationParts(parts: string[]): string {
+    if (parts.length === 0) {
+      return '';
+    }
+
+    let merged = parts[0].trim();
+
+    for (const part of parts.slice(1)) {
+      const next = part.trim();
+      if (!next) {
+        continue;
+      }
+
+      const withoutRestart = this.removeRepeatedDocumentRestart(merged, next);
+      const novel = this.removeOverlappingPrefix(merged, withoutRestart);
+      if (novel) {
+        merged = `${merged}\n\n${novel}`.trim();
+      }
+    }
+
+    return merged;
+  }
+
+  private removeRepeatedDocumentRestart(existing: string, incoming: string): string {
+    const existingTitle = existing.match(/^#\s+(.+)$/m)?.[1]?.trim();
+    const incomingTitleMatch = incoming.match(/^#\s+(.+)$/m);
+
+    if (!existingTitle || !incomingTitleMatch || incomingTitleMatch.index === undefined) {
+      return incoming;
+    }
+
+    const incomingTitle = incomingTitleMatch[1].trim();
+    if (incomingTitle !== existingTitle) {
+      return incoming;
+    }
+
+    const afterRepeatedTitle = incoming.slice(incomingTitleMatch.index + incomingTitleMatch[0].length).trim();
+    return this.sliceFromFirstNovelSecondLevelSection(existing, afterRepeatedTitle);
+  }
+
+  private removeRepeatedMarkdownRestart(content: string): string {
+    const titleMatches = [...content.matchAll(/^#\s+(.+)$/gm)];
+    if (titleMatches.length <= 1) {
+      return content;
+    }
+
+    let cleaned = content.slice(0, titleMatches[1].index).trim();
+    const originalPrefix = cleaned;
+
+    for (const titleMatch of titleMatches.slice(1)) {
+      if (titleMatch.index === undefined) {
+        continue;
+      }
+
+      const nextTitleIndex = titleMatches.find(match => (match.index ?? -1) > titleMatch.index!)?.index;
+      const restartBlock = content
+        .slice(titleMatch.index + titleMatch[0].length, nextTitleIndex)
+        .trim();
+      const novel = this.sliceFromFirstNovelSecondLevelSection(originalPrefix, restartBlock);
+      if (novel) {
+        cleaned = `${cleaned}\n\n${novel}`.trim();
+      }
+    }
+
+    return cleaned;
+  }
+
+  private sliceFromFirstNovelSecondLevelSection(existing: string, incoming: string): string {
+    const sectionMatches = [...incoming.matchAll(/^##\s+(.+)$/gm)];
+    if (sectionMatches.length === 0) {
+      return this.removeOverlappingPrefix(existing, incoming);
+    }
+
+    for (const section of sectionMatches) {
+      if (section.index === undefined) {
+        continue;
+      }
+
+      const heading = section[1].trim();
+      const headingPattern = new RegExp(`^##\\s+${this.escapeRegExp(heading)}\\s*$`, 'm');
+      if (!headingPattern.test(existing)) {
+        return incoming.slice(section.index).trim();
+      }
+    }
+
+    return '';
+  }
+
+  private removeOverlappingPrefix(existing: string, incoming: string): string {
+    if (!incoming) {
+      return '';
+    }
+
+    if (existing.endsWith(incoming)) {
+      return '';
+    }
+
+    const maxOverlap = Math.min(existing.length, incoming.length, 4000);
+    for (let length = maxOverlap; length > 4; length -= 1) {
+      if (existing.endsWith(incoming.slice(0, length))) {
+        return incoming.slice(length).trim();
+      }
+    }
+
+    return incoming;
+  }
+
+  private escapeRegExp(value: string): string {
+    return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   }
 
   private mergeAgentsRequiredSections(content: string): string {
@@ -1307,7 +1449,9 @@ ${getPRDPromptTemplate(domain)}
 输出约束：
 - 只输出最终 Markdown 文档
 - 不要输出思考过程、解释、备注、前言或后记
-- 必须从文档标题开始，到最后一个章节完整结束
+- 第一轮必须从文档标题开始，到最后一个章节完整结束
+- 如果是在续写上一轮被截断内容，必须从截断位置之后继续，禁止重新输出文档标题或已输出章节
+- 全文只允许出现一个一级标题（# ）
 - 如果包含流程或结构图，优先使用 Markdown 列表或代码块，避免输出半截内容`;
   }
 
@@ -1322,7 +1466,9 @@ ${getFrontendPromptTemplate(domain)}
 输出约束：
 - 只输出最终 Markdown 文档
 - 不要输出思考过程、解释、备注、前言或后记
-- 必须把所有主要章节完整写完
+- 第一轮必须从文档标题开始，并把所有主要章节完整写完
+- 如果是在续写上一轮被截断内容，必须从截断位置之后继续，禁止重新输出文档标题或已输出章节
+- 全文只允许出现一个一级标题（# ）
 - 优先给出完整结构，避免输出未闭合的代码块或未完成的 ASCII 图`;
   }
 
@@ -1337,7 +1483,9 @@ ${getBackendPromptTemplate(domain)}
 输出约束：
 - 只输出最终 Markdown 文档
 - 不要输出思考过程、解释、备注、前言或后记
-- 必须把所有主要章节完整写完
+- 第一轮必须从文档标题开始，并把所有主要章节完整写完
+- 如果是在续写上一轮被截断内容，必须从截断位置之后继续，禁止重新输出文档标题或已输出章节
+- 全文只允许出现一个一级标题（# ）
 - 优先给出完整结构，避免输出未闭合的代码块或未完成的表格`;
   }
 
