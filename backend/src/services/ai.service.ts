@@ -460,6 +460,8 @@ These guidelines are working if: fewer unnecessary changes in diffs, fewer rewri
           break;
         }
 
+        console.log(`[AI] Continuation triggered (attempt ${attempt + 1}, finish_reason=length, chars=${content.length})`);
+
         messages = [
           { role: 'system', content: this.buildContinuationSystemPrompt() },
           { role: 'user', content: this.buildContinuationUserPrompt(content) }
@@ -489,7 +491,9 @@ These guidelines are working if: fewer unnecessary changes in diffs, fewer rewri
 
     for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
       try {
-        const result = await this.requestStreamingCompletion(baseURL, apiKey, model, messages, onProgress, signal);
+        const result = await this.requestStreamingCompletion(
+          baseURL, apiKey, model, messages, onProgress, signal, attempt > 0
+        );
 
         const cleanedContent = result.contentText.trim();
         if (!cleanedContent) {
@@ -508,6 +512,8 @@ These guidelines are working if: fewer unnecessary changes in diffs, fewer rewri
           break;
         }
 
+        console.log(`[AI Stream] Continuation triggered (attempt ${attempt + 1}, finished reason=length, chars=${cleanedContent.length})`);
+
         messages = [
           { role: 'system', content: this.buildContinuationSystemPrompt() },
           { role: 'user', content: this.buildContinuationUserPrompt(cleanedContent) }
@@ -519,6 +525,9 @@ These guidelines are working if: fewer unnecessary changes in diffs, fewer rewri
     }
 
     const finalContent = this.cleanGeneratedContent(this.mergeContinuationParts(contentParts));
+    if (contentParts.length > 1) {
+      console.log(`[AI Stream] Merged ${contentParts.length} parts, final=${finalContent.length} chars`);
+    }
     if (totalUsage.totalTokens === 0) {
       totalUsage = this.estimateTokens(finalContent);
     }
@@ -643,7 +652,8 @@ ${baseInfo}${contextSection}
     model: string,
     messages: Array<{ role: 'system' | 'user' | 'assistant'; content: string }>,
     onProgress: (progress: GenerationProgress) => void,
-    signal?: AbortSignal
+    signal?: AbortSignal,
+    isContinuation = false
   ): Promise<{ reasoningText: string; contentText: string; finishReason: string | null; tokenCount: number; usage: TokenUsage }> {
     const response = await fetch(`${baseURL}/chat/completions`, {
       method: 'POST',
@@ -698,7 +708,20 @@ ${baseInfo}${contextSection}
         return;
       }
 
-      const previewContentText = this.extractPreviewContent(contentText);
+      let previewContentText = this.extractPreviewContent(contentText);
+
+      // During continuation, suppress progress events that contain a document
+      // restart (H1 title). The model may ignore the continuation instruction
+      // and regenerate from scratch; showing this to the frontend creates a
+      // confusing visual "jump back to the beginning" in the terminal overlay.
+      if (isContinuation && previewContentText) {
+        const hasH1 = /^#\s+/m.test(previewContentText);
+        if (hasH1) {
+          console.log('[AI Stream] Continuation produced H1 restart, suppressing from UI preview');
+          previewContentText = '';
+        }
+      }
+
       const phase: GenerationProgress['phase'] = previewContentText
         ? 'writing'
         : reasoningText || contentText
