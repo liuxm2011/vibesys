@@ -25,6 +25,13 @@
             </el-button>
             <el-button
               v-else
+              @click="apiDialogVisible = true"
+              class="nav-item api-settings-btn"
+            >
+              <el-icon><Connection /></el-icon>API 设置
+            </el-button>
+            <el-button
+              v-if="!isAdmin"
               type="primary"
               @click="router.push('/topics')"
               class="nav-item action-btn-pro"
@@ -222,6 +229,38 @@
     </div>
 
     <el-dialog
+      v-model="apiDialogVisible"
+      title="API 设置"
+      width="520px"
+      :close-on-click-modal="true"
+      align-center
+    >
+      <el-form :model="apiForm" label-position="top">
+        <el-form-item label="API 地址 (Base URL)">
+          <el-input
+            v-model="apiForm.apiBase"
+            placeholder="例如：https://llm.miaofu.work/v1"
+            clearable
+          />
+          <p class="form-hint">大模型服务的接口地址</p>
+        </el-form-item>
+        <el-form-item label="API Key">
+          <el-input
+            v-model="apiForm.apiKey"
+            placeholder="请输入你的 API Key"
+            show-password
+            clearable
+          />
+          <p class="form-hint">用于调用 AI 模型的身份凭证</p>
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="apiDialogVisible = false">取消</el-button>
+        <el-button type="primary" @click="handleSaveApiSettings">保存设置</el-button>
+      </template>
+    </el-dialog>
+
+    <el-dialog
       v-model="contactDialogVisible"
       title="联系支持"
       width="420px"
@@ -259,7 +298,8 @@ import {
   ArrowDown,
   Calendar,
   SwitchButton,
-  Delete
+  Delete,
+  Connection
 } from '@element-plus/icons-vue';
 import { useAuthStore } from '@/stores/auth.store';
 import { useProjectStore } from '@/stores/project.store';
@@ -272,6 +312,11 @@ const authStore = useAuthStore();
 const projectStore = useProjectStore();
 const passwordDialogVisible = ref(false);
 const contactDialogVisible = ref(false);
+const apiDialogVisible = ref(false);
+const apiForm = ref({
+  apiKey: '',
+  apiBase: ''
+});
 const systemConfig = ref({
   announcement: '',
   guide: '',
@@ -306,6 +351,20 @@ async function handleLogout() {
 
 function handlePasswordChanged() {
   ElMessage.success('密码已更新，下次登录请使用新密码');
+}
+
+function handleSaveApiSettings() {
+  if (!apiForm.value.apiKey.trim()) {
+    ElMessage.warning('请输入 API Key');
+    return;
+  }
+  if (!apiForm.value.apiBase.trim()) {
+    ElMessage.warning('请输入 API 地址');
+    return;
+  }
+  localStorage.setItem('api_settings', JSON.stringify(apiForm.value));
+  ElMessage.success('API 设置已保存');
+  apiDialogVisible.value = false;
 }
 
 async function loadStudentSystemConfig() {
@@ -789,6 +848,34 @@ async function handleDeleteProject(projectId: number): Promise<void> {
   padding: 12px 20px;
   border-radius: 12px;
   word-break: break-all;
+}
+
+.form-hint {
+  font-size: 12px;
+  color: #94a3b8;
+  margin: 4px 0 0;
+}
+
+.api-settings-btn {
+  background: linear-gradient(135deg, #10b981, #059669) !important;
+  border: none !important;
+  padding: 0 20px !important;
+  height: 40px;
+  line-height: 40px;
+  font-weight: 600;
+  color: white !important;
+  box-shadow: 0 4px 14px rgba(16, 185, 129, 0.35);
+  transition: all 0.3s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+}
+
+.api-settings-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(16, 185, 129, 0.45);
+  background: linear-gradient(135deg, #34d399, #10b981) !important;
 }
 
 .empty-projects-pro {
