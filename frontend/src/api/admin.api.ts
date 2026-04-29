@@ -257,11 +257,11 @@ export async function deleteApiProviderApi(id: number): Promise<{ message: strin
 }
 
 export async function activateApiProviderApi(id: number): Promise<{ provider: ApiProvider; message: string }> {
-  return api.post(`/api/admin/api-providers/${id}/activate`);
+  return api.post(`/api/admin/api-providers/${id}/activate`, {});
 }
 
 export async function testApiProviderApi(id: number): Promise<TestConnectionResult> {
-  return api.post(`/api/admin/api-providers/${id}/test`);
+  return api.post(`/api/admin/api-providers/${id}/test`, {});
 }
 
 export async function fetchActiveApiProviderApi(): Promise<{ active: ActiveProviderInfo }> {

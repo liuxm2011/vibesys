@@ -39,7 +39,7 @@
         <template #default="{ row }">
           <el-switch
             :model-value="row.isActive"
-            @change="(val) => handleActivate(row.id, val)"
+            @change="(val: boolean) => handleActivate(row.id, val)"
             :loading="activatingId === row.id"
           />
         </template>
