@@ -24,9 +24,10 @@
               <el-icon><Monitor /></el-icon>管理后台
             </el-button>
             <el-button
-              v-else
+              v-if="!isAdmin"
+              type="primary"
               @click="apiDialogVisible = true"
-              class="nav-item api-settings-btn"
+              class="nav-item action-btn-pro"
             >
               <el-icon><Connection /></el-icon>API 设置
             </el-button>
@@ -1031,12 +1032,6 @@ async function handleDeleteProject(projectId: number): Promise<void> {
   margin: 4px 0 0;
 }
 
-.api-settings-btn {
-  color: var(--primary-color);
-}
-.api-settings-btn:hover {
-  background: var(--primary-bg);
-}
 .quota-hint {
   margin-bottom: 12px;
 }
@@ -1082,12 +1077,6 @@ async function handleDeleteProject(projectId: number): Promise<void> {
   font-size: 12px;
   color: var(--text-secondary);
   word-break: break-all;
-}
-
-.api-settings-btn:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(16, 185, 129, 0.45);
-  background: linear-gradient(135deg, #34d399, #10b981) !important;
 }
 
 .empty-projects-pro {
