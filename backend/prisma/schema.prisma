@@ -183,6 +183,19 @@ model SystemConfig {
   @@index([key])
 }
 
+// Per-user API setting model (用户个人API设置，用于Dashboard上的API配置)
+model UserApiSetting {
+  id        Int      @id @default(autoincrement())
+  userId    Int      @unique // 每个用户只能有一条设置
+  baseURL   String   // API base URL，默认 https://api-inference.modelscope.cn/v1
+  apiKey    String   // 用户自己的 API Key
+  model     String   // 用户选择的模型名称
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+}
+
 // API Provider management model (管理员可在后台切换AI服务提供商)
 model ApiProvider {
   id           Int      @id @default(autoincrement())

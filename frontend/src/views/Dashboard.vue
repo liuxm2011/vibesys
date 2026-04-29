@@ -230,33 +230,78 @@
 
     <el-dialog
       v-model="apiDialogVisible"
-      title="API 设置"
-      width="520px"
-      :close-on-click-modal="true"
+      title="个人 API 设置"
+      width="560px"
+      :close-on-click-modal="false"
       align-center
     >
-      <el-form :model="apiForm" label-position="top">
-        <el-form-item label="API 地址 (Base URL)">
-          <el-input
-            v-model="apiForm.apiBase"
-            placeholder="例如：https://llm.miaofu.work/v1"
-            clearable
-          />
-          <p class="form-hint">大模型服务的接口地址</p>
+      <el-form :model="apiForm" label-position="top" ref="apiFormRef">
+        <!-- Quota hint -->
+        <el-alert
+          v-if="apiForm.baseURL === DEFAULT_BASE_URL"
+          type="info"
+          :closable="false"
+          show-icon
+          class="quota-hint"
+        >
+          <template #title>
+            ModelScope 免费额度：每日 2,000 次调用，
+            <a href="https://modelscope.cn/my/myaccesstoken" target="_blank" class="quota-link">查看用量</a>
+          </template>
+        </el-alert>
+
+        <el-form-item label="API 地址" prop="baseURL">
+          <el-input v-model="apiForm.baseURL" placeholder="https://api-inference.modelscope.cn/v1">
+            <template #prepend>URL</template>
+          </el-input>
+          <p class="form-hint">默认为 ModelScope 魔搭社区 API</p>
         </el-form-item>
-        <el-form-item label="API Key">
+
+        <el-form-item label="API Key" prop="apiKey">
           <el-input
             v-model="apiForm.apiKey"
-            placeholder="请输入你的 API Key"
+            :placeholder="savedKeyHint || '请输入你的 ModelScope API Key'"
             show-password
             clearable
           />
-          <p class="form-hint">用于调用 AI 模型的身份凭证</p>
+          <p class="form-hint">
+            在
+            <a href="https://modelscope.cn/my/myaccesstoken" target="_blank" class="quota-link">ModelScope 令牌管理</a>
+            获取
+          </p>
         </el-form-item>
+
+        <el-form-item label="选择模型" prop="model">
+          <el-select v-model="apiForm.model" placeholder="请选择模型" style="width: 100%">
+            <el-option
+              v-for="m in modelOptions"
+              :key="m.value"
+              :label="m.label"
+              :value="m.value"
+            >
+              <span>{{ m.label }}</span>
+              <span class="model-id-hint">{{ m.value }}</span>
+            </el-option>
+          </el-select>
+          <p class="form-hint">使用选中的模型进行文档生成</p>
+        </el-form-item>
+
+        <!-- Test result -->
+        <div v-if="testResult" class="test-result" :class="{ success: testResult.success, fail: !testResult.success }">
+          <el-icon v-if="testResult.success" color="#67c23a"><SuccessFilled /></el-icon>
+          <el-icon v-else color="#f56c6c"><WarningFilled /></el-icon>
+          <div class="test-result-text">
+            <span>{{ testResult.message }}</span>
+            <span v-if="testResult.response" class="test-response">回复: "{{ testResult.response }}"</span>
+          </div>
+        </div>
       </el-form>
+
       <template #footer>
-        <el-button @click="apiDialogVisible = false">取消</el-button>
-        <el-button type="primary" @click="handleSaveApiSettings">保存设置</el-button>
+        <el-button @click="handleClearApiSettings" v-if="hasSavedSettings">清除设置</el-button>
+        <el-button @click="apiDialogVisible = false">关闭</el-button>
+        <el-button :loading="testing" @click="handleTestConnection">测试连接</el-button>
+        <el-button type="primary" :loading="saving" @click="handleSaveApiSettings">保存设置</el-button>
       </template>
     </el-dialog>
 
@@ -284,7 +329,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue';
+import { computed, onMounted, ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import {
@@ -306,6 +351,35 @@ import { useProjectStore } from '@/stores/project.store';
 import type { Project } from '@/types/project';
 import SelfPasswordDialog from '@/components/SelfPasswordDialog.vue';
 import { fetchStudentSystemConfigApi } from '@/api/auth.api';
+import {
+  fetchUserApiSettingApi,
+  saveUserApiSettingApi,
+  testUserApiSettingApi,
+} from '@/api/user.api';
+import { SuccessFilled, WarningFilled } from '@element-plus/icons-vue';
+import type { FormInstance } from 'element-plus';
+
+const DEFAULT_BASE_URL = 'https://api-inference.modelscope.cn/v1';
+
+const MODEL_OPTIONS = [
+  { label: 'DeepSeek V4 Flash', value: 'deepseek-ai/DeepSeek-V4-Flash' },
+  { label: 'Kimi K2.6', value: 'moonshotai/Kimi-K2.6' },
+  { label: 'MiMo V2.5', value: 'XiaomiMiMo/MiMo-V2.5' },
+  { label: 'GLM 5.1', value: 'ZhipuAI/GLM-5.1' },
+] as const;
+
+interface ApiForm {
+  baseURL: string;
+  apiKey: string;
+  model: string;
+}
+
+interface TestResult {
+  success: boolean;
+  latencyMs: number;
+  message: string;
+  response?: string;
+}
 
 const router = useRouter();
 const authStore = useAuthStore();
@@ -313,10 +387,28 @@ const projectStore = useProjectStore();
 const passwordDialogVisible = ref(false);
 const contactDialogVisible = ref(false);
 const apiDialogVisible = ref(false);
-const apiForm = ref({
-  apiKey: '',
-  apiBase: ''
+const saving = ref(false);
+const testing = ref(false);
+const testResult = ref<TestResult | null>(null);
+const hasSavedSettings = ref(false);
+const savedKeyHint = ref('');
+const apiFormRef = ref<FormInstance>();
+
+const modelOptions = [...MODEL_OPTIONS];
+
+watch(apiDialogVisible, (val) => {
+  if (val) {
+    testResult.value = null;
+    loadApiSetting();
+  }
 });
+
+const apiForm = ref<ApiForm>({
+  baseURL: DEFAULT_BASE_URL,
+  apiKey: '',
+  model: MODEL_OPTIONS[0].value,
+});
+
 const systemConfig = ref({
   announcement: '',
   guide: '',
@@ -333,7 +425,8 @@ onMounted(async () => {
   if (!isAdmin.value) {
     const [projectsLoaded] = await Promise.all([
       projectStore.fetchProjects(),
-      loadStudentSystemConfig()
+      loadStudentSystemConfig(),
+      loadApiSetting(),
     ]);
 
     const success = projectsLoaded;
@@ -353,18 +446,90 @@ function handlePasswordChanged() {
   ElMessage.success('密码已更新，下次登录请使用新密码');
 }
 
-function handleSaveApiSettings() {
-  if (!apiForm.value.apiKey.trim()) {
+async function loadApiSetting() {
+  try {
+    const res = await fetchUserApiSettingApi();
+    if (res.exists && res.setting) {
+      hasSavedSettings.value = true;
+      savedKeyHint.value = res.setting.hasRealKey ? '已保存的 Key（留空则不修改）' : '';
+      apiForm.value.baseURL = res.setting.baseURL || DEFAULT_BASE_URL;
+      apiForm.value.model = res.setting.model || MODEL_OPTIONS[0].value;
+    }
+  } catch {
+    // Ignore errors on load
+  }
+}
+
+async function handleSaveApiSettings() {
+  if (!apiForm.value.apiKey.trim() && !hasSavedSettings.value) {
     ElMessage.warning('请输入 API Key');
     return;
   }
-  if (!apiForm.value.apiBase.trim()) {
+  if (!apiForm.value.baseURL.trim()) {
     ElMessage.warning('请输入 API 地址');
     return;
   }
-  localStorage.setItem('api_settings', JSON.stringify(apiForm.value));
-  ElMessage.success('API 设置已保存');
-  apiDialogVisible.value = false;
+  if (!apiForm.value.model) {
+    ElMessage.warning('请选择模型');
+    return;
+  }
+
+  saving.value = true;
+  try {
+    const keyToSave = apiForm.value.apiKey.trim() || undefined;
+    await saveUserApiSettingApi({
+      baseURL: apiForm.value.baseURL.trim(),
+      apiKey: keyToSave,
+      model: apiForm.value.model,
+    });
+    hasSavedSettings.value = true;
+    savedKeyHint.value = '已保存的 Key（留空则不修改）';
+    ElMessage.success('API 设置已保存');
+    apiDialogVisible.value = false;
+  } catch (e: any) {
+    ElMessage.error(e?.message || '保存失败');
+  } finally {
+    saving.value = false;
+  }
+}
+
+async function handleTestConnection() {
+  const key = apiForm.value.apiKey.trim() || undefined;
+  if (!key && !hasSavedSettings.value) {
+    ElMessage.warning('请先输入 API Key');
+    return;
+  }
+  if (!apiForm.value.baseURL.trim()) {
+    ElMessage.warning('请输入 API 地址');
+    return;
+  }
+  if (!apiForm.value.model) {
+    ElMessage.warning('请选择模型');
+    return;
+  }
+
+  testing.value = true;
+  testResult.value = null;
+  try {
+    testResult.value = await testUserApiSettingApi({
+      baseURL: apiForm.value.baseURL.trim(),
+      apiKey: key || '__saved__',
+      model: apiForm.value.model,
+    });
+  } catch (e: any) {
+    testResult.value = { success: false, latencyMs: 0, message: e?.message || '测试失败' };
+  } finally {
+    testing.value = false;
+  }
+}
+
+function handleClearApiSettings() {
+  apiForm.value.apiKey = '';
+  apiForm.value.baseURL = DEFAULT_BASE_URL;
+  apiForm.value.model = MODEL_OPTIONS[0].value;
+  testResult.value = null;
+  hasSavedSettings.value = false;
+  savedKeyHint.value = '';
 }
 
 async function loadStudentSystemConfig() {
@@ -857,19 +1022,56 @@ async function handleDeleteProject(projectId: number): Promise<void> {
 }
 
 .api-settings-btn {
-  background: linear-gradient(135deg, #10b981, #059669) !important;
-  border: none !important;
-  padding: 0 20px !important;
-  height: 40px;
-  line-height: 40px;
-  font-weight: 600;
-  color: white !important;
-  box-shadow: 0 4px 14px rgba(16, 185, 129, 0.35);
-  transition: all 0.3s;
+  color: var(--primary-color);
+}
+.api-settings-btn:hover {
+  background: var(--primary-bg);
+}
+.quota-hint {
+  margin-bottom: 12px;
+}
+.quota-link {
+  color: var(--primary-color);
+  text-decoration: underline;
+}
+.model-id-hint {
+  float: right;
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-family: monospace;
+}
+.form-hint {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin: 4px 0 0;
+  line-height: 1.4;
+}
+.test-result {
   display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 8px;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: 6px;
+  font-size: 13px;
+  margin-top: 8px;
+}
+.test-result.success {
+  background: #f0f9eb;
+  border: 1px solid #e1f3d8;
+}
+.test-result.fail {
+  background: #fef0f0;
+  border: 1px solid #fde2e2;
+}
+.test-result-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.test-response {
+  font-size: 12px;
+  color: var(--text-secondary);
+  word-break: break-all;
 }
 
 .api-settings-btn:hover {
