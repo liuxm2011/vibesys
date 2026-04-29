@@ -263,11 +263,21 @@
             :placeholder="savedKeyHint || '请输入你的 ModelScope API Key'"
             show-password
             clearable
-          />
+          >
+            <template #prefix>
+              <el-icon v-if="hasSavedSettings" color="#67c23a"><Lock /></el-icon>
+            </template>
+          </el-input>
           <p class="form-hint">
-            在
-            <a href="https://modelscope.cn/my/myaccesstoken" target="_blank" class="quota-link">ModelScope 令牌管理</a>
-            获取
+            <template v-if="hasSavedSettings">
+              <el-icon color="#67c23a" style="vertical-align: middle;"><CircleCheckFilled /></el-icon>
+              <span style="vertical-align: middle; margin-left: 4px;">Key 已保存，留空则不修改</span>
+            </template>
+            <template v-else>
+              在
+              <a href="https://modelscope.cn/my/myaccesstoken" target="_blank" class="quota-link">ModelScope 令牌管理</a>
+              获取
+            </template>
           </p>
         </el-form-item>
 
@@ -356,7 +366,7 @@ import {
   saveUserApiSettingApi,
   testUserApiSettingApi,
 } from '@/api/user.api';
-import { SuccessFilled, WarningFilled } from '@element-plus/icons-vue';
+import { SuccessFilled, WarningFilled, Lock, CircleCheckFilled } from '@element-plus/icons-vue';
 import type { FormInstance } from 'element-plus';
 
 const DEFAULT_BASE_URL = 'https://api-inference.modelscope.cn/v1';

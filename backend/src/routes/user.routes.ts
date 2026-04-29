@@ -49,7 +49,8 @@ router.get('/api-setting', async (req: Request, res: Response) => {
 
 /**
  * PUT /api/user/api-setting
- * Save or update the current user's personal API setting
+ * Save or update the current user's personal API setting.
+ * If apiKey is omitted/empty, the existing key is preserved.
  */
 router.put('/api-setting', async (req: Request, res: Response) => {
   try {
@@ -59,17 +60,24 @@ router.put('/api-setting', async (req: Request, res: Response) => {
     if (!baseURL) {
       return res.status(400).json({ error: 'API地址不能为空' });
     }
-    if (!apiKey) {
-      return res.status(400).json({ error: 'API Key不能为空' });
-    }
     if (!model) {
       return res.status(400).json({ error: '请选择模型' });
     }
 
+    // If apiKey is not provided, preserve the existing one
+    let finalApiKey = apiKey;
+    if (!finalApiKey) {
+      const existing = await prisma.userApiSetting.findUnique({ where: { userId } });
+      if (!existing) {
+        return res.status(400).json({ error: '首次设置必须提供 API Key' });
+      }
+      finalApiKey = existing.apiKey;
+    }
+
     const setting = await prisma.userApiSetting.upsert({
       where: { userId },
-      update: { baseURL, apiKey, model },
-      create: { userId, baseURL, apiKey, model }
+      update: { baseURL, apiKey: finalApiKey, model },
+      create: { userId, baseURL: baseURL || '', apiKey: finalApiKey, model: model || '' }
     });
 
     res.json({
