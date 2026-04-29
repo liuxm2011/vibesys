@@ -97,11 +97,24 @@ router.put('/api-setting', async (req: Request, res: Response) => {
 
 /**
  * POST /api/user/api-setting/test
- * Test the user's API connection
+ * Test the user's API connection.
+ * If apiKey is '__saved__', looks up the real key from the user's saved settings.
  */
 router.post('/api-setting/test', async (req: Request, res: Response) => {
   try {
-    const { baseURL, apiKey, model } = req.body;
+    const userId = req.user!.userId;
+    let { baseURL, apiKey, model } = req.body;
+
+    // If using saved key placeholder, resolve from database
+    if (apiKey === '__saved__') {
+      const saved = await prisma.userApiSetting.findUnique({ where: { userId } });
+      if (!saved?.apiKey) {
+        return res.json({ success: false, latencyMs: 0, message: '未找到已保存的 API Key' });
+      }
+      apiKey = saved.apiKey;
+      baseURL = baseURL || saved.baseURL;
+      model = model || saved.model;
+    }
 
     if (!baseURL || !apiKey || !model) {
       return res.status(400).json({ error: '请先填写完整的API配置' });
