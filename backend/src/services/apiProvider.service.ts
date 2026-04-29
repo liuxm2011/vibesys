@@ -62,6 +62,36 @@ class ApiProviderService {
   }
 
   /**
+   * Get the effective configuration for a specific user.
+   *
+   * Priority:
+   * 1. User's personal API setting (if they configured one)
+   * 2. Active provider from database (admin-configured)
+   * 3. Fallback to environment variables
+   */
+  async getConfigForUser(userId: number): Promise<ProviderConfig> {
+    // 1. Check user's personal API setting
+    const userSetting = await prisma.userApiSetting.findUnique({
+      where: { userId }
+    });
+
+    if (userSetting?.apiKey && userSetting?.baseURL && userSetting?.model) {
+      console.log(`[ApiProvider] Using personal API config for user ${userId}: "${userSetting.model}"`);
+      return {
+        baseURL: userSetting.baseURL,
+        apiKey: userSetting.apiKey,
+        model: userSetting.model,
+        providerType: 'openai_compatible',
+        name: `${userSetting.model} (个人设置)`,
+        fromDatabase: true,
+      };
+    }
+
+    // 2. Fall back to system-level config
+    return this.getEffectiveConfig();
+  }
+
+  /**
    * Check if a valid provider configuration is available
    */
   async isConfigured(): Promise<boolean> {

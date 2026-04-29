@@ -252,7 +252,8 @@ router.post('/generate', authMiddleware, checkBannedMiddleware, async (req: Requ
     const result = await graduationService.generateDocument(
       docType as GraduationDocType,
       topicInfo,
-      previousDocs
+      previousDocs,
+      userId
     );
 
     const existing = await prisma.graduationDocument.findUnique({
@@ -379,7 +380,8 @@ router.post('/generate/stream', authMiddleware, checkBannedMiddleware, async (re
       (progress) => {
         sendEvent('progress', progress);
       },
-      clientAbortController.signal
+      clientAbortController.signal,
+      userId
     );
 
     const content = result.content;

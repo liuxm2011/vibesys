@@ -84,6 +84,7 @@ export interface GenerationProgress {
 interface GenerationOptions {
   bypassCache?: boolean;
   signal?: AbortSignal;
+  userId?: number; // 用于读取用户个人 API 设置
 }
 
 interface PendingRequest {
@@ -253,9 +254,11 @@ These guidelines are working if: fewer unnecessary changes in diffs, fewer rewri
       .digest('hex');
   }
 
-  private async getConfig() {
-    // Try database first, fall back to env vars
-    const providerConfig = await apiProviderService.getEffectiveConfig();
+  private async getConfig(userId?: number) {
+    // Priority: user's personal setting > system active provider > env vars
+    const providerConfig = userId
+      ? await apiProviderService.getConfigForUser(userId)
+      : await apiProviderService.getEffectiveConfig();
     const mockMode = process.env.MOCK_AI === 'true' || process.env.MOCK_AI === '1';
 
     if (!providerConfig.apiKey && !mockMode) {
@@ -301,7 +304,7 @@ These guidelines are working if: fewer unnecessary changes in diffs, fewer rewri
     topicInfo: TopicInfo,
     options: GenerationOptions = {}
   ): Promise<{ content: string; usage: TokenUsage }> {
-    const config = await this.getConfig();
+    const config = await this.getConfig(options.userId);
 
     // Mock mode for development/testing when API is unavailable
     if (config.mockMode) {
@@ -342,7 +345,7 @@ These guidelines are working if: fewer unnecessary changes in diffs, fewer rewri
       { role: 'user', content: userPrompt }
     ];
 
-    const requestPromise = this.executeWithRetry(messages)
+    const requestPromise = this.executeWithRetry(messages, options.userId)
       .then(result => this.postProcessGeneratedContent(docType, result.content));
 
     // Record pending request
@@ -374,7 +377,7 @@ These guidelines are working if: fewer unnecessary changes in diffs, fewer rewri
     onProgress: (progress: GenerationProgress) => void,
     options: GenerationOptions = {}
   ): Promise<{ content: string; usage: TokenUsage }> {
-    const config = await this.getConfig();
+    const config = await this.getConfig(options.userId);
 
     if (config.mockMode) {
       const content = await this.streamMockDocument(docType, topicInfo, onProgress);
@@ -414,7 +417,7 @@ These guidelines are working if: fewer unnecessary changes in diffs, fewer rewri
       { role: 'user', content: userPrompt }
     ];
 
-    const result = await this.executeStreamWithRetry(messages, onProgress, options.signal);
+    const result = await this.executeStreamWithRetry(messages, onProgress, options.signal, false, options.userId);
     const finalized = this.postProcessGeneratedContent(docType, result.content);
 
     if (finalized !== result.content) {
@@ -437,9 +440,10 @@ These guidelines are working if: fewer unnecessary changes in diffs, fewer rewri
    * Execute AI request with retry logic
    */
   private async executeWithRetry(
-    messages: Array<{ role: 'system' | 'user' | 'assistant'; content: string }>
+    messages: Array<{ role: 'system' | 'user' | 'assistant'; content: string }>,
+    userId?: number
   ): Promise<ExecuteResult> {
-    const { baseURL, apiKey, model } = await this.getConfig();
+    const { baseURL, apiKey, model } = await this.getConfig(userId);
     const contentParts: string[] = [];
     let totalUsage: TokenUsage = { promptTokens: 0, completionTokens: 0, totalTokens: 0 };
     const maxAttempts = 3;
@@ -488,9 +492,11 @@ These guidelines are working if: fewer unnecessary changes in diffs, fewer rewri
   private async executeStreamWithRetry(
     messages: Array<{ role: 'system' | 'user' | 'assistant'; content: string }>,
     onProgress: (progress: GenerationProgress) => void,
-    signal?: AbortSignal
+    signal?: AbortSignal,
+    isContinuation = false,
+    userId?: number
   ): Promise<ExecuteResult> {
-    const { baseURL, apiKey, model } = await this.getConfig();
+    const { baseURL, apiKey, model } = await this.getConfig(userId);
     const maxAttempts = 3;
     const contentParts: string[] = [];
     let totalUsage: TokenUsage = { promptTokens: 0, completionTokens: 0, totalTokens: 0 };
@@ -1663,9 +1669,10 @@ ${getAgentsPromptTemplate(domain)}
     topicInfo: TopicInfo,
     allDocs: Record<string, string>,
     onProgress: (phase: string) => void,
-    signal?: AbortSignal
+    signal?: AbortSignal,
+    userId?: number
   ): Promise<ReviewResult> {
-    const config = await this.getConfig();
+    const config = await this.getConfig(userId);
 
     if (config.mockMode) {
       onProgress('正在加载并解析 7 份文档内容...\n');
@@ -1874,9 +1881,10 @@ ${getAgentsPromptTemplate(domain)}
    */
   async reviewDocuments(
     topicInfo: TopicInfo,
-    allDocs: Record<string, string>
+    allDocs: Record<string, string>,
+    userId?: number
   ): Promise<ReviewResult> {
-    const config = await this.getConfig();
+    const config = await this.getConfig(userId);
 
     if (config.mockMode) {
       return this.generateMockReviewResult();

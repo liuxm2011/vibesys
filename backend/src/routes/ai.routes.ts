@@ -134,7 +134,8 @@ router.post('/generate', authMiddleware, checkBannedMiddleware, async (req: Requ
       ...topicInfo,
       previousDocs
     }, {
-      bypassCache: forceRegenerate === true
+      bypassCache: forceRegenerate === true,
+      userId
     });
     const content = result.content;
 
@@ -304,7 +305,8 @@ router.post('/generate/stream', authMiddleware, checkBannedMiddleware, async (re
       sendEvent('progress', progress);
     }, {
       bypassCache: forceRegenerate === true,
-      signal: clientAbortController.signal
+      signal: clientAbortController.signal,
+      userId
     });
     const content = result.content;
 
@@ -460,7 +462,7 @@ router.post('/review', authMiddleware, checkBannedMiddleware, async (req: Reques
     }
 
     if (mode === 'review') {
-      const reviewResult = await aiService.reviewDocuments(topicInfo, docsMap);
+      const reviewResult = await aiService.reviewDocuments(topicInfo, docsMap, userId);
 
       await prisma.project.update({
         where: { id: parsedProjectId },
@@ -650,7 +652,8 @@ router.post('/review/stream', authMiddleware, checkBannedMiddleware, async (req:
       phase => {
         sendEvent('phase', { phase });
       },
-      clientAbortController.signal
+      clientAbortController.signal,
+      userId
     );
 
     await prisma.project.update({

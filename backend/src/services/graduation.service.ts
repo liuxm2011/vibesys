@@ -57,8 +57,11 @@ interface StreamChunkResponse {
 export class GraduationService {
   private readonly REQUEST_TIMEOUT = 600_000;
 
-  private async getConfig() {
-    const providerConfig = await apiProviderService.getEffectiveConfig();
+  private async getConfig(userId?: number) {
+    // Priority: user's personal setting > system active provider > env vars
+    const providerConfig = userId
+      ? await apiProviderService.getConfigForUser(userId)
+      : await apiProviderService.getEffectiveConfig();
     const mockMode = process.env.MOCK_AI === 'true' || process.env.MOCK_AI === '1';
 
     if (!providerConfig.apiKey && !mockMode) {
@@ -77,9 +80,10 @@ export class GraduationService {
   async generateDocument(
     docType: GraduationDocType,
     topicContext: TopicContext,
-    previousDocs: PreviousDocs
+    previousDocs: PreviousDocs,
+    userId?: number
   ): Promise<{ content: string; usage: TokenUsage }> {
-    const config = await this.getConfig();
+    const config = await this.getConfig(userId);
 
     if (config.mockMode) {
       return this.generateMockDocument(docType, topicContext);
@@ -107,9 +111,10 @@ export class GraduationService {
     topicContext: TopicContext,
     previousDocs: PreviousDocs,
     onProgress: (progress: GenerationProgress) => void,
-    signal?: AbortSignal
+    signal?: AbortSignal,
+    userId?: number
   ): Promise<{ content: string; usage: TokenUsage }> {
-    const config = await this.getConfig();
+    const config = await this.getConfig(userId);
 
     if (config.mockMode) {
       return this.generateMockDocument(docType, topicContext);
