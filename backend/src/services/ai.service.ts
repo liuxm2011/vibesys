@@ -1,5 +1,6 @@
 import { DocType, Domain, Platform } from '@prisma/client';
 import crypto from 'crypto';
+import { apiProviderService } from './apiProvider.service.js';
 import { getPRDPromptTemplate } from '../prompts/prd.template.js';
 import { getFrontendPromptTemplate } from '../prompts/frontend.template.js';
 import { getBackendPromptTemplate } from '../prompts/backend.template.js';
@@ -252,16 +253,21 @@ These guidelines are working if: fewer unnecessary changes in diffs, fewer rewri
       .digest('hex');
   }
 
-  private getConfig() {
-    if (!process.env.MINIMAX_API_KEY) {
-      throw new Error('MINIMAX_API_KEY not configured');
+  private async getConfig() {
+    // Try database first, fall back to env vars
+    const providerConfig = await apiProviderService.getEffectiveConfig();
+    const mockMode = process.env.MOCK_AI === 'true' || process.env.MOCK_AI === '1';
+
+    if (!providerConfig.apiKey && !mockMode) {
+      throw new Error('No active API provider configured — set up one in admin panel or configure MINIMAX_API_KEY in .env');
     }
 
     return {
-      baseURL: process.env.MINIMAX_BASE_URL || 'https://api.minimax.chat/v1',
-      apiKey: process.env.MINIMAX_API_KEY,
-      model: process.env.MINIMAX_MODEL || 'minimax-m2-7',
-      mockMode: process.env.MOCK_AI === 'true' || process.env.MOCK_AI === '1',
+      baseURL: providerConfig.baseURL,
+      apiKey: providerConfig.apiKey,
+      model: providerConfig.model,
+      mockMode,
+      providerConfig,
     };
   }
 
@@ -295,7 +301,7 @@ These guidelines are working if: fewer unnecessary changes in diffs, fewer rewri
     topicInfo: TopicInfo,
     options: GenerationOptions = {}
   ): Promise<{ content: string; usage: TokenUsage }> {
-    const config = this.getConfig();
+    const config = await this.getConfig();
 
     // Mock mode for development/testing when API is unavailable
     if (config.mockMode) {
@@ -368,7 +374,7 @@ These guidelines are working if: fewer unnecessary changes in diffs, fewer rewri
     onProgress: (progress: GenerationProgress) => void,
     options: GenerationOptions = {}
   ): Promise<{ content: string; usage: TokenUsage }> {
-    const config = this.getConfig();
+    const config = await this.getConfig();
 
     if (config.mockMode) {
       const content = await this.streamMockDocument(docType, topicInfo, onProgress);
@@ -433,7 +439,7 @@ These guidelines are working if: fewer unnecessary changes in diffs, fewer rewri
   private async executeWithRetry(
     messages: Array<{ role: 'system' | 'user' | 'assistant'; content: string }>
   ): Promise<ExecuteResult> {
-    const { baseURL, apiKey, model } = this.getConfig();
+    const { baseURL, apiKey, model } = await this.getConfig();
     const contentParts: string[] = [];
     let totalUsage: TokenUsage = { promptTokens: 0, completionTokens: 0, totalTokens: 0 };
     const maxAttempts = 3;
@@ -484,7 +490,7 @@ These guidelines are working if: fewer unnecessary changes in diffs, fewer rewri
     onProgress: (progress: GenerationProgress) => void,
     signal?: AbortSignal
   ): Promise<ExecuteResult> {
-    const { baseURL, apiKey, model } = this.getConfig();
+    const { baseURL, apiKey, model } = await this.getConfig();
     const maxAttempts = 3;
     const contentParts: string[] = [];
     let totalUsage: TokenUsage = { promptTokens: 0, completionTokens: 0, totalTokens: 0 };
@@ -1659,7 +1665,7 @@ ${getAgentsPromptTemplate(domain)}
     onProgress: (phase: string) => void,
     signal?: AbortSignal
   ): Promise<ReviewResult> {
-    const config = this.getConfig();
+    const config = await this.getConfig();
 
     if (config.mockMode) {
       onProgress('正在加载并解析 7 份文档内容...\n');
@@ -1870,7 +1876,7 @@ ${getAgentsPromptTemplate(domain)}
     topicInfo: TopicInfo,
     allDocs: Record<string, string>
   ): Promise<ReviewResult> {
-    const config = this.getConfig();
+    const config = await this.getConfig();
 
     if (config.mockMode) {
       return this.generateMockReviewResult();

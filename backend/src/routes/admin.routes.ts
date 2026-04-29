@@ -10,6 +10,7 @@ import {
   hashPassword,
   validatePassword
 } from '../utils/password.utils.js';
+import { apiProviderService } from '../services/apiProvider.service.js';
 
 const router = Router();
 const upload = multer({ storage: multer.memoryStorage() });
@@ -1212,6 +1213,210 @@ router.get('/stats/ai-usage', async (req: Request, res: Response) => {
   } catch (error) {
     console.error('AI usage stats error:', error);
     res.status(500).json({ error: '获取AI用量统计失败' });
+  }
+});
+
+// ============================================================
+// API PROVIDER MANAGEMENT
+// ============================================================
+
+/**
+ * GET /api/admin/api-providers
+ * List all API providers
+ */
+router.get('/api-providers', async (req: Request, res: Response) => {
+  try {
+    const providers = await apiProviderService.getAllProviders();
+    // Mask API keys for security (show only first 8 chars)
+    const masked = providers.map(p => ({
+      ...p,
+      apiKey: p.apiKey ? `${p.apiKey.slice(0, 8)}...` : '',
+    }));
+    res.json({ providers: masked });
+  } catch (error) {
+    console.error('List API providers error:', error);
+    res.status(500).json({ error: '获取API提供商列表失败' });
+  }
+});
+
+/**
+ * POST /api/admin/api-providers
+ * Create a new API provider
+ */
+router.post('/api-providers', async (req: Request, res: Response) => {
+  try {
+    const { name, providerType, baseURL, apiKey, model, description, isActive } = req.body;
+
+    if (!name || !providerType || !baseURL || !apiKey || !model) {
+      return res.status(400).json({ error: '名称、类型、BaseURL、API密钥和模型为必填项' });
+    }
+
+    if (providerType !== 'minimax' && providerType !== 'openai_compatible') {
+      return res.status(400).json({ error: '提供商类型必须为 minimax 或 openai_compatible' });
+    }
+
+    const provider = await apiProviderService.createProvider({
+      name,
+      providerType,
+      baseURL,
+      apiKey,
+      model,
+      description,
+      isActive: !!isActive,
+    });
+
+    res.json({
+      provider: {
+        ...provider,
+        apiKey: provider.apiKey ? `${provider.apiKey.slice(0, 8)}...` : '',
+      },
+      message: 'API提供商已创建'
+    });
+  } catch (error) {
+    console.error('Create API provider error:', error);
+    res.status(500).json({ error: '创建API提供商失败' });
+  }
+});
+
+/**
+ * PUT /api/admin/api-providers/:id
+ * Update an existing API provider
+ */
+router.put('/api-providers/:id', async (req: Request, res: Response) => {
+  try {
+    const idParam = req.params.id;
+    const id = parseInt(Array.isArray(idParam) ? idParam[0] : idParam);
+    if (isNaN(id)) {
+      return res.status(400).json({ error: '无效的提供商ID' });
+    }
+
+    const existing = await apiProviderService.getProviderById(id);
+    if (!existing) {
+      return res.status(404).json({ error: 'API提供商不存在' });
+    }
+
+    const { name, providerType, baseURL, apiKey, model, description, isActive } = req.body;
+
+    if (providerType && providerType !== 'minimax' && providerType !== 'openai_compatible') {
+      return res.status(400).json({ error: '提供商类型必须为 minimax 或 openai_compatible' });
+    }
+
+    const updateData: any = {};
+    if (name !== undefined) updateData.name = name;
+    if (providerType !== undefined) updateData.providerType = providerType;
+    if (baseURL !== undefined) updateData.baseURL = baseURL;
+    if (apiKey !== undefined) updateData.apiKey = apiKey;
+    if (model !== undefined) updateData.model = model;
+    if (description !== undefined) updateData.description = description;
+    if (isActive !== undefined) updateData.isActive = !!isActive;
+
+    const provider = await apiProviderService.updateProvider(id, updateData);
+
+    res.json({
+      provider: {
+        ...provider,
+        apiKey: provider.apiKey ? `${provider.apiKey.slice(0, 8)}...` : '',
+      },
+      message: 'API提供商已更新'
+    });
+  } catch (error) {
+    console.error('Update API provider error:', error);
+    res.status(500).json({ error: '更新API提供商失败' });
+  }
+});
+
+/**
+ * DELETE /api/admin/api-providers/:id
+ * Delete an API provider
+ */
+router.delete('/api-providers/:id', async (req: Request, res: Response) => {
+  try {
+    const idParam = req.params.id;
+    const id = parseInt(Array.isArray(idParam) ? idParam[0] : idParam);
+    if (isNaN(id)) {
+      return res.status(400).json({ error: '无效的提供商ID' });
+    }
+
+    const existing = await apiProviderService.getProviderById(id);
+    if (!existing) {
+      return res.status(404).json({ error: 'API提供商不存在' });
+    }
+
+    await apiProviderService.deleteProvider(id);
+    res.json({ message: 'API提供商已删除' });
+  } catch (error) {
+    console.error('Delete API provider error:', error);
+    res.status(500).json({ error: '删除API提供商失败' });
+  }
+});
+
+/**
+ * POST /api/admin/api-providers/:id/activate
+ * Set a provider as the active one
+ */
+router.post('/api-providers/:id/activate', async (req: Request, res: Response) => {
+  try {
+    const idParam = req.params.id;
+    const id = parseInt(Array.isArray(idParam) ? idParam[0] : idParam);
+    if (isNaN(id)) {
+      return res.status(400).json({ error: '无效的提供商ID' });
+    }
+
+    const existing = await apiProviderService.getProviderById(id);
+    if (!existing) {
+      return res.status(404).json({ error: 'API提供商不存在' });
+    }
+
+    const provider = await apiProviderService.setActiveProvider(id);
+
+    res.json({
+      provider: {
+        ...provider,
+        apiKey: provider.apiKey ? `${provider.apiKey.slice(0, 8)}...` : '',
+      },
+      message: '已切换到: ' + provider.name
+    });
+  } catch (error) {
+    console.error('Activate API provider error:', error);
+    res.status(500).json({ error: '切换API提供商失败' });
+  }
+});
+
+/**
+ * POST /api/admin/api-providers/:id/test
+ * Test connection to an API provider
+ */
+router.post('/api-providers/:id/test', async (req: Request, res: Response) => {
+  try {
+    const idParam = req.params.id;
+    const id = parseInt(Array.isArray(idParam) ? idParam[0] : idParam);
+    if (isNaN(id)) {
+      return res.status(400).json({ error: '无效的提供商ID' });
+    }
+
+    const result = await apiProviderService.testProviderConnection(id);
+    res.json(result);
+  } catch (error) {
+    console.error('Test API provider error:', error);
+    res.status(500).json({ error: '测试连接失败' });
+  }
+});
+
+/**
+ * GET /api/admin/api-providers/active
+ * Get the currently active provider config (masked)
+ */
+router.get('/api-providers/active', async (req: Request, res: Response) => {
+  try {
+    const config = await apiProviderService.getEffectiveConfig();
+    res.json({
+      active: config.fromDatabase
+        ? { name: config.name, providerType: config.providerType, model: config.model, baseURL: config.baseURL, fromDatabase: true }
+        : { name: '环境变量配置', providerType: 'minimax', model: config.model, baseURL: config.baseURL, fromDatabase: false }
+    });
+  } catch (error) {
+    console.error('Get active API provider error:', error);
+    res.status(500).json({ error: '获取当前API提供商失败' });
   }
 });
 

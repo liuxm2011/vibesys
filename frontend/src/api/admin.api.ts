@@ -13,7 +13,11 @@ import type {
   UserPasswordInfo,
   UpdateUserPasswordRequest,
   UpdateUserPasswordResponse,
-  AiUsageStats
+  AiUsageStats,
+  ApiProvider,
+  ApiProviderForm,
+  TestConnectionResult,
+  ActiveProviderInfo
 } from '@/types/admin';
 
 // ============================================================
@@ -230,4 +234,36 @@ export async function fetchGuideApi(): Promise<SystemConfig> {
 
 export async function updateGuideApi(value: string): Promise<SystemConfig> {
   return api.put('/api/admin/config/guide', { value });
+}
+
+// ============================================================
+// API PROVIDER MANAGEMENT
+// ============================================================
+
+export async function fetchApiProvidersApi(): Promise<{ providers: ApiProvider[] }> {
+  return api.get('/api/admin/api-providers');
+}
+
+export async function createApiProviderApi(data: ApiProviderForm): Promise<{ provider: ApiProvider; message: string }> {
+  return api.post('/api/admin/api-providers', data);
+}
+
+export async function updateApiProviderApi(id: number, data: Partial<ApiProviderForm>): Promise<{ provider: ApiProvider; message: string }> {
+  return api.put(`/api/admin/api-providers/${id}`, data);
+}
+
+export async function deleteApiProviderApi(id: number): Promise<{ message: string }> {
+  return api.delete(`/api/admin/api-providers/${id}`);
+}
+
+export async function activateApiProviderApi(id: number): Promise<{ provider: ApiProvider; message: string }> {
+  return api.post(`/api/admin/api-providers/${id}/activate`);
+}
+
+export async function testApiProviderApi(id: number): Promise<TestConnectionResult> {
+  return api.post(`/api/admin/api-providers/${id}/test`);
+}
+
+export async function fetchActiveApiProviderApi(): Promise<{ active: ActiveProviderInfo }> {
+  return api.get('/api/admin/api-providers/active');
 }

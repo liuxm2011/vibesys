@@ -54,6 +54,10 @@
             <el-icon><Setting /></el-icon>
             <span>系统配置</span>
           </el-menu-item>
+          <el-menu-item index="/admin/api-providers">
+            <el-icon><Connection /></el-icon>
+            <span>API 服务管理</span>
+          </el-menu-item>
         </el-menu>
       </aside>
 
@@ -75,7 +79,7 @@ import { computed, ref } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import { ElMessage } from 'element-plus';
 import { useAuthStore } from '@/stores/auth.store';
-import { Back, User, Collection, TrendCharts, Setting, SwitchButton, Key } from '@element-plus/icons-vue';
+import { Back, User, Collection, TrendCharts, Setting, Connection, SwitchButton, Key } from '@element-plus/icons-vue';
 import SelfPasswordDialog from '@/components/SelfPasswordDialog.vue';
 
 const router = useRouter();

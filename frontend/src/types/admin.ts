@@ -202,6 +202,48 @@ export interface AiFailedRequest {
   createdAt: string;
 }
 
+// ============================================================
+// API PROVIDER MANAGEMENT
+// ============================================================
+
+export interface ApiProvider {
+  id: number;
+  name: string;
+  providerType: 'minimax' | 'openai_compatible';
+  baseURL: string;
+  apiKey: string;
+  model: string;
+  isActive: boolean;
+  orderIndex: number;
+  description: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ApiProviderForm {
+  name: string;
+  providerType: 'minimax' | 'openai_compatible';
+  baseURL: string;
+  apiKey: string;
+  model: string;
+  description?: string;
+  isActive?: boolean;
+}
+
+export interface TestConnectionResult {
+  success: boolean;
+  latencyMs: number;
+  message: string;
+}
+
+export interface ActiveProviderInfo {
+  name: string;
+  providerType: string;
+  model: string;
+  baseURL: string;
+  fromDatabase: boolean;
+}
+
 export interface AiUsageStats {
   overview: AiUsageOverview;
   userUsage: AiUserUsage[];

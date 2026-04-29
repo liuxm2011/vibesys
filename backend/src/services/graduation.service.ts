@@ -1,4 +1,5 @@
 import { GraduationDocType, Domain, Platform } from '@prisma/client';
+import { apiProviderService } from './apiProvider.service.js';
 import { getTaskBookSystemPrompt, buildTaskBookUserPrompt } from '../prompts/task-book.template.js';
 import { getProposalSystemPrompt, buildProposalUserPrompt } from '../prompts/proposal.template.js';
 import { getProgressRecordSystemPrompt, buildProgressRecordUserPrompt } from '../prompts/progress-record.template.js';
@@ -56,15 +57,20 @@ interface StreamChunkResponse {
 export class GraduationService {
   private readonly REQUEST_TIMEOUT = 600_000;
 
-  private getConfig() {
-    if (!process.env.MINIMAX_API_KEY) {
-      throw new Error('MINIMAX_API_KEY not configured');
+  private async getConfig() {
+    const providerConfig = await apiProviderService.getEffectiveConfig();
+    const mockMode = process.env.MOCK_AI === 'true' || process.env.MOCK_AI === '1';
+
+    if (!providerConfig.apiKey && !mockMode) {
+      throw new Error('No active API provider configured — set up one in admin panel or configure MINIMAX_API_KEY in .env');
     }
+
     return {
-      baseURL: process.env.MINIMAX_BASE_URL || 'https://api.minimax.chat/v1',
-      apiKey: process.env.MINIMAX_API_KEY,
-      model: process.env.MINIMAX_MODEL || 'minimax-m2-7',
-      mockMode: process.env.MOCK_AI === 'true' || process.env.MOCK_AI === '1',
+      baseURL: providerConfig.baseURL,
+      apiKey: providerConfig.apiKey,
+      model: providerConfig.model,
+      mockMode,
+      providerConfig,
     };
   }
 
@@ -73,7 +79,7 @@ export class GraduationService {
     topicContext: TopicContext,
     previousDocs: PreviousDocs
   ): Promise<{ content: string; usage: TokenUsage }> {
-    const config = this.getConfig();
+    const config = await this.getConfig();
 
     if (config.mockMode) {
       return this.generateMockDocument(docType, topicContext);
@@ -103,7 +109,7 @@ export class GraduationService {
     onProgress: (progress: GenerationProgress) => void,
     signal?: AbortSignal
   ): Promise<{ content: string; usage: TokenUsage }> {
-    const config = this.getConfig();
+    const config = await this.getConfig();
 
     if (config.mockMode) {
       return this.generateMockDocument(docType, topicContext);
