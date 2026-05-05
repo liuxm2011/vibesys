@@ -21,6 +21,7 @@ export const useAdminStore = defineStore('admin', () => {
   // User management state
   const users = ref<AdminUser[]>([]);
   const userPagination = ref<PaginationInfo>({ total: 0, page: 1, pageSize: 20, totalPages: 0 });
+  const userMajors = ref<string[]>([]);
   const usersLoading = ref(false);
 
   // Topic management state
@@ -44,12 +45,13 @@ export const useAdminStore = defineStore('admin', () => {
   const error = ref<string | null>(null);
 
   // --- User Management ---
-  async function loadUsers(params: { page?: number; pageSize?: number; search?: string; role?: string; status?: string } = {}) {
+  async function loadUsers(params: { page?: number; pageSize?: number; search?: string; role?: string; major?: string; status?: string } = {}) {
     usersLoading.value = true;
     error.value = null;
     try {
       const response = await adminApi.fetchAdminUsersApi(params);
       users.value = response.users;
+      userMajors.value = response.majors;
       userPagination.value = response.pagination;
     } catch (e) {
       error.value = e instanceof Error ? e.message : '加载用户列表失败';
@@ -275,6 +277,7 @@ export const useAdminStore = defineStore('admin', () => {
   // Reset
   function $reset() {
     users.value = [];
+    userMajors.value = [];
     topics.value = [];
     overviewStats.value = null;
     userStats.value = null;
@@ -286,7 +289,7 @@ export const useAdminStore = defineStore('admin', () => {
   }
 
   return {
-    users, userPagination, usersLoading,
+    users, userPagination, userMajors, usersLoading,
     topics, topicPagination, topicsLoading,
     overviewStats, userStats, projectStats, aiUsageStats, statsLoading,
     announcement, guide, configLoading,

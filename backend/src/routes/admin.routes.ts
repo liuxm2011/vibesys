@@ -69,6 +69,7 @@ router.get('/users', async (req: Request, res: Response) => {
     const pageSize = parseInt(req.query.pageSize as string) || 20;
     const search = (req.query.search as string) || '';
     const role = req.query.role as Role | undefined;
+    const major = (req.query.major as string) || '';
     const status = req.query.status as Status | undefined;
     const skip = (page - 1) * pageSize;
 
@@ -85,11 +86,16 @@ router.get('/users', async (req: Request, res: Response) => {
       whereClause.role = role;
     }
 
+    if (major) {
+      whereClause.role = Role.STUDENT;
+      whereClause.major = major;
+    }
+
     if (status) {
       whereClause.status = status;
     }
 
-    const [users, total] = await Promise.all([
+    const [users, total, majors] = await Promise.all([
       prisma.user.findMany({
         where: whereClause,
         skip,
@@ -111,7 +117,16 @@ router.get('/users', async (req: Request, res: Response) => {
           }
         }
       }),
-      prisma.user.count({ where: whereClause })
+      prisma.user.count({ where: whereClause }),
+      prisma.user.findMany({
+        where: {
+          role: Role.STUDENT,
+          major: { not: '' }
+        },
+        distinct: ['major'],
+        orderBy: { major: 'asc' },
+        select: { major: true }
+      })
     ]);
 
     const formattedUsers = await Promise.all(
@@ -139,6 +154,7 @@ router.get('/users', async (req: Request, res: Response) => {
 
     res.json({
       users: formattedUsers,
+      majors: majors.map((item) => item.major),
       pagination: {
         total,
         page,

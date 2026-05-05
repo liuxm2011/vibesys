@@ -24,6 +24,7 @@ export interface PaginationInfo {
 
 export interface UserListResponse {
   users: AdminUser[];
+  majors: string[];
   pagination: PaginationInfo;
 }
 

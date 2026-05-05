@@ -29,6 +29,7 @@ export async function fetchAdminUsersApi(params: {
   pageSize?: number;
   search?: string;
   role?: string;
+  major?: string;
   status?: string;
 }): Promise<UserListResponse> {
   const query = new URLSearchParams();
@@ -36,6 +37,7 @@ export async function fetchAdminUsersApi(params: {
   if (params.pageSize) query.append('pageSize', String(params.pageSize));
   if (params.search) query.append('search', params.search);
   if (params.role) query.append('role', params.role);
+  if (params.major) query.append('major', params.major);
   if (params.status) query.append('status', params.status);
 
   return api.get<UserListResponse>(`/api/admin/users?${query.toString()}`);

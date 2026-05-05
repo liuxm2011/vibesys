@@ -59,10 +59,14 @@
                 <el-icon><Search /></el-icon>
               </template>
             </el-input>
-            <el-select v-model="roleFilter" placeholder="角色" clearable class="filter-select" @change="handleFilter">
-              <el-option label="全部角色" value="" />
-              <el-option label="学生" value="STUDENT" />
-              <el-option label="管理员" value="ADMIN" />
+            <el-select v-model="majorFilter" placeholder="专业" clearable class="filter-select" @change="handleFilter">
+              <el-option label="全部专业" value="" />
+              <el-option
+                v-for="major in store.userMajors"
+                :key="major"
+                :label="major"
+                :value="major"
+              />
             </el-select>
             <el-select v-model="statusFilter" placeholder="状态" clearable class="filter-select" @change="handleFilter">
               <el-option label="全部状态" value="" />
@@ -405,7 +409,7 @@ import type { AdminUser, ImportResult, UserPasswordInfo } from '@/types/admin';
 
 const store = useAdminStore();
 const searchKeyword = ref('');
-const roleFilter = ref('');
+const majorFilter = ref('');
 const statusFilter = ref('');
 const currentPage = ref(1);
 
@@ -499,7 +503,7 @@ async function loadUsers() {
   await store.loadUsers({
     page: currentPage.value,
     search: searchKeyword.value || undefined,
-    role: roleFilter.value || undefined,
+    major: majorFilter.value || undefined,
     status: statusFilter.value || undefined
   });
 }
