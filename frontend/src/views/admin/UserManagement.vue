@@ -99,6 +99,7 @@
           stripe
           highlight-current-row
           header-cell-class-name="table-header"
+          @sort-change="handleSortChange"
         >
           <el-table-column prop="studentId" label="学号" width="140">
             <template #default="{ row }">
@@ -139,7 +140,7 @@
               </el-badge>
             </template>
           </el-table-column>
-          <el-table-column prop="projectCount" label="项目数" width="90" align="center" sortable>
+          <el-table-column prop="projectCount" label="项目数" width="90" align="center" sortable="custom">
             <template #default="{ row }">
               <el-link type="primary" :underline="false">{{ row.projectCount || 0 }}</el-link>
             </template>
@@ -412,6 +413,7 @@ const searchKeyword = ref('');
 const majorFilter = ref('');
 const statusFilter = ref('');
 const currentPage = ref(1);
+const projectCountSort = ref<'asc' | 'desc' | ''>('');
 
 // 统计信息计算
 const getStudentCount = computed(() => store.users.filter(u => u.role === 'STUDENT').length);
@@ -499,12 +501,22 @@ function handlePageChange(page: number) {
   loadUsers();
 }
 
+function handleSortChange({ prop, order }: { prop: string; order: 'ascending' | 'descending' | null }) {
+  projectCountSort.value = prop === 'projectCount' && order
+    ? (order === 'ascending' ? 'asc' : 'desc')
+    : '';
+  currentPage.value = 1;
+  loadUsers();
+}
+
 async function loadUsers() {
   await store.loadUsers({
     page: currentPage.value,
     search: searchKeyword.value || undefined,
     major: majorFilter.value || undefined,
-    status: statusFilter.value || undefined
+    status: statusFilter.value || undefined,
+    sortBy: projectCountSort.value ? 'projectCount' : undefined,
+    sortOrder: projectCountSort.value || undefined
   });
 }
 

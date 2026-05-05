@@ -71,6 +71,8 @@ router.get('/users', async (req: Request, res: Response) => {
     const role = req.query.role as Role | undefined;
     const major = (req.query.major as string) || '';
     const status = req.query.status as Status | undefined;
+    const sortBy = (req.query.sortBy as string) || '';
+    const sortOrder: 'asc' | 'desc' = req.query.sortOrder === 'asc' ? 'asc' : 'desc';
     const skip = (page - 1) * pageSize;
 
     const whereClause: any = {};
@@ -95,12 +97,16 @@ router.get('/users', async (req: Request, res: Response) => {
       whereClause.status = status;
     }
 
+    const orderBy = sortBy === 'projectCount'
+      ? { projects: { _count: sortOrder } }
+      : { createdAt: 'desc' as const };
+
     const [users, total, majors] = await Promise.all([
       prisma.user.findMany({
         where: whereClause,
         skip,
         take: pageSize,
-        orderBy: { createdAt: 'desc' },
+        orderBy,
         select: {
           id: true,
           studentId: true,

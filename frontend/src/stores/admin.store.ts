@@ -45,7 +45,7 @@ export const useAdminStore = defineStore('admin', () => {
   const error = ref<string | null>(null);
 
   // --- User Management ---
-  async function loadUsers(params: { page?: number; pageSize?: number; search?: string; role?: string; major?: string; status?: string } = {}) {
+  async function loadUsers(params: { page?: number; pageSize?: number; search?: string; role?: string; major?: string; status?: string; sortBy?: string; sortOrder?: 'asc' | 'desc' } = {}) {
     usersLoading.value = true;
     error.value = null;
     try {

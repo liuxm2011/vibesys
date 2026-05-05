@@ -31,6 +31,8 @@ export async function fetchAdminUsersApi(params: {
   role?: string;
   major?: string;
   status?: string;
+  sortBy?: string;
+  sortOrder?: 'asc' | 'desc';
 }): Promise<UserListResponse> {
   const query = new URLSearchParams();
   if (params.page) query.append('page', String(params.page));
@@ -39,6 +41,8 @@ export async function fetchAdminUsersApi(params: {
   if (params.role) query.append('role', params.role);
   if (params.major) query.append('major', params.major);
   if (params.status) query.append('status', params.status);
+  if (params.sortBy) query.append('sortBy', params.sortBy);
+  if (params.sortOrder) query.append('sortOrder', params.sortOrder);
 
   return api.get<UserListResponse>(`/api/admin/users?${query.toString()}`);
 }
