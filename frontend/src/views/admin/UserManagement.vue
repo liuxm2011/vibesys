@@ -139,7 +139,7 @@
               </el-badge>
             </template>
           </el-table-column>
-          <el-table-column prop="projectCount" label="项目数" width="90" align="center">
+          <el-table-column prop="projectCount" label="项目数" width="90" align="center" sortable>
             <template #default="{ row }">
               <el-link type="primary" :underline="false">{{ row.projectCount || 0 }}</el-link>
             </template>
