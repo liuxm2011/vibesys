@@ -37,8 +37,8 @@ export interface Topic {
   id: number;
   title: string;
   description: string;
-  background: string;
-  objectives: string;
+background: string | null;
+  objectives: string | null;
   domain: Domain;
   platform: Platform;
   techStack: string[];

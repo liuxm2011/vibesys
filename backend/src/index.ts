@@ -49,6 +49,9 @@ function getAllowedOrigins(): string[] {
   return Array.from(new Set([normalized, ...defaults]));
 }
 
+// Trust nginx proxy for correct client IP
+app.set('trust proxy', 1);
+
 // Middleware setup
 app.use(helmet());
 const allowedOrigins = getAllowedOrigins();

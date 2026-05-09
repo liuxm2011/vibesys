@@ -1,12 +1,12 @@
 import rateLimit, { ipKeyGenerator } from 'express-rate-limit';
 
 /**
- * Login endpoint rate limiter - 5 attempts per minute per IP+studentId
+ * Login endpoint rate limiter - 20 attempts per minute per IP+studentId
  * Prevents brute force attacks
  */
 export const loginLimiter = rateLimit({
   windowMs: 60 * 1000, // 1 minute
-  max: 5,
+  max: 20,
   message: { error: '登录尝试次数过多，请稍后再试' },
   standardHeaders: true,
   legacyHeaders: false,
@@ -17,11 +17,11 @@ export const loginLimiter = rateLimit({
 });
 
 /**
- * General API rate limiter - 100 requests per 15 minutes
+ * General API rate limiter - 1000 requests per 15 minutes
  */
 export const generalLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100,
+  max: 1000,
   message: { error: '请求过于频繁，请稍后再试' },
   standardHeaders: true,
   legacyHeaders: false

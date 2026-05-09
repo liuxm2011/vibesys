@@ -11,3 +11,7 @@ frontend/.env
 !frontend/.env.example
 *.backup
 *.tsbuildinfo
+node_modules/
+dist/
+.planning/
+*.pdf

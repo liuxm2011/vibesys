@@ -74,6 +74,8 @@
               type="textarea"
               :rows="2"
               placeholder="项目来源或行业背景..."
+              maxlength="2000"
+              show-word-limit
             />
           </el-form-item>
           <el-form-item label="预期目标 (可选)" prop="objectives">
@@ -82,6 +84,8 @@
               type="textarea"
               :rows="2"
               placeholder="希望达到的技术高度或应用价值..."
+              maxlength="2000"
+              show-word-limit
             />
           </el-form-item>
         </div>

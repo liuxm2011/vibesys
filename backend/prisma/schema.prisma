@@ -96,9 +96,9 @@ enum GraduationDocType {
 model Topic {
   id              Int        @id @default(autoincrement())
   title           String     // D-01: 标题
-  description     String     // D-01: 描述
-  background      String     @default("") // D-01: 背景
-  objectives      String     @default("") // D-01: 目标
+description     String     @db.MediumText // D-01: 描述
+  background      String?    @db.MediumText // D-01: 背景
+  objectives      String?    @db.MediumText // D-01: 目标 master
   domain          Domain     // D-03: 领域分类
   platform        Platform   @default(WEB)  // 运行平台
   techStack       Json       // D-04: 技术栈建议 (JSON array)

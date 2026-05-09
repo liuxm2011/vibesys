@@ -139,8 +139,18 @@ router.post('/custom', authMiddleware, async (req: Request, res: Response) => {
   }
 
   // Validate description length
-  if (description.length < 10 || description.length > 500) {
-    return res.status(400).json({ error: '描述长度需要在10-500字符之间' });
+  if (description.length < 10 || description.length > 2000) {
+    return res.status(400).json({ error: '描述长度需要在10-2000字符之间' });
+  }
+
+  // Validate background length
+  if (background && background.length > 2000) {
+    return res.status(400).json({ error: '背景说明不能超过2000字符' });
+  }
+
+  // Validate objectives length
+  if (objectives && objectives.length > 2000) {
+    return res.status(400).json({ error: '预期目标不能超过2000字符' });
   }
 
   // Validate domain value
@@ -167,13 +177,13 @@ router.post('/custom', authMiddleware, async (req: Request, res: Response) => {
       data: {
         title,
         description,
-        background: background || '',      // Optional per D-12
-        objectives: objectives || '',      // Optional per D-12
+background: background || null,
+        objectives: objectives || null,
         domain: domain as Domain,
         platform: platform as Platform,
-        techStack: techStack,              // Store string[] in JSON field
-        type: TopicType.CUSTOM,            // D-15
-        creatorId: userId                   // D-14: Link to creator
+        techStack: techStack,
+        type: TopicType.CUSTOM,
+        creatorId: userId
       }
     });
 
