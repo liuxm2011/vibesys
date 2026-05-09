@@ -3,6 +3,7 @@ import { PrismaClient, ProjectStatus } from '@prisma/client';
 import { authMiddleware } from '../middleware/auth.middleware.js';
 import { checkBannedMiddleware } from '../middleware/ban.middleware.js';
 import { prisma } from '../index.js';
+import { updateRepoUrl, syncRepoData, getProjectRepoInfo } from '../services/repo.service.js';
 
 const router = Router();
 
@@ -257,6 +258,83 @@ router.put('/:id/techStack', authMiddleware, async (req: Request, res: Response)
   } catch (error) {
     console.error('Tech stack update error:', error);
     res.status(500).json({ error: '更新技术栈失败' });
+  }
+});
+
+router.put('/:id/repoUrl', authMiddleware, checkBannedMiddleware, async (req: Request, res: Response) => {
+  try {
+    const userId = req.user!.userId;
+    const idParam = req.params.id;
+    const projectId = parseInt(Array.isArray(idParam) ? idParam[0] : idParam);
+    const { repoUrl } = req.body;
+
+    if (isNaN(projectId)) {
+      return res.status(400).json({ error: '无效的项目ID' });
+    }
+
+    if (repoUrl && typeof repoUrl === 'string' && repoUrl.length > 500) {
+      return res.status(400).json({ error: '仓库地址过长' });
+    }
+
+    await updateRepoUrl(projectId, userId, repoUrl || null);
+    res.json({ message: '仓库地址已更新' });
+  } catch (error: any) {
+    if (error.message === 'PROJECT_NOT_FOUND') {
+      return res.status(404).json({ error: '项目不存在或无权限访问' });
+    }
+    if (error.message === 'INVALID_GITEE_URL') {
+      return res.status(400).json({ error: '请输入有效的 Gitee 仓库地址（如 https://gitee.com/owner/repo）' });
+    }
+    console.error('Repo URL update error:', error);
+    res.status(500).json({ error: '更新仓库地址失败' });
+  }
+});
+
+router.post('/:id/syncRepo', authMiddleware, checkBannedMiddleware, async (req: Request, res: Response) => {
+  try {
+    const userId = req.user!.userId;
+    const idParam = req.params.id;
+    const projectId = parseInt(Array.isArray(idParam) ? idParam[0] : idParam);
+
+    if (isNaN(projectId)) {
+      return res.status(400).json({ error: '无效的项目ID' });
+    }
+
+    const syncData = await syncRepoData(projectId, userId);
+    res.json({ syncData });
+  } catch (error: any) {
+    if (error.message === 'PROJECT_NOT_FOUND') {
+      return res.status(404).json({ error: '项目不存在或无权限访问' });
+    }
+    if (error.message === 'NO_REPO_URL') {
+      return res.status(400).json({ error: '请先设置仓库地址' });
+    }
+    if (error.message === 'INVALID_GITEE_URL') {
+      return res.status(400).json({ error: '仓库地址格式无效，请输入 Gitee 地址' });
+    }
+    console.error('Repo sync error:', error);
+    res.status(500).json({ error: '同步仓库数据失败，请检查仓库地址是否正确且为公开仓库' });
+  }
+});
+
+router.get('/:id/repoInfo', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const userId = req.user!.userId;
+    const idParam = req.params.id;
+    const projectId = parseInt(Array.isArray(idParam) ? idParam[0] : idParam);
+
+    if (isNaN(projectId)) {
+      return res.status(400).json({ error: '无效的项目ID' });
+    }
+
+    const info = await getProjectRepoInfo(projectId, userId);
+    res.json({ repoUrl: info.repoUrl, repoSyncData: info.repoSyncData });
+  } catch (error: any) {
+    if (error.message === 'PROJECT_NOT_FOUND') {
+      return res.status(404).json({ error: '项目不存在或无权限访问' });
+    }
+    console.error('Repo info error:', error);
+    res.status(500).json({ error: '获取仓库信息失败' });
   }
 });
 

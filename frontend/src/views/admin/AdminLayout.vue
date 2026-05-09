@@ -58,6 +58,10 @@
             <el-icon><Connection /></el-icon>
             <span>API 服务管理</span>
           </el-menu-item>
+          <el-menu-item index="/admin/repos">
+            <el-icon><Link /></el-icon>
+            <span>仓库管理</span>
+          </el-menu-item>
         </el-menu>
       </aside>
 
@@ -79,7 +83,7 @@ import { computed, ref } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import { ElMessage } from 'element-plus';
 import { useAuthStore } from '@/stores/auth.store';
-import { Back, User, Collection, TrendCharts, Setting, Connection, SwitchButton, Key } from '@element-plus/icons-vue';
+import { Back, User, Collection, TrendCharts, Setting, Connection, Link, SwitchButton, Key } from '@element-plus/icons-vue';
 import SelfPasswordDialog from '@/components/SelfPasswordDialog.vue';
 
 const router = useRouter();

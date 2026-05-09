@@ -27,6 +27,7 @@ export interface Project {
   userId: number;
   topicId: number;
   status: ProjectStatus;
+  repoUrl?: string | null;
   documentsRef: Record<string, any> | null;
   reviewStatus?: PersistedReviewStatus;
   reviewResult?: ReviewResult | null;
@@ -39,6 +40,8 @@ export interface ProjectDetail {
   id: number;
   status: ProjectStatus;
   techStack: string | null;
+  repoUrl: string | null;
+  repoSyncData: RepoSyncData | null;
   reviewStatus: PersistedReviewStatus;
   reviewResult: ReviewResult | null;
   createdAt: string;
@@ -72,4 +75,38 @@ export interface UpdateTechStackResponse {
     id: number;
     techStack: string;
   };
+}
+
+export interface GiteeCommit {
+  sha: string;
+  message: string;
+  authorName: string;
+  authorDate: string;
+}
+
+export interface RepoSyncData {
+  commits: GiteeCommit[];
+  readme: string | null;
+  syncedAt: string;
+  commitCount: number;
+}
+
+export interface RepoInfoResponse {
+  repoUrl: string | null;
+  repoSyncData: RepoSyncData | null;
+}
+
+export interface SyncRepoResponse {
+  syncData: RepoSyncData;
+}
+
+export interface ProjectRepoInfo {
+  projectId: number;
+  studentId: string;
+  studentName: string;
+  major: string;
+  topicTitle: string;
+  repoUrl: string | null;
+  syncedAt: string | null;
+  commitCount: number;
 }

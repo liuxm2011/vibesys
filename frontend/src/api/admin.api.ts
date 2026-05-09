@@ -19,6 +19,7 @@ import type {
   TestConnectionResult,
   ActiveProviderInfo
 } from '@/types/admin';
+import type { ProjectRepoInfo } from '@/types/project';
 
 // ============================================================
 // USER MANAGEMENT
@@ -272,4 +273,26 @@ export async function testApiProviderApi(id: number): Promise<TestConnectionResu
 
 export async function fetchActiveApiProviderApi(): Promise<{ active: ActiveProviderInfo }> {
   return api.get('/api/admin/api-providers/active');
+}
+
+// ============================================================
+// PROJECT REPO MANAGEMENT
+// ============================================================
+
+export async function fetchProjectReposApi(): Promise<{ repos: ProjectRepoInfo[] }> {
+  return api.get('/api/admin/projects/repos');
+}
+
+export async function exportProjectReposApi(): Promise<void> {
+  const response = await fetch(resolveApiUrl('/api/admin/projects/repos/export'), {
+    method: 'GET',
+    credentials: 'include'
+  });
+
+  if (!response.ok) {
+    throw new Error(await readErrorMessage(response, '导出失败'));
+  }
+
+  const blob = await response.blob();
+  saveAs(blob, getFilenameFromResponse(response, '项目仓库地址.xlsx'));
 }

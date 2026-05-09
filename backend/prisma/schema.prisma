@@ -126,6 +126,8 @@ model Project {
   documentsRef    Json?         // D-11: 已生成文档引用 (Phase 2 placeholder - deprecated, use Document table)
   reviewStatus    ReviewStatus  @default(NONE)
   reviewResult    Json?
+  repoUrl         String?       // Gitee 仓库地址
+  repoSyncData    Json?         // 同步数据: { commits: [...], readme: "...", syncedAt: "..." }
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
 

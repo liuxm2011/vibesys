@@ -702,6 +702,14 @@
           @update:tech-stack="handleTechStackUpdate"
         />
 
+        <RepoUrlPanel
+          :repo-url="repoUrl"
+          :repo-sync-data="repoSyncData"
+          :syncing="repoSyncing"
+          @update:repo-url="handleRepoUrlUpdate"
+          @sync="handleRepoSync"
+        />
+
         <!-- Quick Actions -->
         <el-card class="actions-card" v-if="docSetMode === 'standard'">
           <template #header>
@@ -794,7 +802,7 @@ import {
 import { useDocumentStore } from '@/stores/document.store';
 import { useGraduationDocumentStore } from '@/stores/graduation.store';
 import { useProjectStore } from '@/stores/project.store';
-import { updateProjectTechStackApi, fetchProjectDetailApi } from '@/api/project.api';
+import { updateProjectTechStackApi, fetchProjectDetailApi, updateProjectRepoUrlApi, syncRepoApi } from '@/api/project.api';
 import JSZip from 'jszip';
 import { saveAs } from 'file-saver';
 import TerminalGenerationOverlay from '@/components/TerminalGenerationOverlay.vue';
@@ -806,9 +814,10 @@ import MarkdownPreview from '@/components/MarkdownPreview.vue';
 import DocumentModeToggle from '@/components/DocumentModeToggle.vue';
 import TechStackPanel from '@/components/TechStackPanel.vue';
 import ExpertReviewPanel from '@/components/ExpertReviewPanel.vue';
+import RepoUrlPanel from '@/components/RepoUrlPanel.vue';
 import type { DocType } from '@/types/document';
 import type { GraduationDocType } from '@/types/graduation-document';
-import type { ProjectStatus } from '@/types/project';
+import type { ProjectStatus, RepoSyncData } from '@/types/project';
 import {
   DOC_GENERATION_ORDER,
   DOC_TYPE_LABELS,
@@ -896,6 +905,8 @@ onMounted(async () => {
           detail.project.reviewStatus,
           detail.project.reviewResult
         );
+        repoUrl.value = detail.project.repoUrl ?? null;
+        repoSyncData.value = detail.project.repoSyncData ?? null;
         return true;
       })
       .catch(() => false);
@@ -1187,6 +1198,36 @@ async function handleTechStackUpdate(techStack: string): Promise<void> {
     ElMessage.success('技术栈更新成功');
   } catch (e) {
     ElMessage.error('更新失败');
+  }
+}
+
+const repoUrl = ref<string | null>(null);
+const repoSyncData = ref<RepoSyncData | null>(null);
+const repoSyncing = ref(false);
+
+async function handleRepoUrlUpdate(url: string | null): Promise<void> {
+  try {
+    await updateProjectRepoUrlApi(projectId.value, url);
+    repoUrl.value = url;
+    if (!url) {
+      repoSyncData.value = null;
+    }
+    ElMessage.success(url ? '仓库地址已更新' : '仓库地址已清除');
+  } catch (e: any) {
+    ElMessage.error(e.message || '更新仓库地址失败');
+  }
+}
+
+async function handleRepoSync(): Promise<void> {
+  repoSyncing.value = true;
+  try {
+    const { syncData } = await syncRepoApi(projectId.value);
+    repoSyncData.value = syncData;
+    ElMessage.success('同步成功');
+  } catch (e: any) {
+    ElMessage.error(e.message || '同步失败');
+  } finally {
+    repoSyncing.value = false;
   }
 }
 

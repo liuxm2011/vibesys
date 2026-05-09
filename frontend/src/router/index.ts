@@ -36,7 +36,8 @@ const routes: RouteRecordRaw[] = [
       { path: 'topics', name: 'AdminTopics', component: () => import('@/views/admin/TopicManagement.vue') },
       { path: 'stats', name: 'AdminStats', component: () => import('@/views/admin/Statistics.vue') },
       { path: 'config', name: 'AdminConfig', component: () => import('@/views/admin/SystemConfig.vue') },
-      { path: 'api-providers', name: 'AdminApiProviders', component: () => import('@/views/admin/ApiProviderManagement.vue') }
+      { path: 'api-providers', name: 'AdminApiProviders', component: () => import('@/views/admin/ApiProviderManagement.vue') },
+      { path: 'repos', name: 'AdminRepos', component: () => import('@/views/admin/RepoManagement.vue') }
     ]
   },
   {

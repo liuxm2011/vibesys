@@ -11,6 +11,7 @@ import {
   validatePassword
 } from '../utils/password.utils.js';
 import { apiProviderService } from '../services/apiProvider.service.js';
+import { getAllProjectRepos } from '../services/repo.service.js';
 
 const router = Router();
 const upload = multer({ storage: multer.memoryStorage() });
@@ -1439,6 +1440,42 @@ router.get('/api-providers/active', async (req: Request, res: Response) => {
   } catch (error) {
     console.error('Get active API provider error:', error);
     res.status(500).json({ error: '获取当前API提供商失败' });
+  }
+});
+
+router.get('/projects/repos', async (req: Request, res: Response) => {
+  try {
+    const repos = await getAllProjectRepos();
+    res.json({ repos });
+  } catch (error) {
+    console.error('Get project repos error:', error);
+    res.status(500).json({ error: '获取项目仓库信息失败' });
+  }
+});
+
+router.get('/projects/repos/export', async (req: Request, res: Response) => {
+  try {
+    const repos = await getAllProjectRepos();
+    const XLSX = await import('xlsx');
+    const rows = repos.map((r) => ({
+      学号: r.studentId,
+      姓名: r.studentName,
+      专业: r.major,
+      选题名称: r.topicTitle,
+      仓库地址: r.repoUrl || '',
+      最后同步时间: r.syncedAt ? new Date(r.syncedAt).toLocaleString('zh-CN') : '',
+      提交数: r.commitCount,
+    }));
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.json_to_sheet(rows);
+    XLSX.utils.book_append_sheet(wb, ws, '项目仓库地址');
+    const buf = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', buildAttachmentHeader('project-repos.xlsx', '项目仓库地址.xlsx'));
+    res.send(buf);
+  } catch (error) {
+    console.error('Export project repos error:', error);
+    res.status(500).json({ error: '导出失败' });
   }
 });
 

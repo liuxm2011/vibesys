@@ -4,7 +4,9 @@ import type {
   CreateProjectResponse,
   DeleteProjectResponse,
   UpdateTechStackResponse,
-  ProjectDetail
+  ProjectDetail,
+  RepoInfoResponse,
+  SyncRepoResponse
 } from '@/types/project';
 
 /**
@@ -53,4 +55,23 @@ export async function updateProjectTechStackApi(
   techStack: string
 ): Promise<UpdateTechStackResponse> {
   return api.put<UpdateTechStackResponse>(`/api/projects/${projectId}/techStack`, { techStack });
+}
+
+export async function updateProjectRepoUrlApi(
+  projectId: number,
+  repoUrl: string | null
+): Promise<{ message: string }> {
+  return api.put(`/api/projects/${projectId}/repoUrl`, { repoUrl });
+}
+
+export async function syncRepoApi(
+  projectId: number
+): Promise<SyncRepoResponse> {
+  return api.post<SyncRepoResponse>(`/api/projects/${projectId}/syncRepo`, {});
+}
+
+export async function fetchRepoInfoApi(
+  projectId: number
+): Promise<RepoInfoResponse> {
+  return api.get<RepoInfoResponse>(`/api/projects/${projectId}/repoInfo`);
 }
