@@ -4,6 +4,7 @@
   "description": "VibeCoding Teaching Platform Backend",
   "type": "module",
   "scripts": {
+    "postinstall": "prisma generate",
     "dev": "tsx watch src/index.ts",
     "start": "tsx src/index.ts",
     "db:generate": "prisma generate",
