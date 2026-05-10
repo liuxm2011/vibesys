@@ -15,3 +15,8 @@ node_modules/
 dist/
 .planning/
 *.pdf
+
+# wrangler files
+.wrangler
+.dev.vars*
+!.dev.vars.example
