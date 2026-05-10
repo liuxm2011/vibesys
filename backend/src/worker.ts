@@ -17,21 +17,20 @@ const app = new Hono<AppEnv>();
 
 app.use('*', cors({
   origin: (origin, c) => {
-    const configuredOrigin = c.env.FRONTEND_URL?.trim();
-    const defaults = ['http://127.0.0.1:5173', 'http://localhost:5173'];
+    if (!origin) return undefined;
 
-    if (!origin) return origin;
+    const allowed = ['http://127.0.0.1:5173', 'http://localhost:5173'];
 
-    if (configuredOrigin) {
-      const normalized = configuredOrigin.replace(/\/+$/, '');
-      if (origin === normalized || defaults.includes(origin)) {
-        return origin;
-      }
-    } else if (defaults.includes(origin)) {
-      return origin;
+    const configured = c.env.FRONTEND_URL?.trim().replace(/\/+$/, '');
+    if (configured) {
+      // Support comma-separated list of origins
+      configured.split(',').forEach(o => {
+        const trimmed = o.trim().replace(/\/+$/, '');
+        if (trimmed) allowed.push(trimmed);
+      });
     }
 
-    return '';
+    return allowed.includes(origin) ? origin : undefined;
   },
   credentials: true,
   allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
