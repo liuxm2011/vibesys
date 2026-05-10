@@ -56,7 +56,12 @@ async function fetchGiteeReadme(owner: string, repo: string): Promise<string | n
     if (!response.ok) return null;
     const data = await response.json() as { content?: string; encoding?: string };
     if (data.content && data.encoding === 'base64') {
-      return Buffer.from(data.content, 'base64').toString('utf-8');
+      const byteString = atob(data.content);
+      const bytes = new Uint8Array(byteString.length);
+      for (let i = 0; i < byteString.length; i++) {
+        bytes[i] = byteString.charCodeAt(i);
+      }
+      return new TextDecoder('utf-8').decode(bytes);
     }
     return null;
   } catch {

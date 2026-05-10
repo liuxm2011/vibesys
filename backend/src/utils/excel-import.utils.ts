@@ -1,5 +1,3 @@
-import * as XLSX from 'xlsx';
-
 export interface TopicImportRow {
   title?: string;
   description?: string;
@@ -45,22 +43,23 @@ const PLATFORM_NAME_MAP: Record<string, string> = {
 
 const VALID_PLATFORMS = new Set(['WEB', 'IOS', 'ANDROID', 'WECHAT_MINI', 'WINDOWS_DESKTOP', 'MAC_DESKTOP']);
 
+async function getXLSX() {
+  try {
+    const XLSX = await import('xlsx');
+    return XLSX;
+  } catch {
+    throw new Error('Excel功能在当前环境不可用，请使用Node.js环境');
+  }
+}
+
 // ============================================================
 // STUDENT IMPORT UTILITIES
 // ============================================================
 
-/**
- * Validate student ID format
- * Format: 231322083 (23=学院, 13=大数据专业/11=软件工程, 22=年级, 083=序号)
- */
 export function validateStudentId(studentId: string): boolean {
   return /^23(11|13)\d{5}$/.test(studentId);
 }
 
-/**
- * Derive major from student ID
- * 11 -> 软件工程, 13 -> 大数据
- */
 export function deriveMajorFromStudentId(studentId: string): string {
   const code = studentId.substring(2, 4);
   if (code === '11') return '软件工程';
@@ -68,25 +67,18 @@ export function deriveMajorFromStudentId(studentId: string): string {
   throw new Error('无效的专业代码');
 }
 
-/**
- * Derive grade from student ID
- * Extract 5-6 position and convert to "20XX级"
- */
 export function deriveGradeFromStudentId(studentId: string): string {
   const gradeCode = studentId.substring(4, 6);
   return `20${gradeCode}级`;
 }
 
-/**
- * Parse Excel buffer into student rows
- */
-export function parseExcelStudents(buffer: Buffer): StudentImportRow[] {
+export async function parseExcelStudents(buffer: Uint8Array | ArrayBuffer): Promise<StudentImportRow[]> {
+  const XLSX = await getXLSX();
   const workbook = XLSX.read(buffer, { type: 'buffer' });
   const sheetName = workbook.SheetNames[0];
   const worksheet = workbook.Sheets[sheetName];
   const data = XLSX.utils.sheet_to_json(worksheet, { header: 1 }) as any[];
 
-  // Skip header row (first row)
   const rows: StudentImportRow[] = [];
   for (let i = 1; i < data.length; i++) {
     const row = data[i];
@@ -96,7 +88,6 @@ export function parseExcelStudents(buffer: Buffer): StudentImportRow[] {
     const name = row[1]?.toString().trim() || '';
     const classField = row[2]?.toString().trim() || '';
 
-    // Skip empty rows (both studentId and name are empty)
     if (!studentId && !name) continue;
 
     rows.push({
@@ -109,14 +100,9 @@ export function parseExcelStudents(buffer: Buffer): StudentImportRow[] {
   return rows;
 }
 
-/**
- * Validate a single student import row
- * Returns array of error messages, empty array means valid
- */
 export function validateStudentRow(row: StudentImportRow, existingIds: Set<string>): string[] {
   const errors: string[] = [];
 
-  // Check student ID
   if (!row.studentId) {
     errors.push('学号不能为空');
   } else if (!validateStudentId(row.studentId)) {
@@ -125,7 +111,6 @@ export function validateStudentRow(row: StudentImportRow, existingIds: Set<strin
     errors.push('学号已存在');
   }
 
-  // Check name
   if (!row.name) {
     errors.push('姓名不能为空');
   } else if (row.name.length < 2 || row.name.length > 20) {
@@ -135,26 +120,20 @@ export function validateStudentRow(row: StudentImportRow, existingIds: Set<strin
   return errors;
 }
 
-/**
- * Generate Excel template buffer for student import
- */
-export function generateStudentTemplateBuffer(): Buffer {
+export async function generateStudentTemplateBuffer(): Promise<Uint8Array> {
+  const XLSX = await getXLSX();
   const workbook = XLSX.utils.book_new();
 
-  // Header row
   const headers = ['学号', '姓名', '班级'];
-
-  // Example data row
   const example = ['231322083', '张三', '2301'];
 
   const wsData = [headers, example];
   const worksheet = XLSX.utils.aoa_to_sheet(wsData);
 
-  // Set column widths
   worksheet['!cols'] = [
-    { wch: 15 },  // 学号
-    { wch: 15 },  // 姓名
-    { wch: 10 }   // 班级
+    { wch: 15 },
+    { wch: 15 },
+    { wch: 10 }
   ];
 
   XLSX.utils.book_append_sheet(workbook, worksheet, '学生导入模板');
@@ -162,22 +141,18 @@ export function generateStudentTemplateBuffer(): Buffer {
   return XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' });
 }
 
-/**
- * Parse Excel buffer into topic rows
- */
-export function parseExcelTopics(buffer: Buffer): TopicImportRow[] {
+export async function parseExcelTopics(buffer: Uint8Array | ArrayBuffer): Promise<TopicImportRow[]> {
+  const XLSX = await getXLSX();
   const workbook = XLSX.read(buffer, { type: 'buffer' });
   const sheetName = workbook.SheetNames[0];
   const worksheet = workbook.Sheets[sheetName];
   const data = XLSX.utils.sheet_to_json<TopicImportRow>(worksheet, { header: 1 });
 
-  // Skip header row (first row)
   const rows: TopicImportRow[] = [];
   for (let i = 1; i < data.length; i++) {
     const row = data[i] as any[];
     if (!row || row.length === 0) continue;
 
-    // Map display name to enum value
     const platformDisplay = row[5]?.toString().trim() || '';
     const platform = PLATFORM_NAME_MAP[platformDisplay] || platformDisplay;
 
@@ -195,9 +170,6 @@ export function parseExcelTopics(buffer: Buffer): TopicImportRow[] {
   return rows;
 }
 
-/**
- * Validate a single topic import row
- */
 export function validateTopicRow(row: TopicImportRow): string[] {
   const errors: string[] = [];
 
@@ -220,16 +192,12 @@ export function validateTopicRow(row: TopicImportRow): string[] {
   return errors;
 }
 
-/**
- * Generate Excel template buffer for import
- */
-export function generateTemplateBuffer(): Buffer {
+export async function generateTemplateBuffer(): Promise<Uint8Array> {
+  const XLSX = await getXLSX();
   const workbook = XLSX.utils.book_new();
 
-  // Header row
   const headers = ['标题', '描述', '背景', '目标', '领域(SE/BD)', '运行平台', '技术栈(逗号分隔)'];
 
-  // Example data row
   const example = [
     '在线图书管理系统',
     '开发一个完整的在线图书管理平台，支持图书借阅、归还、查询等功能',
@@ -243,15 +211,14 @@ export function generateTemplateBuffer(): Buffer {
   const wsData = [headers, example];
   const worksheet = XLSX.utils.aoa_to_sheet(wsData);
 
-  // Set column widths
   worksheet['!cols'] = [
-    { wch: 25 },  // 标题
-    { wch: 50 },  // 描述
-    { wch: 40 },  // 背景
-    { wch: 40 },  // 目标
-    { wch: 15 },  // 领域
-    { wch: 15 },  // 运行平台
-    { wch: 35 }   // 技术栈
+    { wch: 25 },
+    { wch: 50 },
+    { wch: 40 },
+    { wch: 40 },
+    { wch: 15 },
+    { wch: 15 },
+    { wch: 35 }
   ];
 
   XLSX.utils.book_append_sheet(workbook, worksheet, '选题导入模板');

@@ -1,6 +1,6 @@
-import jwt from 'jsonwebtoken';
+import { sign, verify } from 'hono/utils/jwt/jwt';
 
-const JWT_EXPIRES_IN = '7d';
+const JWT_EXPIRATION_SECONDS = 7 * 24 * 60 * 60;
 
 export interface JwtPayload {
   userId: number;
@@ -9,25 +9,27 @@ export interface JwtPayload {
   role: 'STUDENT' | 'ADMIN';
 }
 
-export function signToken(payload: JwtPayload, secret: string): string {
-  return jwt.sign(payload, secret, { expiresIn: JWT_EXPIRES_IN });
+export async function signToken(payload: JwtPayload, secret: string): Promise<string> {
+  const now = Math.floor(Date.now() / 1000);
+  return sign(
+    {
+      ...payload,
+      iat: now,
+      exp: now + JWT_EXPIRATION_SECONDS,
+    },
+    secret
+  );
 }
 
-export function verifyToken(token: string, secret: string): JwtPayload | null {
+export async function verifyToken(token: string, secret: string): Promise<JwtPayload | null> {
   try {
-    const decoded = jwt.verify(token, secret) as JwtPayload;
-    return decoded;
-  } catch (error) {
-    if (error instanceof jwt.TokenExpiredError) {
-      return null;
-    }
-    if (error instanceof jwt.JsonWebTokenError) {
-      return null;
-    }
-    throw error;
+    const decoded = await verify(token, secret, 'HS256');
+    return decoded as unknown as JwtPayload;
+  } catch {
+    return null;
   }
 }
 
 export function getJwtExpirationMs(): number {
-  return 7 * 24 * 60 * 60 * 1000;
+  return JWT_EXPIRATION_SECONDS * 1000;
 }

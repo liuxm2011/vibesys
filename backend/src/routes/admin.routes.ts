@@ -359,8 +359,8 @@ router.post('/users/import', async (c) => {
       return c.json({ error: '请上传 Excel 文件' }, 400);
     }
 
-    const buffer = Buffer.from(await file.arrayBuffer());
-    const rows = parseExcelStudents(buffer);
+    const buffer = new Uint8Array(await file.arrayBuffer());
+    const rows = await parseExcelStudents(buffer);
     const errors: { row: number; reason: string }[] = [];
     let imported = 0;
 
@@ -418,7 +418,7 @@ router.post('/users/import', async (c) => {
 
 router.get('/users/template', async (c) => {
   try {
-    const buffer = generateStudentTemplateBuffer();
+    const buffer = await generateStudentTemplateBuffer();
     c.header('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
     c.header(
       'Content-Disposition',
@@ -654,8 +654,8 @@ router.post('/topics/import', async (c) => {
       return c.json({ error: '请上传 Excel 文件' }, 400);
     }
 
-    const buffer = Buffer.from(await file.arrayBuffer());
-    const rows = parseExcelTopics(buffer);
+    const buffer = new Uint8Array(await file.arrayBuffer());
+    const rows = await parseExcelTopics(buffer);
     const errors: { row: number; reason: string }[] = [];
     let imported = 0;
 
@@ -700,7 +700,7 @@ router.post('/topics/import', async (c) => {
 
 router.get('/topics/template', async (c) => {
   try {
-    const buffer = generateTemplateBuffer();
+    const buffer = await generateTemplateBuffer();
     c.header('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
     c.header(
       'Content-Disposition',

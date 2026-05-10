@@ -10,7 +10,7 @@ export const authMiddleware = createMiddleware<AppEnv>(async (c, next) => {
     return c.json({ error: '请先登录' }, 401);
   }
 
-  const payload = verifyToken(token, c.env.JWT_SECRET);
+  const payload = await verifyToken(token, c.env.JWT_SECRET);
 
   if (!payload) {
     return c.json({ error: '登录已过期，请重新登录' }, 401);

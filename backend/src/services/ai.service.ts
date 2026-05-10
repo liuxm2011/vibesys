@@ -1,5 +1,4 @@
 import { DocType, Domain, Platform } from '@prisma/client';
-import crypto from 'crypto';
 import { apiProviderService } from './apiProvider.service.js';
 import { getPRDPromptTemplate } from '../prompts/prd.template.js';
 import { getFrontendPromptTemplate } from '../prompts/frontend.template.js';
@@ -245,7 +244,7 @@ These guidelines are working if: fewer unnecessary changes in diffs, fewer rewri
   /**
    * Generate cache key from docType and topic info
    */
-  private generateCacheKey(docType: DocType, topicInfo: TopicInfo): string {
+  private async generateCacheKey(docType: DocType, topicInfo: TopicInfo): Promise<string> {
     const payload = {
       docType,
       title: topicInfo.title,
@@ -258,10 +257,10 @@ These guidelines are working if: fewer unnecessary changes in diffs, fewer rewri
         .sort(([left], [right]) => left.localeCompare(right))
     };
 
-    return crypto
-      .createHash('md5')
-      .update(JSON.stringify(payload))
-      .digest('hex');
+    const data = new TextEncoder().encode(JSON.stringify(payload));
+    const hashBuffer = await crypto.subtle.digest('MD5', data);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
   }
 
   private async getConfig(userId?: number, prisma?: any, env?: { MINIMAX_BASE_URL?: string; MINIMAX_API_KEY?: string; MINIMAX_MODEL?: string }) {
@@ -329,7 +328,7 @@ These guidelines are working if: fewer unnecessary changes in diffs, fewer rewri
       return { content, usage };
     }
 
-    const cacheKey = this.generateCacheKey(docType, topicInfo);
+    const cacheKey = await this.generateCacheKey(docType, topicInfo);
     const bypassCache = options.bypassCache === true;
 
     if (!bypassCache) {
@@ -408,7 +407,7 @@ These guidelines are working if: fewer unnecessary changes in diffs, fewer rewri
       return { content: finalized, usage };
     }
 
-    const cacheKey = this.generateCacheKey(docType, topicInfo);
+    const cacheKey = await this.generateCacheKey(docType, topicInfo);
     const bypassCache = options.bypassCache === true;
 
     if (!bypassCache) {

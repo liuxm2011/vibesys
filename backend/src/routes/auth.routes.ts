@@ -41,7 +41,7 @@ router.post('/login', loginLimiter, async (c) => {
       role: user.role
     };
 
-    const token = signToken(payload, c.env.JWT_SECRET);
+    const token = await signToken(payload, c.env.JWT_SECRET);
 
     setCookie(c, 'token', token, {
       httpOnly: true,
