@@ -399,7 +399,7 @@ router.post('/generate/stream', authMiddleware, checkBannedMiddleware, async (c)
 
       await recordAiUsage(prisma, userId, parsedProjectId, docType, 'generate_stream', result.usage, 'success');
 
-      stream.writeSSE({ event: 'complete', data: JSON.stringify({ document }) });
+      await stream.writeSSE({ event: 'complete', data: JSON.stringify({ document }) });
     } catch (error) {
       if (clientAbortController.signal.aborted) {
         return;
@@ -407,7 +407,7 @@ router.post('/generate/stream', authMiddleware, checkBannedMiddleware, async (c)
 
       console.error('Graduation document stream error:', error);
       const errMsg = error instanceof Error ? error.message : '生成失败';
-      stream.writeSSE({ event: 'error', data: JSON.stringify({ message: errMsg }) });
+      await stream.writeSSE({ event: 'error', data: JSON.stringify({ message: errMsg }) });
     }
   });
 });

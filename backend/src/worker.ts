@@ -26,7 +26,7 @@ app.use('*', cors({
     const configured = c.env.FRONTEND_URL?.trim().replace(/\/+$/, '');
     if (configured) {
       // Support comma-separated list of origins
-      configured.split(',').forEach(o => {
+      configured.split(',').forEach((o: string) => {
         const trimmed = o.trim().replace(/\/+$/, '');
         if (trimmed) allowed.push(trimmed);
       });

@@ -326,7 +326,7 @@ router.post('/generate/stream', authMiddleware, checkBannedMiddleware, async (c)
         }
       }
 
-      stream.writeSSE({ event: 'complete', data: JSON.stringify({ document }) });
+      await stream.writeSSE({ event: 'complete', data: JSON.stringify({ document }) });
     } catch (error) {
       if (clientAbortController.signal.aborted) {
         return;
@@ -347,7 +347,7 @@ router.post('/generate/stream', authMiddleware, checkBannedMiddleware, async (c)
         errorMsg
       );
 
-      stream.writeSSE({
+      await stream.writeSSE({
         event: 'error',
         data: JSON.stringify({
           error: isTimeout
@@ -606,7 +606,7 @@ router.post('/review/stream', authMiddleware, checkBannedMiddleware, async (c) =
         }
       });
 
-      stream.writeSSE({ event: 'complete', data: JSON.stringify({ review: reviewResult }) });
+      await stream.writeSSE({ event: 'complete', data: JSON.stringify({ review: reviewResult }) });
     } catch (error) {
       if (clientAbortController.signal.aborted) {
         return;
@@ -614,7 +614,7 @@ router.post('/review/stream', authMiddleware, checkBannedMiddleware, async (c) =
 
       console.error('AI review streaming error:', error);
 
-      stream.writeSSE({
+      await stream.writeSSE({
         event: 'error',
         data: JSON.stringify({
           error: error instanceof Error && error.message.includes('timeout')
