@@ -122,25 +122,23 @@ class ApiProviderService {
   }) {
     const { isActive, ...rest } = data;
 
-    return prisma.$transaction(async (tx) => {
-      if (isActive) {
-        await tx.apiProvider.updateMany({
-          where: { isActive: true },
-          data: { isActive: false }
-        });
+    if (isActive) {
+      await prisma.apiProvider.updateMany({
+        where: { isActive: true },
+        data: { isActive: false }
+      });
+    }
+
+    const maxOrder = await prisma.apiProvider.aggregate({
+      _max: { orderIndex: true }
+    });
+
+    return prisma.apiProvider.create({
+      data: {
+        ...rest,
+        isActive: isActive || false,
+        orderIndex: (maxOrder._max.orderIndex ?? -1) + 1
       }
-
-      const maxOrder = await tx.apiProvider.aggregate({
-        _max: { orderIndex: true }
-      });
-
-      return tx.apiProvider.create({
-        data: {
-          ...rest,
-          isActive: isActive || false,
-          orderIndex: (maxOrder._max.orderIndex ?? -1) + 1
-        }
-      });
     });
   }
 
@@ -159,21 +157,19 @@ class ApiProviderService {
   ) {
     const { isActive, ...rest } = data;
 
-    return prisma.$transaction(async (tx) => {
-      if (isActive) {
-        await tx.apiProvider.updateMany({
-          where: { isActive: true, id: { not: id } },
-          data: { isActive: false }
-        });
-      }
-
-      return tx.apiProvider.update({
-        where: { id },
-        data: {
-          ...rest,
-          ...(isActive !== undefined ? { isActive } : {})
-        }
+    if (isActive) {
+      await prisma.apiProvider.updateMany({
+        where: { isActive: true, id: { not: id } },
+        data: { isActive: false }
       });
+    }
+
+    return prisma.apiProvider.update({
+      where: { id },
+      data: {
+        ...rest,
+        ...(isActive !== undefined ? { isActive } : {})
+      }
     });
   }
 
@@ -182,16 +178,14 @@ class ApiProviderService {
   }
 
   async setActiveProvider(prisma: PrismaClient, id: number) {
-    return prisma.$transaction(async (tx) => {
-      await tx.apiProvider.updateMany({
-        where: { isActive: true },
-        data: { isActive: false }
-      });
+    await prisma.apiProvider.updateMany({
+      where: { isActive: true },
+      data: { isActive: false }
+    });
 
-      return tx.apiProvider.update({
-        where: { id },
-        data: { isActive: true }
-      });
+    return prisma.apiProvider.update({
+      where: { id },
+      data: { isActive: true }
     });
   }
 
