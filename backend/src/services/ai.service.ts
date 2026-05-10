@@ -84,7 +84,9 @@ export interface GenerationProgress {
 interface GenerationOptions {
   bypassCache?: boolean;
   signal?: AbortSignal;
-  userId?: number; // 用于读取用户个人 API 设置
+  userId?: number;
+  prisma?: any;
+  env?: { MINIMAX_BASE_URL?: string; MINIMAX_API_KEY?: string; MINIMAX_MODEL?: string };
 }
 
 interface PendingRequest {
@@ -149,6 +151,14 @@ interface SectionRange {
 }
 
 export class AIService {
+  private _prisma?: any;
+  private _env?: { MINIMAX_BASE_URL?: string; MINIMAX_API_KEY?: string; MINIMAX_MODEL?: string };
+
+  setContext(prisma: any, env?: { MINIMAX_BASE_URL?: string; MINIMAX_API_KEY?: string; MINIMAX_MODEL?: string }) {
+    this._prisma = prisma;
+    this._env = env;
+  }
+
   private readonly AGENTS_AUDIT_REWRITE_PRIORITY_SECTION = `## 最高优先规则
 
 1. 在开始任何编码、拆任务、写实现或调用外部 AI 工具之前，必须先审核全部 7 份项目文档：PRD.md、Frontend.md、Backend.md、API.md、task.md、context_state.md、AGENTS.md。
@@ -254,11 +264,16 @@ These guidelines are working if: fewer unnecessary changes in diffs, fewer rewri
       .digest('hex');
   }
 
-  private async getConfig(userId?: number) {
-    // Priority: user's personal setting > system active provider > env vars
-    const providerConfig = userId
-      ? await apiProviderService.getConfigForUser(userId)
-      : await apiProviderService.getEffectiveConfig();
+  private async getConfig(userId?: number, prisma?: any, env?: { MINIMAX_BASE_URL?: string; MINIMAX_API_KEY?: string; MINIMAX_MODEL?: string }) {
+    const p = prisma || this._prisma;
+    const e = env || this._env;
+    const providerConfig = userId && p
+      ? await apiProviderService.getConfigForUser(p, userId, e)
+      : p
+        ? await apiProviderService.getEffectiveConfig(p, e)
+        : userId
+          ? await apiProviderService.getConfigForUser(userId)
+          : await apiProviderService.getEffectiveConfig();
     const mockMode = process.env.MOCK_AI === 'true' || process.env.MOCK_AI === '1';
 
     if (!providerConfig.apiKey && !mockMode) {
@@ -304,7 +319,7 @@ These guidelines are working if: fewer unnecessary changes in diffs, fewer rewri
     topicInfo: TopicInfo,
     options: GenerationOptions = {}
   ): Promise<{ content: string; usage: TokenUsage }> {
-    const config = await this.getConfig(options.userId);
+    const config = await this.getConfig(options.userId, options.prisma, options.env);
 
     // Mock mode for development/testing when API is unavailable
     if (config.mockMode) {
@@ -377,7 +392,7 @@ These guidelines are working if: fewer unnecessary changes in diffs, fewer rewri
     onProgress: (progress: GenerationProgress) => void,
     options: GenerationOptions = {}
   ): Promise<{ content: string; usage: TokenUsage }> {
-    const config = await this.getConfig(options.userId);
+    const config = await this.getConfig(options.userId, options.prisma, options.env);
 
     if (config.mockMode) {
       const content = await this.streamMockDocument(docType, topicInfo, onProgress);
@@ -1670,9 +1685,11 @@ ${getAgentsPromptTemplate(domain)}
     allDocs: Record<string, string>,
     onProgress: (phase: string) => void,
     signal?: AbortSignal,
-    userId?: number
+    userId?: number,
+    prisma?: any,
+    env?: { MINIMAX_BASE_URL?: string; MINIMAX_API_KEY?: string; MINIMAX_MODEL?: string }
   ): Promise<ReviewResult> {
-    const config = await this.getConfig(userId);
+    const config = await this.getConfig(userId, prisma, env);
 
     if (config.mockMode) {
       onProgress('正在加载并解析 7 份文档内容...\n');
@@ -1882,9 +1899,11 @@ ${getAgentsPromptTemplate(domain)}
   async reviewDocuments(
     topicInfo: TopicInfo,
     allDocs: Record<string, string>,
-    userId?: number
+    userId?: number,
+    prisma?: any,
+    env?: { MINIMAX_BASE_URL?: string; MINIMAX_API_KEY?: string; MINIMAX_MODEL?: string }
   ): Promise<ReviewResult> {
-    const config = await this.getConfig(userId);
+    const config = await this.getConfig(userId, prisma, env);
 
     if (config.mockMode) {
       return this.generateMockReviewResult();

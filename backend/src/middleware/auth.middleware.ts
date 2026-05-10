@@ -1,47 +1,29 @@
-import { Request, Response, NextFunction } from 'express';
-import { verifyToken, JwtPayload } from '../utils/jwt.utils.js';
+import { createMiddleware } from 'hono/factory';
+import { getCookie } from 'hono/cookie';
+import { verifyToken } from '../utils/jwt.utils.js';
+import type { AppEnv } from '../types.js';
 
-// Extend Express Request to include user property
-declare module 'express' {
-  interface Request {
-    user?: JwtPayload;
-  }
-}
-
-/**
- * Auth middleware that verifies JWT from httpOnly cookie (D-12)
- * Sets req.user with decoded payload if valid
- * Returns unified error message per D-20
- */
-export function authMiddleware(req: Request, res: Response, next: NextFunction): void {
-  const token = req.cookies?.token;
+export const authMiddleware = createMiddleware<AppEnv>(async (c, next) => {
+  const token = getCookie(c, 'token');
 
   if (!token) {
-    res.status(401).json({ error: '请先登录' });
-    return;
+    return c.json({ error: '请先登录' }, 401);
   }
 
-  const payload = verifyToken(token);
+  const payload = verifyToken(token, c.env.JWT_SECRET);
 
   if (!payload) {
-    // Token expired or invalid - unified error per D-20
-    res.status(401).json({ error: '登录已过期，请重新登录' });
-    return;
+    return c.json({ error: '登录已过期，请重新登录' }, 401);
   }
 
-  // Attach user to request for downstream handlers
-  req.user = payload;
-  next();
-}
+  c.set('user', payload);
+  await next();
+});
 
-/**
- * Admin-only middleware (checks role after auth)
- * Must be used after authMiddleware
- */
-export function adminOnlyMiddleware(req: Request, res: Response, next: NextFunction): void {
-  if (req.user?.role !== 'ADMIN') {
-    res.status(403).json({ error: '权限不足' });
-    return;
+export const adminOnlyMiddleware = createMiddleware<AppEnv>(async (c, next) => {
+  const user = c.get('user');
+  if (user?.role !== 'ADMIN') {
+    return c.json({ error: '权限不足' }, 403);
   }
-  next();
-}
+  await next();
+});

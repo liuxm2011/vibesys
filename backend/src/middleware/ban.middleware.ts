@@ -1,33 +1,31 @@
-import { Request, Response, NextFunction } from 'express';
-import { prisma } from '../index.js';
+import { createMiddleware } from 'hono/factory';
+import type { AppEnv } from '../types.js';
 
-/**
- * Check if user is banned before allowing sensitive operations
- * Phase 5: ADM-06 - banned users cannot create projects or edit documents
- */
-export async function checkBannedMiddleware(req: Request, res: Response, next: NextFunction) {
+export const checkBannedMiddleware = createMiddleware<AppEnv>(async (c, next) => {
   try {
-    const userId = req.user?.userId;
-    if (!userId) {
-      return res.status(401).json({ error: '未认证' });
+    const user = c.get('user');
+    const prisma = c.get('prisma');
+
+    if (!user?.userId) {
+      return c.json({ error: '未认证' }, 401);
     }
 
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
+    const dbUser = await prisma.user.findUnique({
+      where: { id: user.userId },
       select: { status: true }
     });
 
-    if (!user) {
-      return res.status(404).json({ error: '用户不存在' });
+    if (!dbUser) {
+      return c.json({ error: '用户不存在' }, 404);
     }
 
-    if (user.status === 'BANNED') {
-      return res.status(403).json({ error: '账号已被封禁，无法执行此操作' });
+    if (dbUser.status === 'BANNED') {
+      return c.json({ error: '账号已被封禁，无法执行此操作' }, 403);
     }
 
-    next();
+    await next();
   } catch (error) {
     console.error('Ban check error:', error);
-    res.status(500).json({ error: '服务器错误' });
+    return c.json({ error: '服务器错误' }, 500);
   }
-}
+});

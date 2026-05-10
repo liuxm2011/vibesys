@@ -1,38 +1,23 @@
-import { prisma } from '../index.js';
+import { PrismaClient } from '@prisma/client';
+import { prisma as globalPrisma } from '../index.js';
 
-/**
- * API Provider Configuration returned to consumers
- */
 export interface ProviderConfig {
   baseURL: string;
   apiKey: string;
   model: string;
   providerType: string;
   name: string;
-  /**
-   * Whether this config comes from database (true) or environment fallback (false)
-   */
   fromDatabase: boolean;
 }
 
-/**
- * Service for managing AI API provider configurations.
- *
- * Supports two modes:
- * 1. Database-managed: admin can CRUD providers and switch active one via admin UI
- * 2. Environment fallback: when no active provider exists in DB, reads from .env (MINIMAX_BASE_URL, etc.)
- */
 class ApiProviderService {
-  /**
-   * Get the effective provider configuration.
-   *
-   * Priority:
-   * 1. Active provider from database (isActive = true)
-   * 2. Fallback to environment variables (MINIMAX_BASE_URL, MINIMAX_API_KEY, MINIMAX_MODEL)
-   */
-  async getEffectiveConfig(): Promise<ProviderConfig> {
-    // Try database first
-    const activeProvider = await prisma.apiProvider.findFirst({
+  private getPrisma(p?: PrismaClient): PrismaClient {
+    return p || globalPrisma;
+  }
+
+  async getEffectiveConfig(prisma?: PrismaClient, env?: { MINIMAX_BASE_URL?: string; MINIMAX_API_KEY?: string; MINIMAX_MODEL?: string }): Promise<ProviderConfig> {
+    const p = this.getPrisma(prisma as any);
+    const activeProvider = await p.apiProvider.findFirst({
       where: { isActive: true },
       orderBy: { updatedAt: 'desc' }
     });
@@ -49,30 +34,34 @@ class ApiProviderService {
       };
     }
 
-    // Fallback to environment variables
     console.log('[ApiProvider] No active provider in DB, falling back to environment variables');
     return {
-      baseURL: process.env.MINIMAX_BASE_URL || 'https://api.minimax.chat/v1',
-      apiKey: process.env.MINIMAX_API_KEY || '',
-      model: process.env.MINIMAX_MODEL || 'minimax-m2-7',
+      baseURL: env?.MINIMAX_BASE_URL || process.env.MINIMAX_BASE_URL || 'https://api.minimax.chat/v1',
+      apiKey: env?.MINIMAX_API_KEY || process.env.MINIMAX_API_KEY || '',
+      model: env?.MINIMAX_MODEL || process.env.MINIMAX_MODEL || 'minimax-m2-7',
       providerType: 'minimax',
       name: 'Environment (.env)',
       fromDatabase: false,
     };
   }
 
-  /**
-   * Get the effective configuration for a specific user.
-   *
-   * Priority:
-   * 1. User's personal API setting (if they configured one)
-   * 2. Active provider from database (admin-configured)
-   * 3. Fallback to environment variables
-   */
-  async getConfigForUser(userId: number): Promise<ProviderConfig> {
-    // 1. Check user's personal API setting
-    const userSetting = await prisma.userApiSetting.findUnique({
-      where: { userId }
+  async getConfigForUser(prisma: PrismaClient | number, userIdOrEnv?: number | { MINIMAX_BASE_URL?: string; MINIMAX_API_KEY?: string; MINIMAX_MODEL?: string }, env?: { MINIMAX_BASE_URL?: string; MINIMAX_API_KEY?: string; MINIMAX_MODEL?: string }): Promise<ProviderConfig> {
+    let p: PrismaClient;
+    let userId: number | undefined;
+    let effectiveEnv: { MINIMAX_BASE_URL?: string; MINIMAX_API_KEY?: string; MINIMAX_MODEL?: string } | undefined;
+
+    if (typeof prisma === 'number') {
+      p = this.getPrisma();
+      userId = prisma;
+      effectiveEnv = userIdOrEnv as any;
+    } else {
+      p = this.getPrisma(prisma);
+      userId = userIdOrEnv as number;
+      effectiveEnv = env;
+    }
+
+    const userSetting = await p.userApiSetting.findUnique({
+      where: { userId: userId! }
     });
 
     if (userSetting?.apiKey && userSetting?.baseURL && userSetting?.model) {
@@ -87,43 +76,28 @@ class ApiProviderService {
       };
     }
 
-    // 2. Fall back to system-level config
-    return this.getEffectiveConfig();
+    return this.getEffectiveConfig(p, effectiveEnv);
   }
 
-  /**
-   * Check if a valid provider configuration is available
-   */
-  async isConfigured(): Promise<boolean> {
-    const config = await this.getEffectiveConfig();
+  async isConfigured(prisma?: PrismaClient, env?: { MINIMAX_BASE_URL?: string; MINIMAX_API_KEY?: string; MINIMAX_MODEL?: string }): Promise<boolean> {
+    const config = await this.getEffectiveConfig(prisma, env);
     return !!config.apiKey;
   }
 
-  // ============================================================
-  // CRUD operations (for admin routes)
-  // ============================================================
-
-  /**
-   * Get all API providers
-   */
-  async getAllProviders() {
-    return prisma.apiProvider.findMany({
+  async getAllProviders(prisma?: PrismaClient) {
+    const p = this.getPrisma(prisma as any);
+    return p.apiProvider.findMany({
       orderBy: { orderIndex: 'asc' }
     });
   }
 
-  /**
-   * Get provider by ID
-   */
-  async getProviderById(id: number) {
-    return prisma.apiProvider.findUnique({ where: { id } });
+  async getProviderById(prisma: PrismaClient | number, idOrUndefined?: number) {
+    const p = typeof prisma === 'number' ? this.getPrisma() : this.getPrisma(prisma);
+    const id = typeof prisma === 'number' ? prisma : idOrUndefined!;
+    return p.apiProvider.findUnique({ where: { id } });
   }
 
-  /**
-   * Create a new API provider.
-   * If `isActive` is true, all other providers will be deactivated first.
-   */
-  async createProvider(data: {
+  async createProvider(prisma: PrismaClient, data: {
     name: string;
     providerType: string;
     baseURL: string;
@@ -135,7 +109,6 @@ class ApiProviderService {
     const { isActive, ...rest } = data;
 
     return prisma.$transaction(async (tx) => {
-      // If setting as active, deactivate all others
       if (isActive) {
         await tx.apiProvider.updateMany({
           where: { isActive: true },
@@ -143,7 +116,6 @@ class ApiProviderService {
         });
       }
 
-      // Get max orderIndex
       const maxOrder = await tx.apiProvider.aggregate({
         _max: { orderIndex: true }
       });
@@ -158,11 +130,8 @@ class ApiProviderService {
     });
   }
 
-  /**
-   * Update an existing API provider.
-   * If `isActive` is set to true, all other providers will be deactivated first.
-   */
   async updateProvider(
+    prisma: PrismaClient,
     id: number,
     data: {
       name?: string;
@@ -177,7 +146,6 @@ class ApiProviderService {
     const { isActive, ...rest } = data;
 
     return prisma.$transaction(async (tx) => {
-      // If setting as active, deactivate all others
       if (isActive) {
         await tx.apiProvider.updateMany({
           where: { isActive: true, id: { not: id } },
@@ -195,26 +163,17 @@ class ApiProviderService {
     });
   }
 
-  /**
-   * Delete an API provider
-   */
-  async deleteProvider(id: number) {
+  async deleteProvider(prisma: PrismaClient, id: number) {
     return prisma.apiProvider.delete({ where: { id } });
   }
 
-  /**
-   * Set a provider as the active provider.
-   * Deactivates all other providers.
-   */
-  async setActiveProvider(id: number) {
+  async setActiveProvider(prisma: PrismaClient, id: number) {
     return prisma.$transaction(async (tx) => {
-      // Deactivate all
       await tx.apiProvider.updateMany({
         where: { isActive: true },
         data: { isActive: false }
       });
 
-      // Activate the target provider
       return tx.apiProvider.update({
         where: { id },
         data: { isActive: true }
@@ -222,16 +181,15 @@ class ApiProviderService {
     });
   }
 
-  /**
-   * Test a provider's API connection by making a simple chat completion request.
-   * Returns the test result including latency.
-   */
-  async testProviderConnection(id: number): Promise<{
+  async testProviderConnection(prisma: PrismaClient | number, idOrUndefined?: number): Promise<{
     success: boolean;
     latencyMs: number;
     message: string;
   }> {
-    const provider = await prisma.apiProvider.findUnique({ where: { id } });
+    const p = typeof prisma === 'number' ? this.getPrisma() : this.getPrisma(prisma);
+    const id = typeof prisma === 'number' ? prisma : idOrUndefined!;
+
+    const provider = await p.apiProvider.findUnique({ where: { id } });
     if (!provider) {
       return { success: false, latencyMs: 0, message: 'Provider not found' };
     }
@@ -253,7 +211,7 @@ class ApiProviderService {
           max_tokens: 10,
           temperature: 0,
         }),
-        signal: AbortSignal.timeout(30000), // 30s timeout for test
+        signal: AbortSignal.timeout(30000),
       });
 
       const latencyMs = Date.now() - startTime;

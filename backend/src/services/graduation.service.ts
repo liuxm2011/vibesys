@@ -56,12 +56,22 @@ interface StreamChunkResponse {
 
 export class GraduationService {
   private readonly REQUEST_TIMEOUT = 600_000;
+  private _prisma?: any;
+  private _env?: { MINIMAX_BASE_URL?: string; MINIMAX_API_KEY?: string; MINIMAX_MODEL?: string };
+
+  setContext(prisma: any, env?: { MINIMAX_BASE_URL?: string; MINIMAX_API_KEY?: string; MINIMAX_MODEL?: string }) {
+    this._prisma = prisma;
+    this._env = env;
+  }
 
   private async getConfig(userId?: number) {
-    // Priority: user's personal setting > system active provider > env vars
-    const providerConfig = userId
-      ? await apiProviderService.getConfigForUser(userId)
-      : await apiProviderService.getEffectiveConfig();
+    const providerConfig = this._prisma
+      ? (userId
+        ? await apiProviderService.getConfigForUser(this._prisma, userId, this._env)
+        : await apiProviderService.getEffectiveConfig(this._prisma, this._env))
+      : (userId
+        ? await apiProviderService.getConfigForUser(userId)
+        : await apiProviderService.getEffectiveConfig());
     const mockMode = process.env.MOCK_AI === 'true' || process.env.MOCK_AI === '1';
 
     if (!providerConfig.apiKey && !mockMode) {

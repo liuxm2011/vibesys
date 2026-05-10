@@ -1,36 +1,32 @@
-import { Router, Request, Response } from 'express';
-import { prisma } from '../index.js';
+import { Hono } from 'hono';
 import { authMiddleware } from '../middleware/auth.middleware.js';
+import type { AppEnv } from '../types.js';
 
-const router = Router();
+const router = new Hono<AppEnv>();
 
-// All user routes require authentication
-router.use(authMiddleware);
+router.use('*', authMiddleware);
 
-/**
- * GET /api/user/api-setting
- * Get the current user's personal API setting
- */
-router.get('/api-setting', async (req: Request, res: Response) => {
+router.get('/api-setting', async (c) => {
   try {
-    const userId = req.user!.userId;
+    const user = c.get('user');
+    const prisma = c.get('prisma');
+    const userId = user.userId;
     const setting = await prisma.userApiSetting.findUnique({
       where: { userId }
     });
 
     if (!setting) {
-      return res.json({
+      return c.json({
         exists: false,
         setting: null
       });
     }
 
-    // Mask API key for security
     const maskedKey = setting.apiKey
       ? `${setting.apiKey.slice(0, 8)}...${setting.apiKey.slice(-4)}`
       : '';
 
-    res.json({
+    return c.json({
       exists: true,
       setting: {
         id: setting.id,
@@ -43,33 +39,29 @@ router.get('/api-setting', async (req: Request, res: Response) => {
     });
   } catch (error) {
     console.error('Get user API setting error:', error);
-    res.status(500).json({ error: '获取API设置失败' });
+    return c.json({ error: '获取API设置失败' }, 500);
   }
 });
 
-/**
- * PUT /api/user/api-setting
- * Save or update the current user's personal API setting.
- * If apiKey is omitted/empty, the existing key is preserved.
- */
-router.put('/api-setting', async (req: Request, res: Response) => {
+router.put('/api-setting', async (c) => {
   try {
-    const userId = req.user!.userId;
-    const { baseURL, apiKey, model } = req.body;
+    const user = c.get('user');
+    const prisma = c.get('prisma');
+    const userId = user.userId;
+    const { baseURL, apiKey, model } = await c.req.json();
 
     if (!baseURL) {
-      return res.status(400).json({ error: 'API地址不能为空' });
+      return c.json({ error: 'API地址不能为空' }, 400);
     }
     if (!model) {
-      return res.status(400).json({ error: '请选择模型' });
+      return c.json({ error: '请选择模型' }, 400);
     }
 
-    // If apiKey is not provided, preserve the existing one
     let finalApiKey = apiKey;
     if (!finalApiKey) {
       const existing = await prisma.userApiSetting.findUnique({ where: { userId } });
       if (!existing) {
-        return res.status(400).json({ error: '首次设置必须提供 API Key' });
+        return c.json({ error: '首次设置必须提供 API Key' }, 400);
       }
       finalApiKey = existing.apiKey;
     }
@@ -80,7 +72,7 @@ router.put('/api-setting', async (req: Request, res: Response) => {
       create: { userId, baseURL: baseURL || '', apiKey: finalApiKey, model: model || '' }
     });
 
-    res.json({
+    return c.json({
       message: 'API设置已保存',
       setting: {
         id: setting.id,
@@ -91,25 +83,21 @@ router.put('/api-setting', async (req: Request, res: Response) => {
     });
   } catch (error) {
     console.error('Save user API setting error:', error);
-    res.status(500).json({ error: '保存API设置失败' });
+    return c.json({ error: '保存API设置失败' }, 500);
   }
 });
 
-/**
- * POST /api/user/api-setting/test
- * Test the user's API connection.
- * If apiKey is '__saved__', looks up the real key from the user's saved settings.
- */
-router.post('/api-setting/test', async (req: Request, res: Response) => {
+router.post('/api-setting/test', async (c) => {
   try {
-    const userId = req.user!.userId;
-    let { baseURL, apiKey, model } = req.body;
+    const user = c.get('user');
+    const prisma = c.get('prisma');
+    const userId = user.userId;
+    let { baseURL, apiKey, model } = await c.req.json();
 
-    // If using saved key placeholder, resolve from database
     if (apiKey === '__saved__') {
       const saved = await prisma.userApiSetting.findUnique({ where: { userId } });
       if (!saved?.apiKey) {
-        return res.json({ success: false, latencyMs: 0, message: '未找到已保存的 API Key' });
+        return c.json({ success: false, latencyMs: 0, message: '未找到已保存的 API Key' });
       }
       apiKey = saved.apiKey;
       baseURL = baseURL || saved.baseURL;
@@ -117,7 +105,7 @@ router.post('/api-setting/test', async (req: Request, res: Response) => {
     }
 
     if (!baseURL || !apiKey || !model) {
-      return res.status(400).json({ error: '请先填写完整的API配置' });
+      return c.json({ error: '请先填写完整的API配置' }, 400);
     }
 
     const startTime = Date.now();
@@ -143,7 +131,7 @@ router.post('/api-setting/test', async (req: Request, res: Response) => {
 
     if (!response.ok) {
       const errorText = await response.text();
-      return res.json({
+      return c.json({
         success: false,
         latencyMs,
         message: `API返回错误 ${response.status}: ${errorText.slice(0, 200)}`
@@ -153,14 +141,14 @@ router.post('/api-setting/test', async (req: Request, res: Response) => {
     const data = await response.json() as any;
     const reply = data?.choices?.[0]?.message?.content || '';
 
-    res.json({
+    return c.json({
       success: true,
       latencyMs,
       message: `连接成功 (${latencyMs}ms)`,
       response: reply.slice(0, 100)
     });
   } catch (error: any) {
-    res.json({
+    return c.json({
       success: false,
       latencyMs: 0,
       message: `连接失败: ${error?.message || '未知错误'}`

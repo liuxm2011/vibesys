@@ -1,48 +1,37 @@
-import { Router, Request, Response } from 'express';
+import { Hono } from 'hono';
 import { PrismaClient, ProjectStatus } from '@prisma/client';
 import { authMiddleware } from '../middleware/auth.middleware.js';
 import { checkBannedMiddleware } from '../middleware/ban.middleware.js';
-import { prisma } from '../index.js';
 import { updateRepoUrl, syncRepoData, getProjectRepoInfo } from '../services/repo.service.js';
+import type { AppEnv } from '../types.js';
 
-const router = Router();
+const router = new Hono<AppEnv>();
 
-/**
- * POST /api/projects
- * TOPIC-04: Create project from topic selection
- * D-06: Creates project instance (not locks topic)
- * D-07: Same topic can be selected multiple times
- * D-08: Max 10 projects per user
- * D-10: Default status NOT_STARTED
- * D-11: Links user + topic
- * Phase 5: ADM-06 - Check if user is banned
- */
-router.post('/', authMiddleware, checkBannedMiddleware, async (req: Request, res: Response) => {
-  const { topicId } = req.body;
+router.post('/', authMiddleware, checkBannedMiddleware, async (c) => {
+  const { topicId } = await c.req.json();
 
-  // Validate topicId
   if (!topicId) {
-    return res.status(400).json({ error: '请选择选题' });
+    return c.json({ error: '请选择选题' }, 400);
   }
 
   const parsedTopicId = parseInt(topicId);
   if (isNaN(parsedTopicId)) {
-    return res.status(400).json({ error: '无效的选题ID' });
+    return c.json({ error: '无效的选题ID' }, 400);
   }
 
   try {
-    const userId = req.user!.userId;
+    const user = c.get('user');
+    const prisma = c.get('prisma');
+    const userId = user.userId;
 
-    // D-08: Check project count limit (max 10)
     const existingCount = await prisma.project.count({
       where: { userId }
     });
 
     if (existingCount >= 10) {
-      return res.status(400).json({ error: '已达到项目上限(10个)，请删除现有项目后再创建' });
+      return c.json({ error: '已达到项目上限(10个)，请删除现有项目后再创建' }, 400);
     }
 
-    // Verify topic exists and user can access it (D-14 visibility)
     const topic = await prisma.topic.findFirst({
       where: {
         id: parsedTopicId,
@@ -54,17 +43,15 @@ router.post('/', authMiddleware, checkBannedMiddleware, async (req: Request, res
     });
 
     if (!topic) {
-      return res.status(404).json({ error: '选题不存在或无权限访问' });
+      return c.json({ error: '选题不存在或无权限访问' }, 404);
     }
 
-    // D-06: Create project instance (not lock topic)
-    // D-07: Same topic can be selected multiple times (no unique constraint)
     const project = await prisma.project.create({
       data: {
         userId,
         topicId: parsedTopicId,
-        status: ProjectStatus.NOT_STARTED,  // D-10
-        documentsRef: {}  // D-11: Placeholder for Phase 3
+        status: ProjectStatus.NOT_STARTED,
+        documentsRef: {}
       },
       include: {
         topic: {
@@ -78,24 +65,19 @@ router.post('/', authMiddleware, checkBannedMiddleware, async (req: Request, res
       }
     });
 
-    res.json({ project });
+    return c.json({ project });
   } catch (error) {
     console.error('Project create error:', error);
-    res.status(500).json({ error: '服务器错误，请稍后重试' });
+    return c.json({ error: '服务器错误，请稍后重试' }, 500);
   }
 });
 
-/**
- * GET /api/projects
- * DASH-01: View user's project list
- * DASH-02: View project status
- * Returns projects with topic info for dashboard display
- */
-router.get('/', authMiddleware, async (req: Request, res: Response) => {
+router.get('/', authMiddleware, async (c) => {
   try {
-    const userId = req.user!.userId;
+    const user = c.get('user');
+    const prisma = c.get('prisma');
+    const userId = user.userId;
 
-    // DASH-01: List all user's projects
     const projects = await prisma.project.findMany({
       where: { userId },
       include: {
@@ -113,7 +95,6 @@ router.get('/', authMiddleware, async (req: Request, res: Response) => {
       orderBy: { createdAt: 'desc' }
     });
 
-    // Cast techStack and documentsRef to proper types
     const typedProjects = projects.map(p => ({
       ...p,
       topic: {
@@ -123,65 +104,54 @@ router.get('/', authMiddleware, async (req: Request, res: Response) => {
       documentsRef: p.documentsRef as Record<string, any> | null
     }));
 
-    res.json({ projects: typedProjects });
+    return c.json({ projects: typedProjects });
   } catch (error) {
     console.error('Projects list error:', error);
-    res.status(500).json({ error: '获取项目列表失败' });
+    return c.json({ error: '获取项目列表失败' }, 500);
   }
 });
 
-/**
- * DELETE /api/projects/:id
- * D-09: Delete project (does NOT affect original topic)
- * IDOR prevention: Only owner can delete
- */
-router.delete('/:id', authMiddleware, async (req: Request, res: Response) => {
+router.delete('/:id', authMiddleware, async (c) => {
   try {
-    const userId = req.user!.userId;
-    const idParam = req.params.id;
-    const projectId = parseInt(Array.isArray(idParam) ? idParam[0] : idParam);
+    const user = c.get('user');
+    const prisma = c.get('prisma');
+    const userId = user.userId;
+    const projectId = parseInt(c.req.param('id'));
 
     if (isNaN(projectId)) {
-      return res.status(400).json({ error: '无效的项目ID' });
+      return c.json({ error: '无效的项目ID' }, 400);
     }
 
-    // IDOR prevention: Verify ownership
     const project = await prisma.project.findFirst({
       where: { id: projectId, userId }
     });
 
     if (!project) {
-      return res.status(404).json({ error: '项目不存在' });
+      return c.json({ error: '项目不存在' }, 404);
     }
 
-    // D-09: Delete project (topic remains in pool)
     await prisma.project.delete({
       where: { id: projectId }
     });
 
-    res.json({ message: '项目已删除' });
+    return c.json({ message: '项目已删除' });
   } catch (error) {
     console.error('Project delete error:', error);
-    res.status(500).json({ error: '服务器错误，请稍后重试' });
+    return c.json({ error: '服务器错误，请稍后重试' }, 500);
   }
 });
 
-/**
- * GET /api/projects/:id
- * Export-03: Get project detail with topic info for export filename
- * IDOR prevention: Only owner can access
- */
-router.get('/:id', authMiddleware, async (req: Request, res: Response) => {
+router.get('/:id', authMiddleware, async (c) => {
   try {
-    const userId = req.user!.userId;
-    const idParam = req.params.id;
-    const projectId = parseInt(Array.isArray(idParam) ? idParam[0] : idParam);
+    const user = c.get('user');
+    const prisma = c.get('prisma');
+    const userId = user.userId;
+    const projectId = parseInt(c.req.param('id'));
 
     if (isNaN(projectId)) {
-      return res.status(400).json({ error: '无效的项目ID' });
+      return c.json({ error: '无效的项目ID' }, 400);
     }
 
-    // IDOR prevention: Verify ownership
     const project = await prisma.project.findFirst({
       where: { id: projectId, userId },
       include: {
@@ -196,10 +166,10 @@ router.get('/:id', authMiddleware, async (req: Request, res: Response) => {
     });
 
     if (!project) {
-      return res.status(404).json({ error: '项目不存在或无权限访问' });
+      return c.json({ error: '项目不存在或无权限访问' }, 404);
     }
 
-    res.json({
+    return c.json({
       project: {
         ...project,
         reviewResult: project.reviewResult as Record<string, unknown> | null
@@ -207,134 +177,127 @@ router.get('/:id', authMiddleware, async (req: Request, res: Response) => {
     });
   } catch (error) {
     console.error('Project detail error:', error);
-    res.status(500).json({ error: '获取项目详情失败' });
+    return c.json({ error: '获取项目详情失败' }, 500);
   }
 });
 
-/**
- * PUT /api/projects/:id/techStack
- * DOC-07: Modify tech stack selection
- *
- * Allows user to modify the tech stack from topic recommendation
- * IDOR prevention: Only owner can modify
- */
-router.put('/:id/techStack', authMiddleware, async (req: Request, res: Response) => {
+router.put('/:id/techStack', authMiddleware, async (c) => {
   try {
-    const userId = req.user!.userId;
-    const idParam = req.params.id;
-    const projectId = parseInt(Array.isArray(idParam) ? idParam[0] : idParam);
-    const { techStack } = req.body;
+    const user = c.get('user');
+    const prisma = c.get('prisma');
+    const userId = user.userId;
+    const projectId = parseInt(c.req.param('id'));
+    const { techStack } = await c.req.json();
 
     if (isNaN(projectId)) {
-      return res.status(400).json({ error: '无效的项目ID' });
+      return c.json({ error: '无效的项目ID' }, 400);
     }
 
-    // Validate techStack
     if (!techStack || typeof techStack !== 'string') {
-      return res.status(400).json({ error: '请提供技术栈' });
+      return c.json({ error: '请提供技术栈' }, 400);
     }
 
-    // Reasonable length check
     if (techStack.length > 500) {
-      return res.status(400).json({ error: '技术栈内容过长' });
+      return c.json({ error: '技术栈内容过长' }, 400);
     }
 
-    // IDOR prevention: Verify ownership
     const project = await prisma.project.findFirst({
       where: { id: projectId, userId }
     });
 
     if (!project) {
-      return res.status(404).json({ error: '项目不存在或无权限访问' });
+      return c.json({ error: '项目不存在或无权限访问' }, 404);
     }
 
-    // Update tech stack
     const updated = await prisma.project.update({
       where: { id: projectId },
       data: { techStack }
     });
 
-    res.json({ project: { id: updated.id, techStack: updated.techStack } });
+    return c.json({ project: { id: updated.id, techStack: updated.techStack } });
   } catch (error) {
     console.error('Tech stack update error:', error);
-    res.status(500).json({ error: '更新技术栈失败' });
+    return c.json({ error: '更新技术栈失败' }, 500);
   }
 });
 
-router.put('/:id/repoUrl', authMiddleware, checkBannedMiddleware, async (req: Request, res: Response) => {
+router.put('/:id/repoUrl', authMiddleware, checkBannedMiddleware, async (c) => {
   try {
-    const userId = req.user!.userId;
-    const idParam = req.params.id;
-    const projectId = parseInt(Array.isArray(idParam) ? idParam[0] : idParam);
-    const { repoUrl } = req.body;
+    const user = c.get('user');
+    const prisma = c.get('prisma');
+    const userId = user.userId;
+    const projectId = parseInt(c.req.param('id'));
+    const { repoUrl } = await c.req.json();
 
     if (isNaN(projectId)) {
-      return res.status(400).json({ error: '无效的项目ID' });
+      return c.json({ error: '无效的项目ID' }, 400);
     }
 
     if (repoUrl && typeof repoUrl === 'string' && repoUrl.length > 500) {
-      return res.status(400).json({ error: '仓库地址过长' });
+      return c.json({ error: '仓库地址过长' }, 400);
     }
 
-    await updateRepoUrl(projectId, userId, repoUrl || null);
-    res.json({ message: '仓库地址已更新' });
+    await updateRepoUrl(prisma, projectId, userId, repoUrl || null);
+    return c.json({ message: '仓库地址已更新' });
   } catch (error: any) {
     if (error.message === 'PROJECT_NOT_FOUND') {
-      return res.status(404).json({ error: '项目不存在或无权限访问' });
+      return c.json({ error: '项目不存在或无权限访问' }, 404);
     }
     if (error.message === 'INVALID_GITEE_URL') {
-      return res.status(400).json({ error: '请输入有效的 Gitee 仓库地址（如 https://gitee.com/owner/repo）' });
+      return c.json({ error: '请输入有效的 Gitee 仓库地址（如 https://gitee.com/owner/repo）' }, 400);
     }
     console.error('Repo URL update error:', error);
-    res.status(500).json({ error: '更新仓库地址失败' });
+    return c.json({ error: '更新仓库地址失败' }, 500);
   }
 });
 
-router.post('/:id/syncRepo', authMiddleware, checkBannedMiddleware, async (req: Request, res: Response) => {
+router.post('/:id/syncRepo', authMiddleware, checkBannedMiddleware, async (c) => {
   try {
-    const userId = req.user!.userId;
-    const idParam = req.params.id;
-    const projectId = parseInt(Array.isArray(idParam) ? idParam[0] : idParam);
+    const user = c.get('user');
+    const prisma = c.get('prisma');
+    const userId = user.userId;
+    const projectId = parseInt(c.req.param('id'));
 
     if (isNaN(projectId)) {
-      return res.status(400).json({ error: '无效的项目ID' });
+      return c.json({ error: '无效的项目ID' }, 400);
     }
 
-    const syncData = await syncRepoData(projectId, userId);
-    res.json({ syncData });
+    const syncData = await syncRepoData(prisma, projectId, userId);
+    return c.json({ syncData });
   } catch (error: any) {
     if (error.message === 'PROJECT_NOT_FOUND') {
-      return res.status(404).json({ error: '项目不存在或无权限访问' });
+      return c.json({ error: '项目不存在或无权限访问' }, 404);
     }
     if (error.message === 'NO_REPO_URL') {
-      return res.status(400).json({ error: '请先设置仓库地址' });
+      return c.json({ error: '请先设置仓库地址' }, 400);
     }
     if (error.message === 'INVALID_GITEE_URL') {
-      return res.status(400).json({ error: '仓库地址格式无效，请输入 Gitee 地址' });
+      return c.json({ error: '仓库地址格式无效，请输入 Gitee 地址' }, 400);
     }
     console.error('Repo sync error:', error);
-    res.status(500).json({ error: '同步仓库数据失败，请检查仓库地址是否正确且为公开仓库' });
+    return c.json({ error: '同步仓库数据失败，请检查仓库地址是否正确且为公开仓库' }, 500);
   }
 });
 
-router.get('/:id/repoInfo', authMiddleware, async (req: Request, res: Response) => {
+router.get('/:id/repoInfo', authMiddleware, async (c) => {
   try {
-    const userId = req.user!.userId;
-    const idParam = req.params.id;
-    const projectId = parseInt(Array.isArray(idParam) ? idParam[0] : idParam);
+    const user = c.get('user');
+    const prisma = c.get('prisma');
+    const userId = user.userId;
+    const projectId = parseInt(c.req.param('id'));
 
     if (isNaN(projectId)) {
-      return res.status(400).json({ error: '无效的项目ID' });
+      return c.json({ error: '无效的项目ID' }, 400);
     }
 
-    const info = await getProjectRepoInfo(projectId, userId);
-    res.json({ repoUrl: info.repoUrl, repoSyncData: info.repoSyncData });
+    const info = await getProjectRepoInfo(prisma, projectId, userId);
+    return c.json({ repoUrl: info.repoUrl, repoSyncData: info.repoSyncData });
   } catch (error: any) {
     if (error.message === 'PROJECT_NOT_FOUND') {
-      return res.status(404).json({ error: '项目不存在或无权限访问' });
+      return c.json({ error: '项目不存在或无权限访问' }, 404);
     }
     console.error('Repo info error:', error);
-    res.status(500).json({ error: '获取仓库信息失败' });
+    return c.json({ error: '获取仓库信息失败' }, 500);
   }
 });
 

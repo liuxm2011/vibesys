@@ -1,47 +1,39 @@
-import { Router, Request, Response } from 'express';
-import { prisma } from '../index.js';
+import { Hono } from 'hono';
+import { getCookie, setCookie, deleteCookie } from 'hono/cookie';
 import { comparePassword, hashPassword, validatePassword } from '../utils/password.utils.js';
 import { signToken, JwtPayload, getJwtExpirationMs } from '../utils/jwt.utils.js';
 import { authMiddleware } from '../middleware/auth.middleware.js';
 import { loginLimiter } from '../middleware/rate-limit.middleware.js';
+import type { AppEnv } from '../types.js';
 
-const router = Router();
+const router = new Hono<AppEnv>();
 
-/**
- * POST /api/auth/login
- * D-02: studentId as login account
- * D-20: Unified error message
- */
-router.post('/login', loginLimiter, async (req: Request, res: Response) => {
-  const { studentId, password } = req.body;
+router.post('/login', loginLimiter, async (c) => {
+  const { studentId, password } = await c.req.json();
 
-  // Input validation
   if (!studentId || !password) {
-    return res.status(400).json({ error: '请输入学号和密码' });
+    return c.json({ error: '请输入学号和密码' }, 400);
   }
 
   try {
+    const prisma = c.get('prisma');
     const user = await prisma.user.findUnique({
       where: { studentId }
     });
 
-    // Check if user exists
     if (!user) {
-      return res.status(401).json({ error: '登录失败，请检查账号密码' });
+      return c.json({ error: '登录失败，请检查账号密码' }, 401);
     }
 
-    // Check banned status (Phase 5: ADM-06)
     if (user.status === 'BANNED') {
-      return res.status(403).json({ error: '账号已被封禁，请联系管理员' });
+      return c.json({ error: '账号已被封禁，请联系管理员' }, 403);
     }
 
-    // Verify password (constant-time compare)
     const isValid = await comparePassword(password, user.password);
     if (!isValid) {
-      return res.status(401).json({ error: '登录失败，请检查账号密码' });
+      return c.json({ error: '登录失败，请检查账号密码' }, 401);
     }
 
-    // Create JWT payload (AUTH-02: user info)
     const payload: JwtPayload = {
       userId: user.id,
       studentId: user.studentId,
@@ -49,18 +41,17 @@ router.post('/login', loginLimiter, async (req: Request, res: Response) => {
       role: user.role
     };
 
-    const token = signToken(payload);
+    const token = signToken(payload, c.env.JWT_SECRET);
 
-    // Set httpOnly cookie (D-12)
-    res.cookie('token', token, {
-      httpOnly: true,                          // Prevent XSS access
-      secure: process.env.NODE_ENV === 'production',  // HTTPS only in prod
-      sameSite: 'strict',                      // CSRF protection
-      maxAge: getJwtExpirationMs()             // 7 days (D-11)
+    setCookie(c, 'token', token, {
+      httpOnly: true,
+      secure: c.env.NODE_ENV === 'production',
+      sameSite: 'Strict',
+      maxAge: getJwtExpirationMs() / 1000,
+      path: '/',
     });
 
-    // Return user info (AUTH-02)
-    res.json({
+    return c.json({
       user: {
         studentId: user.studentId,
         name: user.name,
@@ -72,64 +63,55 @@ router.post('/login', loginLimiter, async (req: Request, res: Response) => {
     });
   } catch (error) {
     console.error('Login error:', error);
-    res.status(500).json({ error: '服务器错误' });
+    return c.json({ error: '服务器错误' }, 500);
   }
 });
 
-/**
- * POST /api/auth/logout
- * AUTH-03: Clear cookie and session
- */
-router.post('/logout', (req: Request, res: Response) => {
-  res.clearCookie('token', {
+router.post('/logout', (c) => {
+  deleteCookie(c, 'token', {
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'strict'
+    secure: c.env.NODE_ENV === 'production',
+    sameSite: 'Strict',
+    path: '/',
   });
-  res.json({ message: '已登出' });
+  return c.json({ message: '已登出' });
 });
 
-/**
- * GET /api/auth/profile
- * Requires auth middleware
- * Returns current user info from database
- */
-router.get('/profile', authMiddleware, async (req: Request, res: Response) => {
+router.get('/profile', authMiddleware, async (c) => {
   try {
-    const user = await prisma.user.findUnique({
-      where: { id: req.user!.userId }
+    const user = c.get('user');
+    const prisma = c.get('prisma');
+    const dbUser = await prisma.user.findUnique({
+      where: { id: user.userId }
     });
 
-    if (!user) {
-      return res.status(404).json({ error: '用户不存在' });
+    if (!dbUser) {
+      return c.json({ error: '用户不存在' }, 404);
     }
 
-    res.json({
-      studentId: user.studentId,
-      name: user.name,
-      role: user.role,
-      major: user.major,
-      grade: user.grade,
-      class: user.class
+    return c.json({
+      studentId: dbUser.studentId,
+      name: dbUser.name,
+      role: dbUser.role,
+      major: dbUser.major,
+      grade: dbUser.grade,
+      class: dbUser.class
     });
   } catch (error) {
     console.error('Profile error:', error);
-    res.status(500).json({ error: '服务器错误' });
+    return c.json({ error: '服务器错误' }, 500);
   }
 });
 
-/**
- * GET /api/auth/system-config
- * Student-facing read-only platform content
- */
-router.get('/system-config', authMiddleware, async (_req: Request, res: Response) => {
+router.get('/system-config', authMiddleware, async (c) => {
   try {
+    const prisma = c.get('prisma');
     const [announcement, guide] = await Promise.all([
       prisma.systemConfig.findUnique({ where: { key: 'announcement' } }),
       prisma.systemConfig.findUnique({ where: { key: 'guide' } })
     ]);
 
-    res.json({
+    return c.json({
       announcement: announcement?.value || '',
       guide: guide?.value || '',
       updatedAt: {
@@ -139,55 +121,53 @@ router.get('/system-config', authMiddleware, async (_req: Request, res: Response
     });
   } catch (error) {
     console.error('Get system config error:', error);
-    res.status(500).json({ error: '获取平台信息失败' });
+    return c.json({ error: '获取平台信息失败' }, 500);
   }
 });
 
-/**
- * PUT /api/auth/password
- * Allows the current user to change their own password
- */
-router.put('/password', authMiddleware, async (req: Request, res: Response) => {
-  const { currentPassword, newPassword } = req.body;
+router.put('/password', authMiddleware, async (c) => {
+  const { currentPassword, newPassword } = await c.req.json();
 
   if (!currentPassword || !newPassword) {
-    return res.status(400).json({ error: '请输入当前密码和新密码' });
+    return c.json({ error: '请输入当前密码和新密码' }, 400);
   }
 
   const validationError = validatePassword(newPassword);
   if (validationError) {
-    return res.status(400).json({ error: validationError });
+    return c.json({ error: validationError }, 400);
   }
 
   if (currentPassword === newPassword) {
-    return res.status(400).json({ error: '新密码不能与当前密码相同' });
+    return c.json({ error: '新密码不能与当前密码相同' }, 400);
   }
 
   try {
-    const user = await prisma.user.findUnique({
-      where: { id: req.user!.userId }
+    const user = c.get('user');
+    const prisma = c.get('prisma');
+    const dbUser = await prisma.user.findUnique({
+      where: { id: user.userId }
     });
 
-    if (!user) {
-      return res.status(404).json({ error: '用户不存在' });
+    if (!dbUser) {
+      return c.json({ error: '用户不存在' }, 404);
     }
 
-    const isCurrentPasswordValid = await comparePassword(currentPassword, user.password);
+    const isCurrentPasswordValid = await comparePassword(currentPassword, dbUser.password);
     if (!isCurrentPasswordValid) {
-      return res.status(400).json({ error: '当前密码不正确' });
+      return c.json({ error: '当前密码不正确' }, 400);
     }
 
     const hashedPassword = await hashPassword(newPassword);
 
     await prisma.user.update({
-      where: { id: user.id },
+      where: { id: dbUser.id },
       data: { password: hashedPassword }
     });
 
-    res.json({ message: '密码修改成功' });
+    return c.json({ message: '密码修改成功' });
   } catch (error) {
     console.error('Change password error:', error);
-    res.status(500).json({ error: '修改密码失败' });
+    return c.json({ error: '修改密码失败' }, 500);
   }
 });
 

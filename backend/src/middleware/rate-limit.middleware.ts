@@ -1,48 +1,67 @@
-import rateLimit, { ipKeyGenerator } from 'express-rate-limit';
+import { createMiddleware } from 'hono/factory';
+import type { AppEnv } from '../types.js';
 
-/**
- * Login endpoint rate limiter - 20 attempts per minute per IP+studentId
- * Prevents brute force attacks
- */
-export const loginLimiter = rateLimit({
-  windowMs: 60 * 1000, // 1 minute
+type RateLimitEntry = { count: number; resetAt: number };
+
+const rateLimitMap = new Map<string, RateLimitEntry>();
+
+function createRateLimiter(options: {
+  windowMs: number;
+  max: number;
+  message: string;
+  keyGenerator?: (c: any) => string;
+}) {
+  return createMiddleware<AppEnv>(async (c, next) => {
+    const key = options.keyGenerator
+      ? options.keyGenerator(c)
+      : c.req.header('x-forwarded-for') || c.req.header('cf-connecting-ip') || 'unknown';
+
+    const now = Date.now();
+    const entry = rateLimitMap.get(key);
+
+    if (!entry || now > entry.resetAt) {
+      rateLimitMap.set(key, { count: 1, resetAt: now + options.windowMs });
+      await next();
+      return;
+    }
+
+    if (entry.count >= options.max) {
+      return c.json({ error: options.message }, 429);
+    }
+
+    entry.count++;
+    await next();
+  });
+}
+
+export const loginLimiter = createRateLimiter({
+  windowMs: 60 * 1000,
   max: 20,
-  message: { error: '登录尝试次数过多，请稍后再试' },
-  standardHeaders: true,
-  legacyHeaders: false,
-  keyGenerator: (req) => {
-    const studentId = req.body.studentId || 'unknown';
-    return `${ipKeyGenerator(req.ip ?? '')}:${studentId}`;
+  message: '登录尝试次数过多，请稍后再试',
+  keyGenerator: (c: any) => {
+    const ip = c.req.header('x-forwarded-for') || c.req.header('cf-connecting-ip') || 'unknown';
+    return `login:${ip}`;
   }
 });
 
-/**
- * General API rate limiter - 1000 requests per 15 minutes
- */
-export const generalLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
+export const generalLimiter = createRateLimiter({
+  windowMs: 15 * 60 * 1000,
   max: 1000,
-  message: { error: '请求过于频繁，请稍后再试' },
-  standardHeaders: true,
-  legacyHeaders: false
+  message: '请求过于频繁，请稍后再试'
 });
 
-/**
- * AI generation rate limiter - 10 requests per hour per user
- * Prevents API quota exhaustion
- */
-export const aiLimiter = rateLimit({
-  windowMs: 60 * 60 * 1000, // 1 hour
+export const aiLimiter = createRateLimiter({
+  windowMs: 60 * 60 * 1000,
   max: 10,
-  message: { error: 'AI生成次数已达上限，请稍后再试' },
-  keyGenerator: (req) => req.user?.userId?.toString() || ipKeyGenerator(req.ip ?? '') || 'unknown'
+  message: 'AI生成次数已达上限，请稍后再试',
+  keyGenerator: (c: any) => {
+    const user = c.get('user');
+    return user?.userId?.toString() || c.req.header('x-forwarded-for') || 'unknown';
+  }
 });
 
-/**
- * Document update rate limiter - 30 updates per minute
- */
-export const documentUpdateLimiter = rateLimit({
-  windowMs: 60 * 1000, // 1 minute
+export const documentUpdateLimiter = createRateLimiter({
+  windowMs: 60 * 1000,
   max: 30,
-  message: { error: '操作过于频繁，请稍后再试' }
+  message: '操作过于频繁，请稍后再试'
 });

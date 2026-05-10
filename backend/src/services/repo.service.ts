@@ -1,7 +1,5 @@
 import { PrismaClient } from '@prisma/client';
 
-const prisma = new PrismaClient();
-
 export interface GiteeCommit {
   sha: string;
   message: string;
@@ -66,7 +64,7 @@ async function fetchGiteeReadme(owner: string, repo: string): Promise<string | n
   }
 }
 
-export async function syncRepoData(projectId: number, userId: number): Promise<RepoSyncData> {
+export async function syncRepoData(prisma: PrismaClient, projectId: number, userId: number): Promise<RepoSyncData> {
   const project = await prisma.project.findFirst({ where: { id: projectId, userId } });
   if (!project) throw new Error('PROJECT_NOT_FOUND');
   if (!project.repoUrl) throw new Error('NO_REPO_URL');
@@ -94,7 +92,7 @@ export async function syncRepoData(projectId: number, userId: number): Promise<R
   return syncData;
 }
 
-export async function updateRepoUrl(projectId: number, userId: number, repoUrl: string | null): Promise<void> {
+export async function updateRepoUrl(prisma: PrismaClient, projectId: number, userId: number, repoUrl: string | null): Promise<void> {
   const project = await prisma.project.findFirst({ where: { id: projectId, userId } });
   if (!project) throw new Error('PROJECT_NOT_FOUND');
 
@@ -112,7 +110,7 @@ export async function updateRepoUrl(projectId: number, userId: number, repoUrl: 
   });
 }
 
-export async function getProjectRepoInfo(projectId: number, userId: number) {
+export async function getProjectRepoInfo(prisma: PrismaClient, projectId: number, userId: number) {
   const project = await prisma.project.findFirst({
     where: { id: projectId, userId },
     select: { repoUrl: true, repoSyncData: true },
@@ -121,7 +119,7 @@ export async function getProjectRepoInfo(projectId: number, userId: number) {
   return project;
 }
 
-export async function getAllProjectRepos() {
+export async function getAllProjectRepos(prisma: PrismaClient) {
   const projects = await prisma.project.findMany({
     where: { repoUrl: { not: null } },
     select: {
