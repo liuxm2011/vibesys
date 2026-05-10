@@ -1,5 +1,5 @@
 import { Hono } from 'hono';
-import { Role, Status, Domain, Platform, TopicType, ProjectStatus } from '@prisma/client';
+import { Role, Status, Domain, Platform, TopicType, ProjectStatus } from '../generated/prisma';
 import { authMiddleware, adminOnlyMiddleware } from '../middleware/auth.middleware.js';
 import { parseExcelTopics, validateTopicRow, generateTemplateBuffer, parseExcelStudents, validateStudentRow, generateStudentTemplateBuffer, deriveMajorFromStudentId, deriveGradeFromStudentId, validateStudentId } from '../utils/excel-import.utils.js';
 import {

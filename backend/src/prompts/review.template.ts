@@ -1,4 +1,4 @@
-import { Domain } from '@prisma/client';
+import { Domain } from '../generated/prisma'
 
 /**
  * Expert Panel Review prompt templates

@@ -1,4 +1,4 @@
-import { DocType, Domain, Platform } from '@prisma/client';
+import { DocType, Domain, Platform } from '../generated/prisma';
 import { apiProviderService } from './apiProvider.service.js';
 import { getPRDPromptTemplate } from '../prompts/prd.template.js';
 import { getFrontendPromptTemplate } from '../prompts/frontend.template.js';

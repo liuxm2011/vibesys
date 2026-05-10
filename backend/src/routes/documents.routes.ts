@@ -1,5 +1,5 @@
 import { Hono } from 'hono';
-import { DocType } from '@prisma/client';
+import { DocType } from '../generated/prisma'
 import { authMiddleware } from '../middleware/auth.middleware.js';
 import { checkBannedMiddleware } from '../middleware/ban.middleware.js';
 import { getGenerationBlockedReason } from '../constants/document-generation.js';

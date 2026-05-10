@@ -1,4 +1,4 @@
-import { GraduationDocType } from '@prisma/client';
+import { GraduationDocType } from '../generated/prisma'
 
 export interface ProgressRecordContext {
   docType: GraduationDocType;

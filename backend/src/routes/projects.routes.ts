@@ -1,5 +1,5 @@
 import { Hono } from 'hono';
-import { PrismaClient, ProjectStatus } from '@prisma/client';
+import { PrismaClient, ProjectStatus } from '../generated/prisma';
 import { authMiddleware } from '../middleware/auth.middleware.js';
 import { checkBannedMiddleware } from '../middleware/ban.middleware.js';
 import { updateRepoUrl, syncRepoData, getProjectRepoInfo } from '../services/repo.service.js';

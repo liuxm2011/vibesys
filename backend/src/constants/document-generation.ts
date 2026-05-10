@@ -1,4 +1,4 @@
-import { DocType } from '@prisma/client';
+import { DocType } from '../generated/prisma'
 
 type DocumentLike = {
   docType: DocType;

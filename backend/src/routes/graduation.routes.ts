@@ -1,6 +1,6 @@
 import { Hono } from 'hono';
 import { streamSSE } from 'hono/streaming';
-import { GraduationDocType } from '@prisma/client';
+import { GraduationDocType } from '../generated/prisma'
 import { authMiddleware } from '../middleware/auth.middleware.js';
 import { checkBannedMiddleware } from '../middleware/ban.middleware.js';
 import { graduationService, type TokenUsage } from '../services/graduation.service.js';

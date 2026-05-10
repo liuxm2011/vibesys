@@ -1,6 +1,6 @@
 import { Hono } from 'hono';
 import { streamSSE } from 'hono/streaming';
-import { DocType, Prisma } from '@prisma/client';
+import { DocType, Prisma } from '../generated/prisma';
 import { authMiddleware } from '../middleware/auth.middleware.js';
 import { checkBannedMiddleware } from '../middleware/ban.middleware.js';
 import { aiService, type TokenUsage } from '../services/ai.service.js';

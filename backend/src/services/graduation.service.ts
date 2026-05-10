@@ -1,4 +1,4 @@
-import { GraduationDocType, Domain, Platform } from '@prisma/client';
+import { GraduationDocType, Domain, Platform } from '../generated/prisma';
 import { apiProviderService } from './apiProvider.service.js';
 import { getTaskBookSystemPrompt, buildTaskBookUserPrompt } from '../prompts/task-book.template.js';
 import { getProposalSystemPrompt, buildProposalUserPrompt } from '../prompts/proposal.template.js';

@@ -1,4 +1,4 @@
-import { Domain } from '@prisma/client';
+import { Domain } from '../generated/prisma'
 
 /**
  * 项目状态追踪文档 Prompt 模板

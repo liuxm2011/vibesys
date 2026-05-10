@@ -1,5 +1,5 @@
 import bcrypt from 'bcryptjs';
-import { Role } from '@prisma/client';
+import { Role } from '../generated/prisma'
 
 const BCRYPT_ROUNDS = 10;  // Standard for production (RESEARCH.md recommendation)
 export const ADMIN_DEFAULT_PASSWORD = 'admin123';

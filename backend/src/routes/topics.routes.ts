@@ -1,5 +1,5 @@
 import { Hono } from 'hono';
-import { Domain, Platform, TopicType } from '@prisma/client';
+import { Domain, Platform, TopicType } from '../generated/prisma';
 import { authMiddleware } from '../middleware/auth.middleware.js';
 import type { AppEnv } from '../types.js';
 

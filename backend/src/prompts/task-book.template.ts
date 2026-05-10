@@ -1,4 +1,4 @@
-import { Domain } from '@prisma/client';
+import { Domain } from '../generated/prisma'
 
 export function getTaskBookSystemPrompt(): string {
   return `你是一位高校指导教师，负责产出可直接交付的中文 Markdown 任务书。
