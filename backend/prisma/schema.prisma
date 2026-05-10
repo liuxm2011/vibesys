@@ -1,10 +1,11 @@
 datasource db {
-  provider = "mysql"
+  provider = "sqlite"
   url      = env("DATABASE_URL")
 }
 
 generator client {
-  provider = "prisma-client-js"
+  provider        = "prisma-client-js"
+  previewFeatures = ["driverAdapters"]
 }
 
 model User {
@@ -96,9 +97,9 @@ enum GraduationDocType {
 model Topic {
   id              Int        @id @default(autoincrement())
   title           String     // D-01: 标题
-description     String     @db.MediumText // D-01: 描述
-  background      String?    @db.MediumText // D-01: 背景
-  objectives      String?    @db.MediumText // D-01: 目标 master
+  description     String     // D-01: 描述
+  background      String?    // D-01: 背景
+  objectives      String?    // D-01: 目标 master
   domain          Domain     // D-03: 领域分类
   platform        Platform   @default(WEB)  // 运行平台
   techStack       Json       // D-04: 技术栈建议 (JSON array)
@@ -147,7 +148,7 @@ model Document {
   id        Int       @id @default(autoincrement())
   projectId Int       // D-10: 关联项目
   docType   DocType   // D-13: 文档类型
-  content   String   @db.LongText // D-13: Markdown内容，AI生成文档可能超过默认VARCHAR长度
+  content   String   // D-13: Markdown内容，AI生成文档可能超过默认VARCHAR长度
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
 
@@ -163,7 +164,7 @@ model GraduationDocument {
   id        Int               @id @default(autoincrement())
   projectId Int               // 关联项目
   docType   GraduationDocType // 毕设文档类型
-  content   String            @db.LongText // HTML内容，AI生成文档可能超过默认VARCHAR长度
+  content   String            // HTML内容，AI生成文档可能超过默认VARCHAR长度
   createdAt DateTime          @default(now())
   updatedAt DateTime          @updatedAt
 
@@ -178,7 +179,7 @@ model GraduationDocument {
 model SystemConfig {
   id          Int      @id @default(autoincrement())
   key         String   @unique  // "announcement" | "guide"
-  value       String   @db.LongText // JSON string or plain text，公告/指南可能包含较长文本
+  value       String   // JSON string or plain text，公告/指南可能包含较长文本
   description String?  // Optional description for admin reference
   updatedAt   DateTime @updatedAt
 
@@ -227,7 +228,7 @@ model AiUsageLog {
   completionTokens  Int       @default(0)
   totalTokens       Int       @default(0)
   status            String    @default("success") // 'success' | 'error' | 'timeout'
-  errorMessage      String?   @db.Text
+  errorMessage      String?
   createdAt         DateTime  @default(now())
 
   @@index([userId])

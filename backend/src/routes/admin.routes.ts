@@ -24,34 +24,6 @@ function getDefaultPasswordForUser(user: { role: Role; studentId: string }): str
   return user.role === Role.ADMIN ? ADMIN_DEFAULT_PASSWORD : user.studentId;
 }
 
-async function ensureSystemConfigTableExists(): Promise<void> {
-  await prisma.$executeRawUnsafe(`
-    CREATE TABLE IF NOT EXISTS SystemConfig (
-      id INT NOT NULL AUTO_INCREMENT,
-      \`key\` VARCHAR(191) NOT NULL,
-      value LONGTEXT NOT NULL,
-      description VARCHAR(191) NULL,
-      updatedAt DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
-      PRIMARY KEY (id),
-      UNIQUE INDEX SystemConfig_key_key (\`key\`),
-      INDEX SystemConfig_key_idx (\`key\`)
-    ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-  `);
-}
-
-async function withSystemConfigTable<T>(operation: () => Promise<T>): Promise<T> {
-  try {
-    return await operation();
-  } catch (error: any) {
-    if (error?.code === 'P2021' && error?.meta?.modelName === 'SystemConfig') {
-      await ensureSystemConfigTableExists();
-      return operation();
-    }
-
-    throw error;
-  }
-}
-
 // Apply auth and admin middleware to all admin routes
 router.use(authMiddleware);
 router.use(adminOnlyMiddleware);
@@ -946,11 +918,9 @@ router.get('/stats/projects', async (req: Request, res: Response) => {
  */
 router.get('/config/announcement', async (req: Request, res: Response) => {
   try {
-    const config = await withSystemConfigTable(() =>
-      prisma.systemConfig.findUnique({
+    const config = await prisma.systemConfig.findUnique({
         where: { key: 'announcement' }
-      })
-    );
+      });
 
     if (!config) {
       return res.json({ key: 'announcement', value: '', updatedAt: new Date() });
@@ -979,13 +949,11 @@ router.put('/config/announcement', async (req: Request, res: Response) => {
       return res.status(400).json({ error: '公告内容不能超过5000字符' });
     }
 
-    const config = await withSystemConfigTable(() =>
-      prisma.systemConfig.upsert({
+    const config = await prisma.systemConfig.upsert({
         where: { key: 'announcement' },
         update: { value },
         create: { key: 'announcement', value, description: '平台公告' }
-      })
-    );
+      });
 
     res.json({ key: config.key, value: config.value, updatedAt: config.updatedAt });
   } catch (error) {
@@ -1000,11 +968,9 @@ router.put('/config/announcement', async (req: Request, res: Response) => {
  */
 router.get('/config/guide', async (req: Request, res: Response) => {
   try {
-    const config = await withSystemConfigTable(() =>
-      prisma.systemConfig.findUnique({
+    const config = await prisma.systemConfig.findUnique({
         where: { key: 'guide' }
-      })
-    );
+      });
 
     if (!config) {
       return res.json({ key: 'guide', value: '', updatedAt: new Date() });
@@ -1033,13 +999,11 @@ router.put('/config/guide', async (req: Request, res: Response) => {
       return res.status(400).json({ error: '指南内容不能超过10000字符' });
     }
 
-    const config = await withSystemConfigTable(() =>
-      prisma.systemConfig.upsert({
+    const config = await prisma.systemConfig.upsert({
         where: { key: 'guide' },
         update: { value },
         create: { key: 'guide', value, description: '使用指南' }
-      })
-    );
+      });
 
     res.json({ key: config.key, value: config.value, updatedAt: config.updatedAt });
   } catch (error) {

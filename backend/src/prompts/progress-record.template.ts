@@ -4,7 +4,7 @@ export interface ProgressRecordContext {
   docType: GraduationDocType;
   title: string;
   description: string;
-  objectives: string;
+  objectives: string | null;
   platform: string;
   techStack: string[];
   studentId: string;

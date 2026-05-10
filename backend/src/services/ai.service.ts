@@ -26,7 +26,7 @@ interface TopicInfo {
   description: string;
   domain: Domain;
   platform: Platform;
-  objectives: string;
+  objectives: string | null;
   techStack: string[];
   // 新增：前置文档内容，用于上下文传递
   previousDocs?: Record<string, string>; // { 'PRD': content, 'BACKEND': content, ... }

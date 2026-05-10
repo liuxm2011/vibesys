@@ -7,34 +7,6 @@ import { loginLimiter } from '../middleware/rate-limit.middleware.js';
 
 const router = Router();
 
-async function ensureSystemConfigTableExists(): Promise<void> {
-  await prisma.$executeRawUnsafe(`
-    CREATE TABLE IF NOT EXISTS SystemConfig (
-      id INT NOT NULL AUTO_INCREMENT,
-      \`key\` VARCHAR(191) NOT NULL,
-      value LONGTEXT NOT NULL,
-      description VARCHAR(191) NULL,
-      updatedAt DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
-      PRIMARY KEY (id),
-      UNIQUE INDEX SystemConfig_key_key (\`key\`),
-      INDEX SystemConfig_key_idx (\`key\`)
-    ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-  `);
-}
-
-async function withSystemConfigTable<T>(operation: () => Promise<T>): Promise<T> {
-  try {
-    return await operation();
-  } catch (error: any) {
-    if (error?.code === 'P2021' && error?.meta?.modelName === 'SystemConfig') {
-      await ensureSystemConfigTableExists();
-      return operation();
-    }
-
-    throw error;
-  }
-}
-
 /**
  * POST /api/auth/login
  * D-02: studentId as login account
@@ -152,12 +124,10 @@ router.get('/profile', authMiddleware, async (req: Request, res: Response) => {
  */
 router.get('/system-config', authMiddleware, async (_req: Request, res: Response) => {
   try {
-    const [announcement, guide] = await withSystemConfigTable(() =>
-      Promise.all([
-        prisma.systemConfig.findUnique({ where: { key: 'announcement' } }),
-        prisma.systemConfig.findUnique({ where: { key: 'guide' } })
-      ])
-    );
+    const [announcement, guide] = await Promise.all([
+      prisma.systemConfig.findUnique({ where: { key: 'announcement' } }),
+      prisma.systemConfig.findUnique({ where: { key: 'guide' } })
+    ]);
 
     res.json({
       announcement: announcement?.value || '',

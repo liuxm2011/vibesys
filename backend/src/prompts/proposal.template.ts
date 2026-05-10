@@ -1,7 +1,7 @@
 export interface ProposalContext {
   title: string;
   description: string;
-  objectives: string;
+  objectives: string | null;
   platform: string;
   techStack: string[];
   prdContent: string;

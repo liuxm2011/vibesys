@@ -137,7 +137,7 @@ export function buildReviewUserPrompt(
     title: string;
     description: string;
     domain: Domain;
-    objectives: string;
+    objectives: string | null;
     techStack: string[];
   },
   allDocs: Record<string, string>
@@ -219,7 +219,7 @@ export function buildPatchHintRecoveryUserPrompt(
     title: string;
     description: string;
     domain: Domain;
-    objectives: string;
+    objectives: string | null;
     techStack: string[];
   },
   allDocs: Record<string, string>,

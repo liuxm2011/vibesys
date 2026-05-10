@@ -4,6 +4,7 @@ import helmet from 'helmet';
 import cookieParser from 'cookie-parser';
 import dotenv from 'dotenv';
 import { PrismaClient } from '@prisma/client';
+import { PrismaD1 } from '@prisma/adapter-d1';
 import authRoutes from './routes/auth.routes.js';
 import projectsRoutes from './routes/projects.routes.js';
 import topicsRoutes from './routes/topics.routes.js';
@@ -34,7 +35,15 @@ function validateEnvironment(): void {
 
 validateEnvironment();
 
-export const prisma = new PrismaClient();
+export function createPrismaClient(d1?: D1Database): PrismaClient {
+  if (d1) {
+    const adapter = new PrismaD1(d1);
+    return new PrismaClient({ adapter });
+  }
+  return new PrismaClient();
+}
+
+export const prisma = createPrismaClient();
 export const app = express();
 
 function getAllowedOrigins(): string[] {

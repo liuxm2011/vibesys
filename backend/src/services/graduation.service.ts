@@ -24,7 +24,7 @@ interface TopicContext {
   description: string;
   domain: Domain;
   platform: Platform;
-  objectives: string;
+  objectives: string | null;
   techStack: string[];
   studentId: string;
   studentName: string;

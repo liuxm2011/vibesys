@@ -1,0 +1,9 @@
+name = "vibesys-backend"
+main = "src/index.ts"
+compatibility_date = "2024-01-01"
+compatibility_flags = ["nodejs_compat"]
+
+[[d1_databases]]
+binding = "DB"
+database_name = "vibesys-db"
+database_id = "eb62d282-41e8-4e75-af08-5ef3e2b6da59"

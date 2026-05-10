@@ -42,7 +42,7 @@ export function getTaskBookSystemPrompt(): string {
 export function buildTaskBookUserPrompt(params: {
   title: string;
   description: string;
-  objectives: string;
+  objectives: string | null;
   platform: string;
   techStack: string[];
   prdContent: string;
