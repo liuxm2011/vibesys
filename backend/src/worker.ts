@@ -1,7 +1,9 @@
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { logger } from 'hono/logger';
+import { getCookie } from 'hono/cookie';
 import { createPrismaClient } from './lib/prisma.js';
+import { verifyToken } from './utils/jwt.utils.js';
 import type { AppEnv } from './types.js';
 import authRoutes from './routes/auth.routes.js';
 import projectsRoutes from './routes/projects.routes.js';
@@ -48,6 +50,13 @@ app.use('*', async (c, next) => {
 app.use('*', generalLimiter);
 
 app.get('/api/health', (c) => c.json({ status: 'ok', timestamp: new Date().toISOString() }));
+
+app.get('/api/debug/whoami', async (c) => {
+  const token = getCookie(c, 'token');
+  if (!token) return c.json({ hasCookie: false, payload: null });
+  const payload = await verifyToken(token, c.env.JWT_SECRET);
+  return c.json({ hasCookie: true, tokenLength: token.length, payload });
+});
 
 app.route('/api/auth', authRoutes);
 app.route('/api/topics', topicsRoutes);
