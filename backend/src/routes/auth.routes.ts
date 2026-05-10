@@ -43,10 +43,11 @@ router.post('/login', loginLimiter, async (c) => {
 
     const token = await signToken(payload, c.env.JWT_SECRET);
 
+    const isProd = c.env.NODE_ENV === 'production';
     setCookie(c, 'token', token, {
       httpOnly: true,
-      secure: c.env.NODE_ENV === 'production',
-      sameSite: 'Strict',
+      secure: isProd,
+      sameSite: isProd ? 'None' : 'Strict',
       maxAge: getJwtExpirationMs() / 1000,
       path: '/',
     });
@@ -68,10 +69,11 @@ router.post('/login', loginLimiter, async (c) => {
 });
 
 router.post('/logout', (c) => {
+  const isProd = c.env.NODE_ENV === 'production';
   deleteCookie(c, 'token', {
     httpOnly: true,
-    secure: c.env.NODE_ENV === 'production',
-    sameSite: 'Strict',
+    secure: isProd,
+    sameSite: isProd ? 'None' : 'Strict',
     path: '/',
   });
   return c.json({ message: '已登出' });
