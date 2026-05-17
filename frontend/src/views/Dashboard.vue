@@ -191,7 +191,7 @@
                   </div>
                 </template>
                 <div v-if="systemConfig.announcement" class="side-announcement-box">
-                  <div class="announcement-text">{{ systemConfig.announcement }}</div>
+                  <div class="announcement-text">{{ unescapeText(systemConfig.announcement) }}</div>
                   <div class="announcement-date" v-if="systemConfig.updatedAt.announcement">
                     {{ formatDateTime(systemConfig.updatedAt.announcement) }}
                   </div>
@@ -210,7 +210,7 @@
                   </div>
                 </template>
                 <div v-if="systemConfig.guide" class="side-guide-box">
-                  <div class="guide-text">{{ systemConfig.guide }}</div>
+                  <div class="guide-text">{{ unescapeText(systemConfig.guide) }}</div>
                 </div>
                 <el-empty v-else description="暂无指南" :image-size="48" class="mini-empty" />
               </el-card>
@@ -455,6 +455,10 @@ async function handleLogout() {
 
 function handlePasswordChanged() {
   ElMessage.success('密码已更新，下次登录请使用新密码');
+}
+
+function unescapeText(text: string): string {
+  return text.replace(/\\n/g, '\n');
 }
 
 async function loadApiSetting() {
