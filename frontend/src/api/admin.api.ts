@@ -279,8 +279,18 @@ export async function fetchActiveApiProviderApi(): Promise<{ active: ActiveProvi
 // PROJECT REPO MANAGEMENT
 // ============================================================
 
-export async function fetchProjectReposApi(): Promise<{ repos: ProjectRepoInfo[] }> {
-  return api.get('/api/admin/projects/repos');
+export async function fetchProjectReposApi(
+  hasDeployUrl?: boolean
+): Promise<{ repos: ProjectRepoInfo[] }> {
+  const params = hasDeployUrl !== undefined ? `?hasDeployUrl=${hasDeployUrl}` : '';
+  return api.get(`/api/admin/projects/repos${params}`);
+}
+
+export async function adminUpdateDeployUrlApi(
+  projectId: number,
+  deployUrl: string | null
+): Promise<{ message: string }> {
+  return api.put(`/api/admin/projects/${projectId}/deployUrl`, { deployUrl });
 }
 
 export async function exportProjectReposApi(): Promise<void> {

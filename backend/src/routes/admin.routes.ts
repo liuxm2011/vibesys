@@ -9,7 +9,7 @@ import {
   validatePassword
 } from '../utils/password.utils.js';
 import { apiProviderService } from '../services/apiProvider.service.js';
-import { getAllProjectRepos } from '../services/repo.service.js';
+import { getAllProjectRepos, adminUpdateDeployUrl } from '../services/repo.service.js';
 import type { AppEnv } from '../types.js';
 
 const router = new Hono<AppEnv>();
@@ -1295,7 +1295,11 @@ router.get('/api-providers/active', async (c) => {
 router.get('/projects/repos', async (c) => {
   try {
     const prisma = c.get('prisma');
-    const repos = await getAllProjectRepos(prisma);
+    const q = c.req.query();
+    let hasDeployUrl: boolean | undefined;
+    if (q.hasDeployUrl === 'true') hasDeployUrl = true;
+    else if (q.hasDeployUrl === 'false') hasDeployUrl = false;
+    const repos = await getAllProjectRepos(prisma, hasDeployUrl);
     return c.json({ repos });
   } catch (error) {
     console.error('Get project repos error:', error);
@@ -1314,6 +1318,7 @@ router.get('/projects/repos/export', async (c) => {
       '专业': r.major,
       '选题名称': r.topicTitle,
       '仓库地址': r.repoUrl || '',
+      '访问地址': r.deployUrl || '',
       '最近同步时间': r.syncedAt ? new Date(r.syncedAt).toLocaleString('zh-CN') : '',
       '提交数': r.commitCount,
     }));
@@ -1327,6 +1332,30 @@ router.get('/projects/repos/export', async (c) => {
   } catch (error) {
     console.error('Export project repos error:', error);
     return c.json({ error: '导出失败' }, 500);
+  }
+});
+
+router.put('/projects/:id/deployUrl', async (c) => {
+  try {
+    const prisma = c.get('prisma');
+    const projectId = parseInt(c.req.param('id'));
+    const { deployUrl } = await c.req.json();
+
+    if (isNaN(projectId)) {
+      return c.json({ error: '无效的项目ID' }, 400);
+    }
+    if (deployUrl && typeof deployUrl === 'string' && deployUrl.length > 500) {
+      return c.json({ error: '访问地址过长' }, 400);
+    }
+
+    await adminUpdateDeployUrl(prisma, projectId, deployUrl || null);
+    return c.json({ message: '访问地址已更新' });
+  } catch (error: any) {
+    if (error.message === 'PROJECT_NOT_FOUND') {
+      return c.json({ error: '项目不存在' }, 404);
+    }
+    console.error('Admin deploy URL update error:', error);
+    return c.json({ error: '更新访问地址失败' }, 500);
   }
 });
 

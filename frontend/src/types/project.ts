@@ -28,6 +28,7 @@ export interface Project {
   topicId: number;
   status: ProjectStatus;
   repoUrl?: string | null;
+  deployUrl?: string | null;
   documentsRef: Record<string, any> | null;
   reviewStatus?: PersistedReviewStatus;
   reviewResult?: ReviewResult | null;
@@ -42,6 +43,7 @@ export interface ProjectDetail {
   techStack: string | null;
   repoUrl: string | null;
   repoSyncData: RepoSyncData | null;
+  deployUrl: string | null;
   reviewStatus: PersistedReviewStatus;
   reviewResult: ReviewResult | null;
   createdAt: string;
@@ -94,6 +96,7 @@ export interface RepoSyncData {
 export interface RepoInfoResponse {
   repoUrl: string | null;
   repoSyncData: RepoSyncData | null;
+  deployUrl: string | null;
 }
 
 export interface SyncRepoResponse {
@@ -109,4 +112,5 @@ export interface ProjectRepoInfo {
   repoUrl: string | null;
   syncedAt: string | null;
   commitCount: number;
+  deployUrl: string | null;
 }

@@ -64,6 +64,13 @@ export async function updateProjectRepoUrlApi(
   return api.put(`/api/projects/${projectId}/repoUrl`, { repoUrl });
 }
 
+export async function updateProjectDeployUrlApi(
+  projectId: number,
+  deployUrl: string | null
+): Promise<{ message: string }> {
+  return api.put(`/api/projects/${projectId}/deployUrl`, { deployUrl });
+}
+
 export async function syncRepoApi(
   projectId: number
 ): Promise<SyncRepoResponse> {

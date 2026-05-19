@@ -118,19 +118,57 @@ export async function updateRepoUrl(prisma: PrismaClient, projectId: number, use
 export async function getProjectRepoInfo(prisma: PrismaClient, projectId: number, userId: number) {
   const project = await prisma.project.findFirst({
     where: { id: projectId, userId },
-    select: { repoUrl: true, repoSyncData: true },
+    select: { repoUrl: true, repoSyncData: true, deployUrl: true },
   });
   if (!project) throw new Error('PROJECT_NOT_FOUND');
   return project;
 }
 
-export async function getAllProjectRepos(prisma: PrismaClient) {
+export async function updateDeployUrl(
+  prisma: PrismaClient,
+  projectId: number,
+  userId: number,
+  deployUrl: string | null
+): Promise<void> {
+  const project = await prisma.project.findFirst({ where: { id: projectId, userId } });
+  if (!project) throw new Error('PROJECT_NOT_FOUND');
+  await prisma.project.update({
+    where: { id: projectId },
+    data: { deployUrl },
+  });
+}
+
+export async function adminUpdateDeployUrl(
+  prisma: PrismaClient,
+  projectId: number,
+  deployUrl: string | null
+): Promise<void> {
+  const project = await prisma.project.findFirst({ where: { id: projectId } });
+  if (!project) throw new Error('PROJECT_NOT_FOUND');
+  await prisma.project.update({
+    where: { id: projectId },
+    data: { deployUrl },
+  });
+}
+
+export async function getAllProjectRepos(
+  prisma: PrismaClient,
+  hasDeployUrl?: boolean
+) {
+  const where: any = {};
+  if (hasDeployUrl === true) {
+    where.deployUrl = { not: null };
+  } else if (hasDeployUrl === false) {
+    where.deployUrl = null;
+  }
+
   const projects = await prisma.project.findMany({
-    where: { repoUrl: { not: null } },
+    where,
     select: {
       id: true,
       repoUrl: true,
       repoSyncData: true,
+      deployUrl: true,
       user: { select: { studentId: true, name: true, major: true } },
       topic: { select: { title: true } },
       updatedAt: true,
@@ -146,5 +184,6 @@ export async function getAllProjectRepos(prisma: PrismaClient) {
     repoUrl: p.repoUrl,
     syncedAt: (p.repoSyncData as any)?.syncedAt ?? null,
     commitCount: (p.repoSyncData as any)?.commitCount ?? 0,
+    deployUrl: p.deployUrl,
   }));
 }

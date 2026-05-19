@@ -2,7 +2,7 @@ import { Hono } from 'hono';
 import { PrismaClient, ProjectStatus } from '../generated/prisma';
 import { authMiddleware } from '../middleware/auth.middleware.js';
 import { checkBannedMiddleware } from '../middleware/ban.middleware.js';
-import { updateRepoUrl, syncRepoData, getProjectRepoInfo } from '../services/repo.service.js';
+import { updateRepoUrl, syncRepoData, getProjectRepoInfo, updateDeployUrl } from '../services/repo.service.js';
 import type { AppEnv } from '../types.js';
 
 const router = new Hono<AppEnv>();
@@ -248,6 +248,33 @@ router.put('/:id/repoUrl', authMiddleware, checkBannedMiddleware, async (c) => {
     }
     console.error('Repo URL update error:', error);
     return c.json({ error: '更新仓库地址失败' }, 500);
+  }
+});
+
+router.put('/:id/deployUrl', authMiddleware, checkBannedMiddleware, async (c) => {
+  try {
+    const user = c.get('user');
+    const prisma = c.get('prisma');
+    const userId = user.userId;
+    const projectId = parseInt(c.req.param('id'));
+    const { deployUrl } = await c.req.json();
+
+    if (isNaN(projectId)) {
+      return c.json({ error: '无效的项目ID' }, 400);
+    }
+
+    if (deployUrl && typeof deployUrl === 'string' && deployUrl.length > 500) {
+      return c.json({ error: '访问地址过长' }, 400);
+    }
+
+    await updateDeployUrl(prisma, projectId, userId, deployUrl || null);
+    return c.json({ message: '访问地址已更新' });
+  } catch (error: any) {
+    if (error.message === 'PROJECT_NOT_FOUND') {
+      return c.json({ error: '项目不存在或无权限访问' }, 404);
+    }
+    console.error('Deploy URL update error:', error);
+    return c.json({ error: '更新访问地址失败' }, 500);
   }
 });
 

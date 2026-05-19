@@ -710,6 +710,11 @@
           @sync="handleRepoSync"
         />
 
+        <DeployUrlPanel
+          :deploy-url="deployUrl"
+          @update:deploy-url="handleDeployUrlUpdate"
+        />
+
         <!-- Quick Actions -->
         <el-card class="actions-card" v-if="docSetMode === 'standard'">
           <template #header>
@@ -802,7 +807,7 @@ import {
 import { useDocumentStore } from '@/stores/document.store';
 import { useGraduationDocumentStore } from '@/stores/graduation.store';
 import { useProjectStore } from '@/stores/project.store';
-import { updateProjectTechStackApi, fetchProjectDetailApi, updateProjectRepoUrlApi, syncRepoApi } from '@/api/project.api';
+import { updateProjectTechStackApi, fetchProjectDetailApi, updateProjectRepoUrlApi, syncRepoApi, updateProjectDeployUrlApi } from '@/api/project.api';
 import JSZip from 'jszip';
 import { saveAs } from 'file-saver';
 import TerminalGenerationOverlay from '@/components/TerminalGenerationOverlay.vue';
@@ -815,6 +820,7 @@ import DocumentModeToggle from '@/components/DocumentModeToggle.vue';
 import TechStackPanel from '@/components/TechStackPanel.vue';
 import ExpertReviewPanel from '@/components/ExpertReviewPanel.vue';
 import RepoUrlPanel from '@/components/RepoUrlPanel.vue';
+import DeployUrlPanel from '@/components/DeployUrlPanel.vue';
 import type { DocType } from '@/types/document';
 import type { GraduationDocType } from '@/types/graduation-document';
 import type { ProjectStatus, RepoSyncData } from '@/types/project';
@@ -907,6 +913,7 @@ onMounted(async () => {
         );
         repoUrl.value = detail.project.repoUrl ?? null;
         repoSyncData.value = detail.project.repoSyncData ?? null;
+        deployUrl.value = detail.project.deployUrl ?? null;
         return true;
       })
       .catch(() => false);
@@ -1204,6 +1211,7 @@ async function handleTechStackUpdate(techStack: string): Promise<void> {
 const repoUrl = ref<string | null>(null);
 const repoSyncData = ref<RepoSyncData | null>(null);
 const repoSyncing = ref(false);
+const deployUrl = ref<string | null>(null);
 
 async function handleRepoUrlUpdate(url: string | null): Promise<void> {
   try {
@@ -1215,6 +1223,16 @@ async function handleRepoUrlUpdate(url: string | null): Promise<void> {
     ElMessage.success(url ? '仓库地址已更新' : '仓库地址已清除');
   } catch (e: any) {
     ElMessage.error(e.message || '更新仓库地址失败');
+  }
+}
+
+async function handleDeployUrlUpdate(url: string | null): Promise<void> {
+  try {
+    await updateProjectDeployUrlApi(projectId.value, url);
+    deployUrl.value = url;
+    ElMessage.success(url ? '访问地址已更新' : '访问地址已清除');
+  } catch (e: any) {
+    ElMessage.error(e.message || '更新访问地址失败');
   }
 }
 
