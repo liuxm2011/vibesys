@@ -1,0 +1,1712 @@
+{
+  "https://biyesheji-1258171495.cos.ap-guangzhou.myqcloud.com/机器学习-表格数据/HR员工转行预测": [
+    {
+      "name": "aug_test.csv",
+      "size": 210504
+    },
+    {
+      "name": "aug_train.csv",
+      "size": 1961145
+    },
+    {
+      "name": "sample_submission.csv",
+      "size": 20612
+    },
+    {
+      "name": "数据集说明.txt",
+      "size": 305
+    }
+  ],
+  "https://biyesheji-1258171495.cos.ap-guangzhou.myqcloud.com/机器学习-表格数据/IMDB电影评分": [
+    {
+      "name": "IMDB-Movie-Data.csv",
+      "size": 309767
+    },
+    {
+      "name": "数据集说明.txt",
+      "size": 223
+    }
+  ],
+  "https://biyesheji-1258171495.cos.ap-guangzhou.myqcloud.com/机器学习-表格数据/Netflix影视目录": [
+    {
+      "name": "netflix_titles.csv",
+      "size": 3399671
+    },
+    {
+      "name": "数据集说明.txt",
+      "size": 301
+    }
+  ],
+  "https://biyesheji-1258171495.cos.ap-guangzhou.myqcloud.com/机器学习-表格数据/Spotify音乐推荐": [
+    {
+      "name": "data.csv",
+      "size": 14374
+    },
+    {
+      "name": "dislike.json",
+      "size": 64423
+    },
+    {
+      "name": "good.json",
+      "size": 61088
+    },
+    {
+      "name": "no.py",
+      "size": 12183
+    },
+    {
+      "name": "yes.py",
+      "size": 10326
+    },
+    {
+      "name": "数据集说明.txt",
+      "size": 274
+    }
+  ],
+  "https://biyesheji-1258171495.cos.ap-guangzhou.myqcloud.com/机器学习-表格数据/Spotify音轨特征": [
+    {
+      "name": "dataset.csv",
+      "size": 20118244
+    },
+    {
+      "name": "数据集说明.txt",
+      "size": 285
+    }
+  ],
+  "https://biyesheji-1258171495.cos.ap-guangzhou.myqcloud.com/机器学习-表格数据/TMDB电影元数据": [
+    {
+      "name": "tmdb_5000_credits.csv",
+      "size": 40044293
+    },
+    {
+      "name": "tmdb_5000_movies.csv",
+      "size": 5698602
+    },
+    {
+      "name": "数据集说明.txt",
+      "size": 250
+    }
+  ],
+  "https://biyesheji-1258171495.cos.ap-guangzhou.myqcloud.com/机器学习-表格数据/三万首Spotify歌曲": [
+    {
+      "name": "readme.md",
+      "size": 6041
+    },
+    {
+      "name": "spotify_songs.csv",
+      "size": 7971379
+    },
+    {
+      "name": "数据集说明.txt",
+      "size": 274
+    }
+  ],
+  "https://biyesheji-1258171495.cos.ap-guangzhou.myqcloud.com/机器学习-表格数据/乳腺癌诊断": [
+    {
+      "name": "data.csv",
+      "size": 125204
+    },
+    {
+      "name": "数据集说明.txt",
+      "size": 276
+    }
+  ],
+  "https://biyesheji-1258171495.cos.ap-guangzhou.myqcloud.com/机器学习-表格数据/信用卡客户画像": [
+    {
+      "name": "BankChurners.csv",
+      "size": 1510880
+    },
+    {
+      "name": "数据集说明.txt",
+      "size": 248
+    }
+  ],
+  "https://biyesheji-1258171495.cos.ap-guangzhou.myqcloud.com/机器学习-表格数据/信用卡欺诈扩展版": [
+    {
+      "name": "card_transdata.csv",
+      "size": 76277977
+    },
+    {
+      "name": "数据集说明.txt",
+      "size": 301
+    }
+  ],
+  "https://biyesheji-1258171495.cos.ap-guangzhou.myqcloud.com/机器学习-表格数据/信用卡欺诈检测": [
+    {
+      "name": "creditcard.csv",
+      "size": 150828752
+    },
+    {
+      "name": "数据集说明.txt",
+      "size": 261
+    }
+  ],
+  "https://biyesheji-1258171495.cos.ap-guangzhou.myqcloud.com/机器学习-表格数据/信用评分多类分类": [
+    {
+      "name": "test.csv",
+      "size": 15366486
+    },
+    {
+      "name": "train.csv",
+      "size": 31136044
+    },
+    {
+      "name": "数据集说明.txt",
+      "size": 281
+    }
+  ],
+  "https://biyesheji-1258171495.cos.ap-guangzhou.myqcloud.com/机器学习-表格数据/全球地震海啸风险": [
+    {
+      "name": "earthquake_data_tsunami.csv",
+      "size": 40942
+    },
+    {
+      "name": "数据集说明.txt",
+      "size": 297
+    }
+  ],
+  "https://biyesheji-1258171495.cos.ap-guangzhou.myqcloud.com/机器学习-表格数据/医疗保险费用预测": [
+    {
+      "name": "insurance.csv",
+      "size": 55628
+    },
+    {
+      "name": "数据集说明.txt",
+      "size": 254
+    }
+  ],
+  "https://biyesheji-1258171495.cos.ap-guangzhou.myqcloud.com/机器学习-表格数据/吸烟者体征信号": [
+    {
+      "name": "smoking.csv",
+      "size": 6317929
+    },
+    {
+      "name": "数据集说明.txt",
+      "size": 271
+    }
+  ],
+  "https://biyesheji-1258171495.cos.ap-guangzhou.myqcloud.com/机器学习-表格数据/咖啡品质评分CQI": [
+    {
+      "name": "df_arabica_clean.csv",
+      "size": 112964
+    },
+    {
+      "name": "数据集说明.txt",
+      "size": 280
+    }
+  ],
+  "https://biyesheji-1258171495.cos.ap-guangzhou.myqcloud.com/机器学习-表格数据/学业压力真实调查": [
+    {
+      "name": "academic Stress level - maintainance 1.csv",
+      "size": 14290
+    },
+    {
+      "name": "数据集说明.txt",
+      "size": 307
+    }
+  ],
+  "https://biyesheji-1258171495.cos.ap-guangzhou.myqcloud.com/机器学习-表格数据/学生压力因素分析": [
+    {
+      "name": "StressLevelDataset.csv",
+      "size": 48717
+    },
+    {
+      "name": "数据集说明.txt",
+      "size": 304
+    }
+  ],
+  "https://biyesheji-1258171495.cos.ap-guangzhou.myqcloud.com/机器学习-表格数据/学生抑郁调查": [
+    {
+      "name": "Student Depression Dataset.csv",
+      "size": 2807716
+    },
+    {
+      "name": "数据集说明.txt",
+      "size": 284
+    }
+  ],
+  "https://biyesheji-1258171495.cos.ap-guangzhou.myqcloud.com/机器学习-表格数据/学生综合表现预测": [
+    {
+      "name": "Student_performance_data _.csv",
+      "size": 166901
+    },
+    {
+      "name": "数据集说明.txt",
+      "size": 293
+    }
+  ],
+  "https://biyesheji-1258171495.cos.ap-guangzhou.myqcloud.com/机器学习-表格数据/工业预测性维护": [
+    {
+      "name": "ai4i2020.csv",
+      "size": 522048
+    },
+    {
+      "name": "数据集说明.txt",
+      "size": 297
+    }
+  ],
+  "https://biyesheji-1258171495.cos.ap-guangzhou.myqcloud.com/机器学习-表格数据/巴西电商交易记录": [
+    {
+      "name": "olist_customers_dataset.csv",
+      "size": 9033957
+    },
+    {
+      "name": "olist_geolocation_dataset.csv",
+      "size": 61273883
+    },
+    {
+      "name": "olist_order_items_dataset.csv",
+      "size": 15438671
+    },
+    {
+      "name": "olist_order_payments_dataset.csv",
+      "size": 5777138
+    },
+    {
+      "name": "olist_order_reviews_dataset.csv",
+      "size": 14451670
+    },
+    {
+      "name": "olist_orders_dataset.csv",
+      "size": 17654914
+    },
+    {
+      "name": "olist_products_dataset.csv",
+      "size": 2379446
+    },
+    {
+      "name": "olist_sellers_dataset.csv",
+      "size": 174703
+    },
+    {
+      "name": "product_category_name_translation.csv",
+      "size": 2613
+    },
+    {
+      "name": "数据集说明.txt",
+      "size": 281
+    }
+  ],
+  "https://biyesheji-1258171495.cos.ap-guangzhou.myqcloud.com/机器学习-表格数据/开普勒系外行星": [
+    {
+      "name": "cumulative.csv",
+      "size": 3695322
+    },
+    {
+      "name": "数据集说明.txt",
+      "size": 250
+    }
+  ],
+  "https://biyesheji-1258171495.cos.ap-guangzhou.myqcloud.com/机器学习-表格数据/恒星光谱类型分类": [
+    {
+      "name": "star_classification.csv",
+      "size": 16755863
+    },
+    {
+      "name": "数据集说明.txt",
+      "size": 293
+    }
+  ],
+  "https://biyesheji-1258171495.cos.ap-guangzhou.myqcloud.com/机器学习-表格数据/成人收入普查": [
+    {
+      "name": "adult.csv",
+      "size": 4104734
+    },
+    {
+      "name": "数据集说明.txt",
+      "size": 269
+    }
+  ],
+  "https://biyesheji-1258171495.cos.ap-guangzhou.myqcloud.com/机器学习-表格数据/扩展波士顿房价": [
+    {
+      "name": "housing.csv",
+      "size": 49082
+    },
+    {
+      "name": "数据集说明.txt",
+      "size": 258
+    }
+  ],
+  "https://biyesheji-1258171495.cos.ap-guangzhou.myqcloud.com/机器学习-表格数据/新冠疫情全球统计": [
+    {
+      "name": "COVID-19 Coronavirus.csv",
+      "size": 18109
+    },
+    {
+      "name": "数据集说明.txt",
+      "size": 281
+    }
+  ],
+  "https://biyesheji-1258171495.cos.ap-guangzhou.myqcloud.com/机器学习-表格数据/旅游保险购买预测": [
+    {
+      "name": "TravelInsurancePrediction.csv",
+      "size": 115409
+    },
+    {
+      "name": "数据集说明.txt",
+      "size": 286
+    }
+  ],
+  "https://biyesheji-1258171495.cos.ap-guangzhou.myqcloud.com/机器学习-表格数据/水质饮用安全评估": [
+    {
+      "name": "water_potability.csv",
+      "size": 525187
+    },
+    {
+      "name": "数据集说明.txt",
+      "size": 277
+    }
+  ],
+  "https://biyesheji-1258171495.cos.ap-guangzhou.myqcloud.com/机器学习-表格数据/波士顿犯罪记录": [
+    {
+      "name": "crime.csv",
+      "size": 57969510
+    },
+    {
+      "name": "offense_codes.csv",
+      "size": 19406
+    },
+    {
+      "name": "数据集说明.txt",
+      "size": 266
+    }
+  ],
+  "https://biyesheji-1258171495.cos.ap-guangzhou.myqcloud.com/机器学习-表格数据/泰坦尼克生存预测": [
+    {
+      "name": "Titanic-Dataset.csv",
+      "size": 61194
+    },
+    {
+      "name": "数据集说明.txt",
+      "size": 272
+    }
+  ],
+  "https://biyesheji-1258171495.cos.ap-guangzhou.myqcloud.com/机器学习-表格数据/烟雾传感器IOT检测": [
+    {
+      "name": "smoke_detection_iot.csv",
+      "size": 5834376
+    },
+    {
+      "name": "数据集说明.txt",
+      "size": 284
+    }
+  ],
+  "https://biyesheji-1258171495.cos.ap-guangzhou.myqcloud.com/机器学习-表格数据/甲状腺疾病诊断": [
+    {
+      "name": "Thyroid_Diff.csv",
+      "size": 43588
+    },
+    {
+      "name": "数据集说明.txt",
+      "size": 275
+    }
+  ],
+  "https://biyesheji-1258171495.cos.ap-guangzhou.myqcloud.com/机器学习-表格数据/电信客户流失": [
+    {
+      "name": "WA_Fn-UseC_-Telco-Customer-Churn.csv",
+      "size": 977501
+    },
+    {
+      "name": "数据集说明.txt",
+      "size": 259
+    }
+  ],
+  "https://biyesheji-1258171495.cos.ap-guangzhou.myqcloud.com/机器学习-表格数据/电信流失精简版": [
+    {
+      "name": "telecom_churn.csv",
+      "size": 128828
+    },
+    {
+      "name": "数据集说明.txt",
+      "size": 267
+    }
+  ],
+  "https://biyesheji-1258171495.cos.ap-guangzhou.myqcloud.com/机器学习-表格数据/电动车规格2025": [
+    {
+      "name": "electric_vehicles_spec_2025.csv.csv",
+      "size": 86210
+    },
+    {
+      "name": "数据集说明.txt",
+      "size": 290
+    }
+  ],
+  "https://biyesheji-1258171495.cos.ap-guangzhou.myqcloud.com/机器学习-表格数据/电商物流配送分析": [
+    {
+      "name": "Train.csv",
+      "size": 440462
+    },
+    {
+      "name": "数据集说明.txt",
+      "size": 264
+    }
+  ],
+  "https://biyesheji-1258171495.cos.ap-guangzhou.myqcloud.com/机器学习-表格数据/电子游戏销量": [
+    {
+      "name": "vgsales.csv",
+      "size": 1355781
+    },
+    {
+      "name": "数据集说明.txt",
+      "size": 248
+    }
+  ],
+  "https://biyesheji-1258171495.cos.ap-guangzhou.myqcloud.com/机器学习-表格数据/皮肤病多类分类": [
+    {
+      "name": "dermatology_database_1.csv",
+      "size": 27004
+    },
+    {
+      "name": "数据集说明.txt",
+      "size": 290
+    }
+  ],
+  "https://biyesheji-1258171495.cos.ap-guangzhou.myqcloud.com/机器学习-表格数据/睡眠压力监测": [
+    {
+      "name": "IEEE-TCE_2020-08-0175_SaYoPillow.pdf",
+      "size": 3191259
+    },
+    {
+      "name": "SaYoPillow.csv",
+      "size": 32492
+    },
+    {
+      "name": "readme.docx",
+      "size": 15055
+    },
+    {
+      "name": "数据集说明.txt",
+      "size": 284
+    }
+  ],
+  "https://biyesheji-1258171495.cos.ap-guangzhou.myqcloud.com/机器学习-表格数据/糖尿病预测": [
+    {
+      "name": "diabetes.csv",
+      "size": 23873
+    },
+    {
+      "name": "数据集说明.txt",
+      "size": 280
+    }
+  ],
+  "https://biyesheji-1258171495.cos.ap-guangzhou.myqcloud.com/机器学习-表格数据/综合客户流失预测": [
+    {
+      "name": "customer_churn_dataset-testing-master.csv",
+      "size": 3282220
+    },
+    {
+      "name": "customer_churn_dataset-training-master.csv",
+      "size": 23448754
+    },
+    {
+      "name": "数据集说明.txt",
+      "size": 286
+    }
+  ],
+  "https://biyesheji-1258171495.cos.ap-guangzhou.myqcloud.com/机器学习-表格数据/肥胖等级预测": [
+    {
+      "name": "ObesityDataSet_raw_and_data_sinthetic.csv",
+      "size": 263646
+    },
+    {
+      "name": "数据集说明.txt",
+      "size": 263
+    }
+  ],
+  "https://biyesheji-1258171495.cos.ap-guangzhou.myqcloud.com/机器学习-表格数据/胎儿健康分类": [
+    {
+      "name": "fetal_health.csv",
+      "size": 228715
+    },
+    {
+      "name": "数据集说明.txt",
+      "size": 270
+    }
+  ],
+  "https://biyesheji-1258171495.cos.ap-guangzhou.myqcloud.com/机器学习-表格数据/脑卒中风险预测": [
+    {
+      "name": "healthcare-dataset-stroke-data.csv",
+      "size": 316971
+    },
+    {
+      "name": "数据集说明.txt",
+      "size": 274
+    }
+  ],
+  "https://biyesheji-1258171495.cos.ap-guangzhou.myqcloud.com/机器学习-表格数据/航空乘客满意度": [
+    {
+      "name": "test.csv",
+      "size": 3037688
+    },
+    {
+      "name": "train.csv",
+      "size": 12193089
+    },
+    {
+      "name": "数据集说明.txt",
+      "size": 299
+    }
+  ],
+  "https://biyesheji-1258171495.cos.ap-guangzhou.myqcloud.com/机器学习-表格数据/英国电商交易": [
+    {
+      "name": "data.csv",
+      "size": 45580638
+    },
+    {
+      "name": "数据集说明.txt",
+      "size": 237
+    }
+  ],
+  "https://biyesheji-1258171495.cos.ap-guangzhou.myqcloud.com/机器学习-表格数据/葡萄干形态分类": [
+    {
+      "name": "数据集说明.txt",
+      "size": 278
+    }
+  ],
+  "https://biyesheji-1258171495.cos.ap-guangzhou.myqcloud.com/机器学习-表格数据/蘑菇毒性分类": [
+    {
+      "name": "mushrooms.csv",
+      "size": 374003
+    },
+    {
+      "name": "数据集说明.txt",
+      "size": 280
+    }
+  ],
+  "https://biyesheji-1258171495.cos.ap-guangzhou.myqcloud.com/机器学习-表格数据/西雅图房价预测": [
+    {
+      "name": "kc_house_data.csv",
+      "size": 2515206
+    },
+    {
+      "name": "数据集说明.txt",
+      "size": 247
+    }
+  ],
+  "https://biyesheji-1258171495.cos.ap-guangzhou.myqcloud.com/机器学习-表格数据/钻石价格预测": [
+    {
+      "name": "diamonds.csv",
+      "size": 3192560
+    },
+    {
+      "name": "数据集说明.txt",
+      "size": 243
+    }
+  ],
+  "https://biyesheji-1258171495.cos.ap-guangzhou.myqcloud.com/机器学习-表格数据/阿尔茨海默症预测": [
+    {
+      "name": "alzheimers_disease_data.csv",
+      "size": 605247
+    },
+    {
+      "name": "数据集说明.txt",
+      "size": 281
+    }
+  ],
+  "https://biyesheji-1258171495.cos.ap-guangzhou.myqcloud.com/机器学习-表格数据/食品营养成分数据库": [
+    {
+      "name": "数据集说明.txt",
+      "size": 283
+    }
+  ],
+  "https://biyesheji-1258171495.cos.ap-guangzhou.myqcloud.com/机器学习-表格数据/鸢尾花分类": [
+    {
+      "name": "Iris.csv",
+      "size": 5107
+    },
+    {
+      "name": "database.sqlite",
+      "size": 10240
+    },
+    {
+      "name": "数据集说明.txt",
+      "size": 248
+    }
+  ],
+  "https://biyesheji-1258171495.cos.ap-guangzhou.myqcloud.com/自然语言处理/BBC全文分类": [
+    {
+      "name": "数据集说明.txt",
+      "size": 249
+    }
+  ],
+  "https://biyesheji-1258171495.cos.ap-guangzhou.myqcloud.com/自然语言处理/HuffPost新闻分类": [
+    {
+      "name": "News_Category_Dataset_v3.json",
+      "size": 87295572
+    },
+    {
+      "name": "数据集说明.txt",
+      "size": 246
+    }
+  ],
+  "https://biyesheji-1258171495.cos.ap-guangzhou.myqcloud.com/自然语言处理/IMDB影评情感分析": [
+    {
+      "name": "IMDB Dataset.csv",
+      "size": 66212309
+    },
+    {
+      "name": "数据集说明.txt",
+      "size": 281
+    }
+  ],
+  "https://biyesheji-1258171495.cos.ap-guangzhou.myqcloud.com/自然语言处理/Reddit疫苗谣言检测": [
+    {
+      "name": "reddit_vm.csv",
+      "size": 628100
+    },
+    {
+      "name": "数据集说明.txt",
+      "size": 251
+    }
+  ],
+  "https://biyesheji-1258171495.cos.ap-guangzhou.myqcloud.com/自然语言处理/Yelp商家评论": [
+    {
+      "name": "yelp-dataset.zip",
+      "size": 3770679296
+    },
+    {
+      "name": "数据集说明.txt",
+      "size": 232
+    }
+  ],
+  "https://biyesheji-1258171495.cos.ap-guangzhou.myqcloud.com/自然语言处理/专利分类码文本": [
+    {
+      "name": "titles.csv",
+      "size": 21605031
+    },
+    {
+      "name": "数据集说明.txt",
+      "size": 237
+    }
+  ],
+  "https://biyesheji-1258171495.cos.ap-guangzhou.myqcloud.com/自然语言处理/二十类新闻组经典集": [
+    {
+      "name": "alt.atheism.txt",
+      "size": 5068467
+    },
+    {
+      "name": "comp.graphics.txt",
+      "size": 4175708
+    },
+    {
+      "name": "comp.os.ms-windows.misc.txt",
+      "size": 4856782
+    },
+    {
+      "name": "comp.sys.ibm.pc.hardware.txt",
+      "size": 2472512
+    },
+    {
+      "name": "comp.sys.mac.hardware.txt",
+      "size": 2206754
+    },
+    {
+      "name": "comp.windows.x.txt",
+      "size": 3834920
+    },
+    {
+      "name": "list.csv",
+      "size": 15722
+    },
+    {
+      "name": "misc.forsale.txt",
+      "size": 1928042
+    },
+    {
+      "name": "rec.autos.txt",
+      "size": 2665858
+    },
+    {
+      "name": "rec.motorcycles.txt",
+      "size": 2500444
+    },
+    {
+      "name": "rec.sport.baseball.txt",
+      "size": 2832560
+    },
+    {
+      "name": "rec.sport.hockey.txt",
+      "size": 3604120
+    },
+    {
+      "name": "sci.crypt.txt",
+      "size": 4174828
+    },
+    {
+      "name": "sci.electronics.txt",
+      "size": 2558754
+    },
+    {
+      "name": "sci.med.txt",
+      "size": 3842026
+    },
+    {
+      "name": "sci.space.txt",
+      "size": 3698662
+    },
+    {
+      "name": "soc.religion.christian.txt",
+      "size": 4714664
+    },
+    {
+      "name": "talk.politics.guns.txt",
+      "size": 3929696
+    },
+    {
+      "name": "talk.politics.mideast.txt",
+      "size": 5912760
+    },
+    {
+      "name": "talk.politics.misc.txt",
+      "size": 4278468
+    },
+    {
+      "name": "talk.religion.misc.txt",
+      "size": 2806330
+    },
+    {
+      "name": "数据集说明.txt",
+      "size": 266
+    }
+  ],
+  "https://biyesheji-1258171495.cos.ap-guangzhou.myqcloud.com/自然语言处理/亚马逊乐器评论": [
+    {
+      "name": "Musical_Instruments_5.json",
+      "size": 7445886
+    },
+    {
+      "name": "Musical_instruments_reviews.csv",
+      "size": 6092223
+    },
+    {
+      "name": "数据集说明.txt",
+      "size": 255
+    }
+  ],
+  "https://biyesheji-1258171495.cos.ap-guangzhou.myqcloud.com/自然语言处理/假新闻多类分类大集": [
+    {
+      "name": "WELFake_Dataset.csv",
+      "size": 245086152
+    },
+    {
+      "name": "数据集说明.txt",
+      "size": 263
+    }
+  ],
+  "https://biyesheji-1258171495.cos.ap-guangzhou.myqcloud.com/自然语言处理/假新闻文本检测": [
+    {
+      "name": "fake.csv",
+      "size": 62789876
+    },
+    {
+      "name": "true.csv",
+      "size": 53582940
+    },
+    {
+      "name": "数据集说明.txt",
+      "size": 269
+    }
+  ],
+  "https://biyesheji-1258171495.cos.ap-guangzhou.myqcloud.com/自然语言处理/假新闻检测": [
+    {
+      "name": "Fake.csv",
+      "size": 62789876
+    },
+    {
+      "name": "True.csv",
+      "size": 53582940
+    },
+    {
+      "name": "数据集说明.txt",
+      "size": 258
+    }
+  ],
+  "https://biyesheji-1258171495.cos.ap-guangzhou.myqcloud.com/自然语言处理/合成医疗文本记录": [
+    {
+      "name": "healthcare_dataset.csv",
+      "size": 8399221
+    },
+    {
+      "name": "数据集说明.txt",
+      "size": 266
+    }
+  ],
+  "https://biyesheji-1258171495.cos.ap-guangzhou.myqcloud.com/自然语言处理/国际象棋对局记录": [
+    {
+      "name": "games.csv",
+      "size": 7672655
+    },
+    {
+      "name": "数据集说明.txt",
+      "size": 231
+    }
+  ],
+  "https://biyesheji-1258171495.cos.ap-guangzhou.myqcloud.com/自然语言处理/多平台社媒情感": [
+    {
+      "name": "sentimentdataset.csv",
+      "size": 170776
+    },
+    {
+      "name": "数据集说明.txt",
+      "size": 273
+    }
+  ],
+  "https://biyesheji-1258171495.cos.ap-guangzhou.myqcloud.com/自然语言处理/多语言垃圾短信": [
+    {
+      "name": "SPAM text message 20170820 - Data.csv",
+      "size": 485702
+    },
+    {
+      "name": "数据集说明.txt",
+      "size": 234
+    }
+  ],
+  "https://biyesheji-1258171495.cos.ap-guangzhou.myqcloud.com/自然语言处理/大规模推文情感": [
+    {
+      "name": "Twitter_Data.csv",
+      "size": 20895533
+    },
+    {
+      "name": "数据集说明.txt",
+      "size": 246
+    }
+  ],
+  "https://biyesheji-1258171495.cos.ap-guangzhou.myqcloud.com/自然语言处理/女装评论情感": [
+    {
+      "name": "Womens Clothing E-Commerce Reviews.csv",
+      "size": 8483448
+    },
+    {
+      "name": "数据集说明.txt",
+      "size": 251
+    }
+  ],
+  "https://biyesheji-1258171495.cos.ap-guangzhou.myqcloud.com/自然语言处理/应用商店用户评论": [
+    {
+      "name": "Candy Crush Saga.csv",
+      "size": 761146
+    },
+    {
+      "name": "Dropbox.csv",
+      "size": 1297695
+    },
+    {
+      "name": "Facebook Lite.csv",
+      "size": 665140
+    },
+    {
+      "name": "Facebook Messenger.csv",
+      "size": 839680
+    },
+    {
+      "name": "Facebook.csv",
+      "size": 867554
+    },
+    {
+      "name": "Flipboard.csv",
+      "size": 1327016
+    },
+    {
+      "name": "Instagram.csv",
+      "size": 932436
+    },
+    {
+      "name": "LINE.csv",
+      "size": 1450751
+    },
+    {
+      "name": "Microsoft PowerPoint.csv",
+      "size": 721089
+    },
+    {
+      "name": "Microsoft Word.csv",
+      "size": 734302
+    },
+    {
+      "name": "Netflix.csv",
+      "size": 1295536
+    },
+    {
+      "name": "SHAREit.csv",
+      "size": 685734
+    },
+    {
+      "name": "Skype.csv",
+      "size": 1068166
+    },
+    {
+      "name": "Snapchat.csv",
+      "size": 932841
+    },
+    {
+      "name": "Spotify.csv",
+      "size": 1205609
+    },
+    {
+      "name": "Subway Surfers.csv",
+      "size": 957908
+    },
+    {
+      "name": "TikTok.csv",
+      "size": 1009586
+    },
+    {
+      "name": "Twitter.csv",
+      "size": 1278294
+    },
+    {
+      "name": "Viber.csv",
+      "size": 1051442
+    },
+    {
+      "name": "WhatsApp.csv",
+      "size": 777562
+    },
+    {
+      "name": "all_combined.csv",
+      "size": 21979054
+    },
+    {
+      "name": "数据集说明.txt",
+      "size": 280
+    }
+  ],
+  "https://biyesheji-1258171495.cos.ap-guangzhou.myqcloud.com/自然语言处理/心理健康社媒文本": [
+    {
+      "name": "Mental Health Dataset.csv",
+      "size": 31098777
+    },
+    {
+      "name": "数据集说明.txt",
+      "size": 266
+    }
+  ],
+  "https://biyesheji-1258171495.cos.ap-guangzhou.myqcloud.com/自然语言处理/情感标注短句数据集": [
+    {
+      "name": "数据集说明.txt",
+      "size": 279
+    }
+  ],
+  "https://biyesheji-1258171495.cos.ap-guangzhou.myqcloud.com/自然语言处理/抑郁症社交文本检测": [
+    {
+      "name": "数据集说明.txt",
+      "size": 265
+    }
+  ],
+  "https://biyesheji-1258171495.cos.ap-guangzhou.myqcloud.com/自然语言处理/推文仇恨言论检测": [
+    {
+      "name": "test.csv",
+      "size": 1635543
+    },
+    {
+      "name": "train.csv",
+      "size": 3103165
+    },
+    {
+      "name": "数据集说明.txt",
+      "size": 279
+    }
+  ],
+  "https://biyesheji-1258171495.cos.ap-guangzhou.myqcloud.com/自然语言处理/推文实体情感分析": [
+    {
+      "name": "twitter_training.csv",
+      "size": 10325088
+    },
+    {
+      "name": "twitter_validation.csv",
+      "size": 164351
+    },
+    {
+      "name": "数据集说明.txt",
+      "size": 273
+    }
+  ],
+  "https://biyesheji-1258171495.cos.ap-guangzhou.myqcloud.com/自然语言处理/推文情感三分类": [
+    {
+      "name": "fake_or_real_news.csv",
+      "size": 30696129
+    },
+    {
+      "name": "数据集说明.txt",
+      "size": 242
+    }
+  ],
+  "https://biyesheji-1258171495.cos.ap-guangzhou.myqcloud.com/自然语言处理/推文用户性别预测": [
+    {
+      "name": "gender-classifier-DFE-791531.csv",
+      "size": 8176739
+    },
+    {
+      "name": "数据集说明.txt",
+      "size": 283
+    }
+  ],
+  "https://biyesheji-1258171495.cos.ap-guangzhou.myqcloud.com/自然语言处理/文本情绪六分类扩展": [
+    {
+      "name": "text.csv",
+      "size": 44916111
+    },
+    {
+      "name": "数据集说明.txt",
+      "size": 259
+    }
+  ],
+  "https://biyesheji-1258171495.cos.ap-guangzhou.myqcloud.com/自然语言处理/文本情绪识别": [
+    {
+      "name": "test.txt",
+      "size": 206760
+    },
+    {
+      "name": "train.txt",
+      "size": 1658616
+    },
+    {
+      "name": "val.txt",
+      "size": 204240
+    },
+    {
+      "name": "数据集说明.txt",
+      "size": 253
+    }
+  ],
+  "https://biyesheji-1258171495.cos.ap-guangzhou.myqcloud.com/自然语言处理/新冠相关推文分类": [
+    {
+      "name": "Corona_NLP_test.csv",
+      "size": 1002494
+    },
+    {
+      "name": "Corona_NLP_train.csv",
+      "size": 10500262
+    },
+    {
+      "name": "数据集说明.txt",
+      "size": 261
+    }
+  ],
+  "https://biyesheji-1258171495.cos.ap-guangzhou.myqcloud.com/自然语言处理/新闻标题讽刺检测": [
+    {
+      "name": "Sarcasm_Headlines_Dataset.json",
+      "size": 5616830
+    },
+    {
+      "name": "Sarcasm_Headlines_Dataset_v2.json",
+      "size": 6057046
+    },
+    {
+      "name": "数据集说明.txt",
+      "size": 267
+    }
+  ],
+  "https://biyesheji-1258171495.cos.ap-guangzhou.myqcloud.com/自然语言处理/服装尺码推荐评论": [
+    {
+      "name": "modcloth_final_data.json",
+      "size": 40566141
+    },
+    {
+      "name": "renttherunway_final_data.json",
+      "size": 123251881
+    },
+    {
+      "name": "数据集说明.txt",
+      "size": 285
+    }
+  ],
+  "https://biyesheji-1258171495.cos.ap-guangzhou.myqcloud.com/自然语言处理/猫途鹰酒店评论": [
+    {
+      "name": "tripadvisor_hotel_reviews.csv",
+      "size": 14966021
+    },
+    {
+      "name": "数据集说明.txt",
+      "size": 244
+    }
+  ],
+  "https://biyesheji-1258171495.cos.ap-guangzhou.myqcloud.com/自然语言处理/百万推文情感": [
+    {
+      "name": "training.1600000.processed.noemoticon.csv",
+      "size": 238803811
+    },
+    {
+      "name": "数据集说明.txt",
+      "size": 233
+    }
+  ],
+  "https://biyesheji-1258171495.cos.ap-guangzhou.myqcloud.com/自然语言处理/维基电影情节分类": [
+    {
+      "name": "wiki_movie_plots_deduped.csv",
+      "size": 81193310
+    },
+    {
+      "name": "数据集说明.txt",
+      "size": 259
+    }
+  ],
+  "https://biyesheji-1258171495.cos.ap-guangzhou.myqcloud.com/自然语言处理/网络欺凌文本分类": [
+    {
+      "name": "cyberbullying_tweets.csv",
+      "size": 7174545
+    },
+    {
+      "name": "数据集说明.txt",
+      "size": 267
+    }
+  ],
+  "https://biyesheji-1258171495.cos.ap-guangzhou.myqcloud.com/自然语言处理/航空公司推文情感": [
+    {
+      "name": "Tweets.csv",
+      "size": 3421431
+    },
+    {
+      "name": "database.sqlite",
+      "size": 5038080
+    },
+    {
+      "name": "数据集说明.txt",
+      "size": 255
+    }
+  ],
+  "https://biyesheji-1258171495.cos.ap-guangzhou.myqcloud.com/自然语言处理/英文词频统计": [
+    {
+      "name": "unigram_freq.csv",
+      "size": 4956252
+    },
+    {
+      "name": "数据集说明.txt",
+      "size": 240
+    }
+  ],
+  "https://biyesheji-1258171495.cos.ap-guangzhou.myqcloud.com/自然语言处理/药品评论情感分析": [
+    {
+      "name": "drugsComTest_raw.csv",
+      "size": 27637580
+    },
+    {
+      "name": "drugsComTrain_raw.csv",
+      "size": 82990470
+    },
+    {
+      "name": "数据集说明.txt",
+      "size": 270
+    }
+  ],
+  "https://biyesheji-1258171495.cos.ap-guangzhou.myqcloud.com/自然语言处理/葡萄酒品鉴文本": [
+    {
+      "name": "winemag-data-130k-v2.csv",
+      "size": 52908706
+    },
+    {
+      "name": "winemag-data-130k-v2.json",
+      "size": 79279294
+    },
+    {
+      "name": "winemag-data_first150k.csv",
+      "size": 49784334
+    },
+    {
+      "name": "数据集说明.txt",
+      "size": 247
+    }
+  ],
+  "https://biyesheji-1258171495.cos.ap-guangzhou.myqcloud.com/自然语言处理/虚假招聘信息检测": [
+    {
+      "name": "fake_job_postings.csv",
+      "size": 50061601
+    },
+    {
+      "name": "数据集说明.txt",
+      "size": 276
+    }
+  ],
+  "https://biyesheji-1258171495.cos.ap-guangzhou.myqcloud.com/自然语言处理/邮件垃圾分类CSV版": [
+    {
+      "name": "emails.csv",
+      "size": 31243156
+    },
+    {
+      "name": "数据集说明.txt",
+      "size": 280
+    }
+  ],
+  "https://biyesheji-1258171495.cos.ap-guangzhou.myqcloud.com/自然语言处理/钓鱼邮件检测": [
+    {
+      "name": "CEAS_08.csv",
+      "size": 67902056
+    },
+    {
+      "name": "Enron.csv",
+      "size": 45557673
+    },
+    {
+      "name": "Ling.csv",
+      "size": 9342985
+    },
+    {
+      "name": "Nazario.csv",
+      "size": 7811841
+    },
+    {
+      "name": "Nigerian_Fraud.csv",
+      "size": 9192393
+    },
+    {
+      "name": "SpamAssasin.csv",
+      "size": 14879195
+    },
+    {
+      "name": "phishing_email.csv",
+      "size": 106603543
+    },
+    {
+      "name": "数据集说明.txt",
+      "size": 262
+    }
+  ],
+  "https://biyesheji-1258171495.cos.ap-guangzhou.myqcloud.com/自然语言处理/麦当劳门店评论": [
+    {
+      "name": "McDonald_s_Reviews.csv",
+      "size": 9137161
+    },
+    {
+      "name": "数据集说明.txt",
+      "size": 267
+    }
+  ],
+  "https://biyesheji-1258171495.cos.ap-guangzhou.myqcloud.com/计算机视觉/LFW人脸多人识别": [
+    {
+      "name": "lfw-funneled.tgz",
+      "size": 243346528
+    },
+    {
+      "name": "pairs.txt",
+      "size": 155335
+    },
+    {
+      "name": "pairsDevTest.txt",
+      "size": 26002
+    },
+    {
+      "name": "pairsDevTrain.txt",
+      "size": 56579
+    },
+    {
+      "name": "数据集说明.txt",
+      "size": 248
+    }
+  ],
+  "https://biyesheji-1258171495.cos.ap-guangzhou.myqcloud.com/计算机视觉/MNIST图像JPEG版": [
+    {
+      "name": "testSet.tar.gz",
+      "size": 7134434
+    },
+    {
+      "name": "trainingSet.tar.gz",
+      "size": 10746054
+    },
+    {
+      "name": "数据集说明.txt",
+      "size": 240
+    }
+  ],
+  "https://biyesheji-1258171495.cos.ap-guangzhou.myqcloud.com/计算机视觉/MNIST手写数字标准版": [
+    {
+      "name": "t10k-images.idx3-ubyte",
+      "size": 7840016
+    },
+    {
+      "name": "t10k-labels.idx1-ubyte",
+      "size": 10008
+    },
+    {
+      "name": "train-images.idx3-ubyte",
+      "size": 47040016
+    },
+    {
+      "name": "train-labels.idx1-ubyte",
+      "size": 60008
+    },
+    {
+      "name": "数据集说明.txt",
+      "size": 257
+    }
+  ],
+  "https://biyesheji-1258171495.cos.ap-guangzhou.myqcloud.com/计算机视觉/三维MNIST点云识别": [
+    {
+      "name": "full_dataset_vectors.h5",
+      "size": 30582936
+    },
+    {
+      "name": "plot3D.py",
+      "size": 9471
+    },
+    {
+      "name": "test_point_clouds.h5",
+      "size": 36889605
+    },
+    {
+      "name": "train_point_clouds.h5",
+      "size": 188331087
+    },
+    {
+      "name": "voxelgrid.py",
+      "size": 3857
+    },
+    {
+      "name": "数据集说明.txt",
+      "size": 235
+    }
+  ],
+  "https://biyesheji-1258171495.cos.ap-guangzhou.myqcloud.com/计算机视觉/中文手写数字识别": [
+    {
+      "name": "chinese_mnist.csv",
+      "size": 234341
+    },
+    {
+      "name": "chinese_mnist.tfrecords",
+      "size": 63089700
+    },
+    {
+      "name": "数据集说明.txt",
+      "size": 221
+    }
+  ],
+  "https://biyesheji-1258171495.cos.ap-guangzhou.myqcloud.com/计算机视觉/乐高人仔图像分类": [
+    {
+      "name": "LICENSE",
+      "size": 19091
+    },
+    {
+      "name": "index.csv",
+      "size": 9618
+    },
+    {
+      "name": "metadata.csv",
+      "size": 2186
+    },
+    {
+      "name": "test.csv",
+      "size": 1340
+    },
+    {
+      "name": "数据集说明.txt",
+      "size": 274
+    }
+  ],
+  "https://biyesheji-1258171495.cos.ap-guangzhou.myqcloud.com/计算机视觉/乳腺超声图像分类": [
+    {
+      "name": "数据集说明.txt",
+      "size": 271
+    }
+  ],
+  "https://biyesheji-1258171495.cos.ap-guangzhou.myqcloud.com/计算机视觉/五类花卉图像识别": [
+    {
+      "name": "数据集说明.txt",
+      "size": 267
+    }
+  ],
+  "https://biyesheji-1258171495.cos.ap-guangzhou.myqcloud.com/计算机视觉/卫星图飞机检测": [
+    {
+      "name": "planesnet.json",
+      "size": 190645315
+    },
+    {
+      "name": "数据集说明.txt",
+      "size": 247
+    }
+  ],
+  "https://biyesheji-1258171495.cos.ap-guangzhou.myqcloud.com/计算机视觉/名人人脸识别数据集": [
+    {
+      "name": "lfw_allnames.csv",
+      "size": 100487
+    },
+    {
+      "name": "lfw_readme.csv",
+      "size": 8120
+    },
+    {
+      "name": "matchpairsDevTest.csv",
+      "size": 9903
+    },
+    {
+      "name": "matchpairsDevTrain.csv",
+      "size": 21652
+    },
+    {
+      "name": "mismatchpairsDevTest.csv",
+      "size": 17148
+    },
+    {
+      "name": "mismatchpairsDevTrain.csv",
+      "size": 37175
+    },
+    {
+      "name": "pairs.csv",
+      "size": 164353
+    },
+    {
+      "name": "people.csv",
+      "size": 100514
+    },
+    {
+      "name": "peopleDevTest.csv",
+      "size": 30051
+    },
+    {
+      "name": "peopleDevTrain.csv",
+      "size": 70447
+    },
+    {
+      "name": "数据集说明.txt",
+      "size": 253
+    }
+  ],
+  "https://biyesheji-1258171495.cos.ap-guangzhou.myqcloud.com/计算机视觉/垃圾图像分类": [
+    {
+      "name": "one-indexed-files-notrash_test.txt",
+      "size": 6774
+    },
+    {
+      "name": "one-indexed-files-notrash_train.txt",
+      "size": 27912
+    },
+    {
+      "name": "one-indexed-files-notrash_val.txt",
+      "size": 5147
+    },
+    {
+      "name": "one-indexed-files.txt",
+      "size": 39832
+    },
+    {
+      "name": "zero-indexed-files.txt",
+      "size": 39832
+    },
+    {
+      "name": "数据集说明.txt",
+      "size": 272
+    }
+  ],
+  "https://biyesheji-1258171495.cos.ap-guangzhou.myqcloud.com/计算机视觉/宝可梦图像类型预测": [
+    {
+      "name": "pokemon.csv",
+      "size": 17053
+    },
+    {
+      "name": "数据集说明.txt",
+      "size": 272
+    }
+  ],
+  "https://biyesheji-1258171495.cos.ap-guangzhou.myqcloud.com/计算机视觉/宝可梦高清图像集": [
+    {
+      "name": ".DS_Store",
+      "size": 10244
+    },
+    {
+      "name": "数据集说明.txt",
+      "size": 268
+    }
+  ],
+  "https://biyesheji-1258171495.cos.ap-guangzhou.myqcloud.com/计算机视觉/建筑表面裂缝检测": [
+    {
+      "name": "数据集说明.txt",
+      "size": 264
+    }
+  ],
+  "https://biyesheji-1258171495.cos.ap-guangzhou.myqcloud.com/计算机视觉/开心果品种图像分类": [
+    {
+      "name": "数据集说明.txt",
+      "size": 277
+    }
+  ],
+  "https://biyesheji-1258171495.cos.ap-guangzhou.myqcloud.com/计算机视觉/手势数字识别": [
+    {
+      "name": ".DS_Store",
+      "size": 6148
+    },
+    {
+      "name": "数据集说明.txt",
+      "size": 224
+    }
+  ],
+  "https://biyesheji-1258171495.cos.ap-guangzhou.myqcloud.com/计算机视觉/手语字母识别": [
+    {
+      "name": "amer_sign2.png",
+      "size": 487452
+    },
+    {
+      "name": "amer_sign3.png",
+      "size": 44527
+    },
+    {
+      "name": "american_sign_language.PNG",
+      "size": 208007
+    },
+    {
+      "name": "sign_mnist_test.csv",
+      "size": 21777485
+    },
+    {
+      "name": "sign_mnist_train.csv",
+      "size": 83281065
+    },
+    {
+      "name": "数据集说明.txt",
+      "size": 240
+    }
+  ],
+  "https://biyesheji-1258171495.cos.ap-guangzhou.myqcloud.com/计算机视觉/手语数字图像识别": [
+    {
+      "name": "X.npy",
+      "size": 33783888
+    },
+    {
+      "name": "Y.npy",
+      "size": 165040
+    },
+    {
+      "name": "数据集说明.txt",
+      "size": 262
+    }
+  ],
+  "https://biyesheji-1258171495.cos.ap-guangzhou.myqcloud.com/计算机视觉/新冠肺炎胸片三分类": [
+    {
+      "name": "数据集说明.txt",
+      "size": 252
+    }
+  ],
+  "https://biyesheji-1258171495.cos.ap-guangzhou.myqcloud.com/计算机视觉/时尚MNIST服装识别": [
+    {
+      "name": "fashion-mnist_test.csv",
+      "size": 22176691
+    },
+    {
+      "name": "fashion-mnist_train.csv",
+      "size": 133047193
+    },
+    {
+      "name": "t10k-images-idx3-ubyte",
+      "size": 7840016
+    },
+    {
+      "name": "t10k-labels-idx1-ubyte",
+      "size": 10008
+    },
+    {
+      "name": "train-images-idx3-ubyte",
+      "size": 47040016
+    },
+    {
+      "name": "train-labels-idx1-ubyte",
+      "size": 60008
+    },
+    {
+      "name": "数据集说明.txt",
+      "size": 257
+    }
+  ],
+  "https://biyesheji-1258171495.cos.ap-guangzhou.myqcloud.com/计算机视觉/服装图像检索": [
+    {
+      "name": "数据集说明.txt",
+      "size": 231
+    }
+  ],
+  "https://biyesheji-1258171495.cos.ap-guangzhou.myqcloud.com/计算机视觉/椰枣水果图像分类": [
+    {
+      "name": "数据集说明.txt",
+      "size": 270
+    }
+  ],
+  "https://biyesheji-1258171495.cos.ap-guangzhou.myqcloud.com/计算机视觉/水果多类图像识别": [
+    {
+      "name": "sampleSubmission.csv",
+      "size": 117359
+    },
+    {
+      "name": "数据集说明.txt",
+      "size": 259
+    }
+  ],
+  "https://biyesheji-1258171495.cos.ap-guangzhou.myqcloud.com/计算机视觉/水稻图像品种分类": [
+    {
+      "name": "数据集说明.txt",
+      "size": 252
+    }
+  ],
+  "https://biyesheji-1258171495.cos.ap-guangzhou.myqcloud.com/计算机视觉/水稻多光谱图像": [
+    {
+      "name": "数据集说明.txt",
+      "size": 249
+    }
+  ],
+  "https://biyesheji-1258171495.cos.ap-guangzhou.myqcloud.com/计算机视觉/脑肿瘤MRI分类": [
+    {
+      "name": "数据集说明.txt",
+      "size": 274
+    }
+  ],
+  "https://biyesheji-1258171495.cos.ap-guangzhou.myqcloud.com/计算机视觉/脑肿瘤MRI四分类": [
+    {
+      "name": "数据集说明.txt",
+      "size": 276
+    }
+  ],
+  "https://biyesheji-1258171495.cos.ap-guangzhou.myqcloud.com/计算机视觉/脑肿瘤MRI轻量版": [
+    {
+      "name": "Brain Tumor.csv",
+      "size": 906940
+    },
+    {
+      "name": "bt_dataset_t3.csv",
+      "size": 464940
+    },
+    {
+      "name": "数据集说明.txt",
+      "size": 251
+    }
+  ],
+  "https://biyesheji-1258171495.cos.ap-guangzhou.myqcloud.com/计算机视觉/脑肿瘤有无检测": [
+    {
+      "name": "数据集说明.txt",
+      "size": 246
+    }
+  ],
+  "https://biyesheji-1258171495.cos.ap-guangzhou.myqcloud.com/计算机视觉/葡萄叶病害图像分类": [
+    {
+      "name": "数据集说明.txt",
+      "size": 280
+    }
+  ],
+  "https://biyesheji-1258171495.cos.ap-guangzhou.myqcloud.com/计算机视觉/血细胞图像分类": [
+    {
+      "name": "数据集说明.txt",
+      "size": 255
+    }
+  ],
+  "https://biyesheji-1258171495.cos.ap-guangzhou.myqcloud.com/计算机视觉/车牌检测": [
+    {
+      "name": ".DS_Store",
+      "size": 6148
+    },
+    {
+      "name": "数据集说明.txt",
+      "size": 221
+    }
+  ],
+  "https://biyesheji-1258171495.cos.ap-guangzhou.myqcloud.com/计算机视觉/道路交通标志检测": [
+    {
+      "name": "数据集说明.txt",
+      "size": 238
+    }
+  ],
+  "https://biyesheji-1258171495.cos.ap-guangzhou.myqcloud.com/计算机视觉/铸造产品缺陷检测": [
+    {
+      "name": "数据集说明.txt",
+      "size": 285
+    }
+  ],
+  "https://biyesheji-1258171495.cos.ap-guangzhou.myqcloud.com/计算机视觉/验证码图像识别": [
+    {
+      "name": "数据集说明.txt",
+      "size": 259
+    }
+  ]
+}
