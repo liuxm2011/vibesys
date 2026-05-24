@@ -28,7 +28,7 @@
         <div class="sidebar-section">
           <div class="section-label">📄 数据集说明</div>
           <div class="description-box" v-loading="descLoading">
-            <span v-if="description" style="white-space: pre-wrap">{{ description }}</span>
+            <span v-if="description" style="white-space: pre-wrap; word-break: break-word">{{ description }}</span>
             <span v-else-if="!descLoading" class="muted-text">暂无数据集说明</span>
           </div>
         </div>
@@ -254,6 +254,9 @@ onMounted(() => {
   font-size: 16px;
   font-weight: 600;
   color: #fff;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .header-actions {
@@ -309,6 +312,12 @@ onMounted(() => {
   border-radius: 6px;
   padding: 10px;
   min-height: 80px;
+  overflow-wrap: break-word;
+  word-break: break-word;
+}
+
+.description-box a {
+  word-break: break-all;
 }
 
 .muted-text {
