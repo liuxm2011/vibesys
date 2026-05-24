@@ -45,6 +45,12 @@ const routes: RouteRecordRaw[] = [
     meta: { requiresAuth: true }
   },
   {
+    path: '/graduation/dataset',
+    name: 'DatasetPreview',
+    component: () => import('@/views/graduation/DatasetPreview.vue'),
+    meta: { requiresAuth: true, skipModeCheck: true }
+  },
+  {
     path: '/admin',
     component: () => import('@/views/admin/AdminLayout.vue'),
     meta: { requiresAuth: true, requiresAdmin: true },
