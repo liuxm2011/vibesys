@@ -244,6 +244,26 @@ export async function updateGuideApi(value: string): Promise<SystemConfig> {
 }
 
 // ============================================================
+// GRADUATION CONFIG
+// ============================================================
+
+export async function fetchGraduationEnabledApi(): Promise<SystemConfig> {
+  return api.get('/api/admin/config/graduationEnabled');
+}
+
+export async function updateGraduationEnabledApi(value: string): Promise<SystemConfig> {
+  return api.put('/api/admin/config/graduationEnabled', { value });
+}
+
+export async function fetchGraduationWhitelistApi(): Promise<SystemConfig> {
+  return api.get('/api/admin/config/graduationWhitelist');
+}
+
+export async function updateGraduationWhitelistApi(value: string): Promise<SystemConfig> {
+  return api.put('/api/admin/config/graduationWhitelist', { value });
+}
+
+// ============================================================
 // API PROVIDER MANAGEMENT
 // ============================================================
 

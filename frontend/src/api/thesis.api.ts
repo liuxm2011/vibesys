@@ -31,3 +31,7 @@ export async function updateThesisProject(data: { repoUrl?: string; deployUrl?: 
   });
   return result.project;
 }
+
+export async function getGraduationStatus(): Promise<{ enabled: boolean }> {
+  return request<{ enabled: boolean }>('/api/thesis/status');
+}

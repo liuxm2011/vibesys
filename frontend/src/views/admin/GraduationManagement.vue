@@ -1,5 +1,36 @@
 <template>
   <div class="graduation-management">
+    <div class="config-card">
+      <div class="config-row">
+        <div class="config-label">
+          <span class="config-title">毕业设计选题开关</span>
+          <span class="config-desc">关闭后，学生将无法进入毕业设计模块（管理员不受影响）</span>
+        </div>
+        <el-switch
+          v-model="graduationEnabled"
+          active-text="已开放"
+          inactive-text="未开放"
+          :loading="switchLoading"
+          @change="handleToggleGraduation"
+        />
+      </div>
+      <div class="config-row" style="margin-top: 12px">
+        <div class="config-label">
+          <span class="config-title">白名单学号</span>
+          <span class="config-desc">不受开关影响的学号，多个学号用英文逗号分隔</span>
+        </div>
+        <div class="config-input-group">
+          <el-input
+            v-model="whitelistText"
+            placeholder="如: 231311111,231312222"
+            style="width: 320px"
+            :disabled="switchLoading"
+          />
+          <el-button type="primary" :loading="whitelistSaving" @click="handleSaveWhitelist">保存白名单</el-button>
+        </div>
+      </div>
+    </div>
+
     <el-tabs v-model="activeTab" type="border-card">
       <!-- Tab 1: Topic overview -->
       <el-tab-pane label="选题概况" name="topics">
@@ -114,9 +145,59 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue';
 import { Search } from '@element-plus/icons-vue';
+import { ElMessage } from 'element-plus';
 import { adminGetThesisTopics, adminGetThesisProjects } from '@/api/admin.api';
+import { useAdminStore } from '@/stores/admin.store';
 
+const adminStore = useAdminStore();
 const activeTab = ref('topics');
+
+// Graduation config
+const graduationEnabled = ref(false);
+const switchLoading = ref(false);
+const whitelistText = ref('');
+const whitelistSaving = ref(false);
+
+async function loadGraduationConfig() {
+  switchLoading.value = true;
+  try {
+    await adminStore.loadGraduationEnabled();
+    graduationEnabled.value = adminStore.graduationEnabled?.value === 'true';
+  } finally {
+    switchLoading.value = false;
+  }
+  try {
+    await adminStore.loadGraduationWhitelist();
+    whitelistText.value = adminStore.graduationWhitelist?.value || '';
+  } catch {
+    // ignore whitelist load error
+  }
+}
+
+async function handleToggleGraduation(val: boolean) {
+  switchLoading.value = true;
+  try {
+    await adminStore.saveGraduationEnabled(val ? 'true' : 'false');
+    ElMessage.success(val ? '毕业设计选题已开放' : '毕业设计选题已关闭');
+  } catch (e: any) {
+    graduationEnabled.value = !val;
+    ElMessage.error(e?.message || '操作失败');
+  } finally {
+    switchLoading.value = false;
+  }
+}
+
+async function handleSaveWhitelist() {
+  whitelistSaving.value = true;
+  try {
+    await adminStore.saveGraduationWhitelist(whitelistText.value);
+    ElMessage.success('白名单已保存');
+  } catch (e: any) {
+    ElMessage.error(e?.message || '保存白名单失败');
+  } finally {
+    whitelistSaving.value = false;
+  }
+}
 
 // Topics tab
 const thesisTopics = ref<any[]>([]);
@@ -183,6 +264,7 @@ async function loadProjects() {
 }
 
 onMounted(() => {
+  loadGraduationConfig();
   loadTopics();
   loadProjects();
 });
@@ -209,5 +291,42 @@ onMounted(() => {
 .text-secondary {
   color: #94a3b8;
   font-size: 12px;
+}
+
+.config-card {
+  background: white;
+  border-radius: 8px;
+  padding: 20px;
+  margin-bottom: 16px;
+  border: 1px solid #e2e8f0;
+}
+
+.config-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.config-label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.config-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.config-desc {
+  font-size: 12px;
+  color: #94a3b8;
+}
+
+.config-input-group {
+  display: flex;
+  gap: 8px;
+  align-items: center;
 }
 </style>

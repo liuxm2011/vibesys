@@ -39,6 +39,8 @@ export const useAdminStore = defineStore('admin', () => {
   // System config state
   const announcement = ref<SystemConfig | null>(null);
   const guide = ref<SystemConfig | null>(null);
+  const graduationEnabled = ref<SystemConfig | null>(null);
+  const graduationWhitelist = ref<SystemConfig | null>(null);
   const configLoading = ref(false);
 
   // Common error state
@@ -274,6 +276,50 @@ export const useAdminStore = defineStore('admin', () => {
     }
   }
 
+  async function loadGraduationEnabled() {
+    configLoading.value = true;
+    error.value = null;
+    try {
+      graduationEnabled.value = await adminApi.fetchGraduationEnabledApi();
+    } catch (e) {
+      error.value = e instanceof Error ? e.message : '加载毕业设计开关状态失败';
+    } finally {
+      configLoading.value = false;
+    }
+  }
+
+  async function saveGraduationEnabled(value: string) {
+    error.value = null;
+    try {
+      graduationEnabled.value = await adminApi.updateGraduationEnabledApi(value);
+    } catch (e) {
+      error.value = e instanceof Error ? e.message : '保存毕业设计开关状态失败';
+      throw e;
+    }
+  }
+
+  async function loadGraduationWhitelist() {
+    configLoading.value = true;
+    error.value = null;
+    try {
+      graduationWhitelist.value = await adminApi.fetchGraduationWhitelistApi();
+    } catch (e) {
+      error.value = e instanceof Error ? e.message : '加载毕业设计白名单失败';
+    } finally {
+      configLoading.value = false;
+    }
+  }
+
+  async function saveGraduationWhitelist(value: string) {
+    error.value = null;
+    try {
+      graduationWhitelist.value = await adminApi.updateGraduationWhitelistApi(value);
+    } catch (e) {
+      error.value = e instanceof Error ? e.message : '保存毕业设计白名单失败';
+      throw e;
+    }
+  }
+
   // Reset
   function $reset() {
     users.value = [];
@@ -285,6 +331,8 @@ export const useAdminStore = defineStore('admin', () => {
     aiUsageStats.value = null;
     announcement.value = null;
     guide.value = null;
+    graduationEnabled.value = null;
+    graduationWhitelist.value = null;
     error.value = null;
   }
 
@@ -292,12 +340,14 @@ export const useAdminStore = defineStore('admin', () => {
     users, userPagination, userMajors, usersLoading,
     topics, topicPagination, topicsLoading,
     overviewStats, userStats, projectStats, aiUsageStats, statsLoading,
-    announcement, guide, configLoading,
+    announcement, guide, graduationEnabled, graduationWhitelist, configLoading,
     error,
     loadUsers, updateUserStatus, createStudent, importStudents, getUserPasswordInfo, updateUserPassword,
     loadTopics, createTopic, updateTopic, deleteTopic, importTopics,
     loadOverviewStats, loadUserStats, loadProjectStats, loadAiUsageStats,
     loadAnnouncement, saveAnnouncement, loadGuide, saveGuide,
+    loadGraduationEnabled, saveGraduationEnabled,
+    loadGraduationWhitelist, saveGraduationWhitelist,
     $reset
   };
 });

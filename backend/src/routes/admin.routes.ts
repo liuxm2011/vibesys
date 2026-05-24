@@ -934,6 +934,90 @@ router.put('/config/guide', async (c) => {
 });
 
 // ============================================================
+// GRADUATION CONFIG
+// ============================================================
+
+router.get('/config/graduationEnabled', async (c) => {
+  try {
+    const prisma = c.get('prisma');
+    const config = await prisma.systemConfig.findUnique({
+      where: { key: 'graduationEnabled' }
+    });
+
+    if (!config) {
+      return c.json({ key: 'graduationEnabled', value: 'false', updatedAt: new Date() });
+    }
+
+    return c.json({ key: config.key, value: config.value, updatedAt: config.updatedAt });
+  } catch (error) {
+    console.error('Get graduationEnabled error:', error);
+    return c.json({ error: '获取毕业设计开关状态失败' }, 500);
+  }
+});
+
+router.put('/config/graduationEnabled', async (c) => {
+  try {
+    const prisma = c.get('prisma');
+    const { value } = await c.req.json();
+
+    if (value !== 'true' && value !== 'false') {
+      return c.json({ error: '值必须为 true 或 false' }, 400);
+    }
+
+    const config = await prisma.systemConfig.upsert({
+      where: { key: 'graduationEnabled' },
+      update: { value },
+      create: { key: 'graduationEnabled', value, description: '毕业设计选题开关' }
+    });
+
+    return c.json({ key: config.key, value: config.value, updatedAt: config.updatedAt });
+  } catch (error) {
+    console.error('Update graduationEnabled error:', error);
+    return c.json({ error: '更新毕业设计开关状态失败' }, 500);
+  }
+});
+
+router.get('/config/graduationWhitelist', async (c) => {
+  try {
+    const prisma = c.get('prisma');
+    const config = await prisma.systemConfig.findUnique({
+      where: { key: 'graduationWhitelist' }
+    });
+
+    if (!config) {
+      return c.json({ key: 'graduationWhitelist', value: '231311111', updatedAt: new Date() });
+    }
+
+    return c.json({ key: config.key, value: config.value, updatedAt: config.updatedAt });
+  } catch (error) {
+    console.error('Get graduationWhitelist error:', error);
+    return c.json({ error: '获取毕业设计白名单失败' }, 500);
+  }
+});
+
+router.put('/config/graduationWhitelist', async (c) => {
+  try {
+    const prisma = c.get('prisma');
+    const { value } = await c.req.json();
+
+    if (typeof value !== 'string') {
+      return c.json({ error: '无效的白名单值' }, 400);
+    }
+
+    const config = await prisma.systemConfig.upsert({
+      where: { key: 'graduationWhitelist' },
+      update: { value },
+      create: { key: 'graduationWhitelist', value, description: '毕业设计白名单（逗号分隔学号）' }
+    });
+
+    return c.json({ key: config.key, value: config.value, updatedAt: config.updatedAt });
+  } catch (error) {
+    console.error('Update graduationWhitelist error:', error);
+    return c.json({ error: '更新毕业设计白名单失败' }, 500);
+  }
+});
+
+// ============================================================
 // AI USAGE STATISTICS
 // ============================================================
 

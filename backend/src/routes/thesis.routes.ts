@@ -5,6 +5,40 @@ import type { AppEnv } from '../types.js';
 
 const router = new Hono<AppEnv>();
 
+// GET /api/thesis/status — check if graduation mode is enabled for current user
+router.get('/status', authMiddleware, async (c) => {
+  try {
+    const prisma = c.get('prisma');
+    const user = c.get('user');
+
+    const enabledConfig = await prisma.systemConfig.findUnique({
+      where: { key: 'graduationEnabled' }
+    });
+
+    const isEnabled = enabledConfig?.value === 'true';
+
+    if (isEnabled) {
+      return c.json({ enabled: true });
+    }
+
+    // Check whitelist
+    const whitelistConfig = await prisma.systemConfig.findUnique({
+      where: { key: 'graduationWhitelist' }
+    });
+
+    const whitelist = (whitelistConfig?.value || '').split(',').map(s => s.trim()).filter(Boolean);
+
+    if (whitelist.includes(user.studentId)) {
+      return c.json({ enabled: true });
+    }
+
+    return c.json({ enabled: false });
+  } catch (error) {
+    console.error('Graduation status check error:', error);
+    return c.json({ enabled: false });
+  }
+});
+
 // GET /api/thesis/topics — list all topics with lock status
 router.get('/topics', authMiddleware, async (c) => {
   try {

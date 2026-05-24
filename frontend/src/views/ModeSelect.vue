@@ -49,14 +49,35 @@
 <script setup lang="ts">
 import { useRouter } from 'vue-router';
 import { Monitor, Document, SwitchButton } from '@element-plus/icons-vue';
+import { ElMessageBox } from 'element-plus';
 import { useAppModeStore } from '@/stores/appMode.store';
 import { useAuthStore } from '@/stores/auth.store';
+import { getGraduationStatus } from '@/api/thesis.api';
 
 const router = useRouter();
 const appModeStore = useAppModeStore();
 const authStore = useAuthStore();
 
-function selectMode(mode: 'project' | 'graduation') {
+async function selectMode(mode: 'project' | 'graduation') {
+  if (mode === 'graduation') {
+    try {
+      const { enabled } = await getGraduationStatus();
+      if (!enabled) {
+        ElMessageBox.alert('毕业设计还未到开放时间，请先使用项目设计功能', '提示', {
+          confirmButtonText: '知道了',
+          type: 'warning',
+        });
+        return;
+      }
+    } catch {
+      ElMessageBox.alert('毕业设计还未到开放时间，请先使用项目设计功能', '提示', {
+        confirmButtonText: '知道了',
+        type: 'warning',
+      });
+      return;
+    }
+  }
+
   appModeStore.setMode(mode);
   if (mode === 'project') {
     router.push('/dashboard');
