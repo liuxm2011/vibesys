@@ -1,13 +1,14 @@
 import { Hono } from 'hono';
 import { PrismaClient, ProjectStatus } from '../generated/prisma';
 import { authMiddleware } from '../middleware/auth.middleware.js';
+import { viewerBlockMiddleware } from '../middleware/auth.middleware.js';
 import { checkBannedMiddleware } from '../middleware/ban.middleware.js';
 import { updateRepoUrl, syncRepoData, getProjectRepoInfo, updateDeployUrl } from '../services/repo.service.js';
 import type { AppEnv } from '../types.js';
 
 const router = new Hono<AppEnv>();
 
-router.post('/', authMiddleware, checkBannedMiddleware, async (c) => {
+router.post('/', authMiddleware, viewerBlockMiddleware, checkBannedMiddleware, async (c) => {
   const { topicId } = await c.req.json();
 
   if (!topicId) {
@@ -111,7 +112,7 @@ router.get('/', authMiddleware, async (c) => {
   }
 });
 
-router.delete('/:id', authMiddleware, async (c) => {
+router.delete('/:id', authMiddleware, viewerBlockMiddleware, async (c) => {
   try {
     const user = c.get('user');
     const prisma = c.get('prisma');
@@ -181,7 +182,7 @@ router.get('/:id', authMiddleware, async (c) => {
   }
 });
 
-router.put('/:id/techStack', authMiddleware, async (c) => {
+router.put('/:id/techStack', authMiddleware, viewerBlockMiddleware, async (c) => {
   try {
     const user = c.get('user');
     const prisma = c.get('prisma');
@@ -221,7 +222,7 @@ router.put('/:id/techStack', authMiddleware, async (c) => {
   }
 });
 
-router.put('/:id/repoUrl', authMiddleware, checkBannedMiddleware, async (c) => {
+router.put('/:id/repoUrl', authMiddleware, viewerBlockMiddleware, checkBannedMiddleware, async (c) => {
   try {
     const user = c.get('user');
     const prisma = c.get('prisma');
@@ -251,7 +252,7 @@ router.put('/:id/repoUrl', authMiddleware, checkBannedMiddleware, async (c) => {
   }
 });
 
-router.put('/:id/deployUrl', authMiddleware, checkBannedMiddleware, async (c) => {
+router.put('/:id/deployUrl', authMiddleware, viewerBlockMiddleware, checkBannedMiddleware, async (c) => {
   try {
     const user = c.get('user');
     const prisma = c.get('prisma');
@@ -278,7 +279,7 @@ router.put('/:id/deployUrl', authMiddleware, checkBannedMiddleware, async (c) =>
   }
 });
 
-router.post('/:id/syncRepo', authMiddleware, checkBannedMiddleware, async (c) => {
+router.post('/:id/syncRepo', authMiddleware, viewerBlockMiddleware, checkBannedMiddleware, async (c) => {
   try {
     const user = c.get('user');
     const prisma = c.get('prisma');

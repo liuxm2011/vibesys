@@ -72,7 +72,7 @@
 
           <div class="footer-actions">
             <el-button
-              v-if="!topic.isLocked && !myProject"
+              v-if="!topic.isLocked && !myProject && !isViewer"
               type="primary"
               size="small"
               :loading="selectingId === topic.id"
@@ -104,8 +104,11 @@ import { ElMessage } from 'element-plus';
 import { ArrowLeft, Search } from '@element-plus/icons-vue';
 import { getThesisTopics, selectThesisTopic, releaseThesisTopic, getMyThesisProject } from '@/api/thesis.api';
 import type { ThesisTopic, ThesisProject } from '@/types/thesis';
+import { useAuthStore } from '@/stores/auth.store';
 
 const router = useRouter();
+const authStore = useAuthStore();
+const isViewer = authStore.isViewer;
 
 const topics = ref<ThesisTopic[]>([]);
 const myProject = ref<ThesisProject | null>(null);

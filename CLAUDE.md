@@ -41,6 +41,17 @@
 - 文档模板：软件工程 / 大数据领域差异化
 - 毕业设计题目：排他性锁定（一人一题），通过 D1 native batch 保证原子性
 
+## 测试账号（⚠️ 临时，后续需删除）
+
+| 账号 | 密码 | 角色 | 说明 |
+|------|------|------|------|
+| test | test123 | VIEWER | 只读测试账号，可查看项目设计和毕业设计两个模块，但无法执行任何写操作（选题、生成文档、编辑、保存等） |
+
+- `VIEWER` 角色通过 `viewerBlockMiddleware` 在后端拦截所有写操作（返回 403）
+- 前端通过 `authStore.isViewer` 隐藏/禁用操作按钮
+- 删除方式：在管理后台删除该用户，或 `DELETE FROM User WHERE studentId = 'test'`
+- 删除后需同步移除 `Role` 枚举中的 `VIEWER` 值、`viewerBlockMiddleware` 及前端相关代码
+
 ## 毕业设计模块
 
 ### 数据模型

@@ -4,7 +4,7 @@ export type JwtPayload = {
   userId: number;
   studentId: string;
   name: string;
-  role: 'STUDENT' | 'ADMIN';
+  role: 'STUDENT' | 'ADMIN' | 'VIEWER';
 };
 
 export type AppEnv = {

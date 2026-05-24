@@ -1,6 +1,7 @@
 import { Hono } from 'hono';
 import { Domain, Platform, TopicType } from '../generated/prisma';
 import { authMiddleware } from '../middleware/auth.middleware.js';
+import { viewerBlockMiddleware } from '../middleware/auth.middleware.js';
 import type { AppEnv } from '../types.js';
 
 const router = new Hono<AppEnv>();
@@ -104,7 +105,7 @@ router.get('/:id', authMiddleware, async (c) => {
   }
 });
 
-router.post('/custom', authMiddleware, async (c) => {
+router.post('/custom', authMiddleware, viewerBlockMiddleware, async (c) => {
   const { title, description, background, objectives, domain, platform, techStack } = await c.req.json();
 
   if (!title || !description || !domain || !platform) {

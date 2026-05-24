@@ -1,5 +1,5 @@
 import { Hono } from 'hono';
-import { authMiddleware } from '../middleware/auth.middleware.js';
+import { authMiddleware, viewerBlockMiddleware } from '../middleware/auth.middleware.js';
 import { checkBannedMiddleware } from '../middleware/ban.middleware.js';
 import type { AppEnv } from '../types.js';
 
@@ -59,7 +59,7 @@ router.get('/project', authMiddleware, async (c) => {
 });
 
 // POST /api/thesis/select — exclusive topic selection (D1 native batch for atomicity)
-router.post('/select', authMiddleware, checkBannedMiddleware, async (c) => {
+router.post('/select', authMiddleware, viewerBlockMiddleware, checkBannedMiddleware, async (c) => {
   const body = await c.req.json().catch(() => null);
   const topicId = typeof body?.topicId === 'number' && body.topicId > 0 ? body.topicId : null;
   if (!topicId) {
@@ -118,7 +118,7 @@ router.post('/select', authMiddleware, checkBannedMiddleware, async (c) => {
 });
 
 // DELETE /api/thesis/release — release topic back to pool
-router.delete('/release', authMiddleware, async (c) => {
+router.delete('/release', authMiddleware, viewerBlockMiddleware, async (c) => {
   const prisma = c.get('prisma');
   const user = c.get('user');
   const db = c.env.DB;
@@ -146,7 +146,7 @@ router.delete('/release', authMiddleware, async (c) => {
 });
 
 // PUT /api/thesis/project — update repo/deploy URL
-router.put('/project', authMiddleware, checkBannedMiddleware, async (c) => {
+router.put('/project', authMiddleware, viewerBlockMiddleware, checkBannedMiddleware, async (c) => {
   const body = await c.req.json().catch(() => ({}));
   const { repoUrl, deployUrl } = body;
   const prisma = c.get('prisma');

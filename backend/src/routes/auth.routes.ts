@@ -3,6 +3,7 @@ import { getCookie, setCookie, deleteCookie } from 'hono/cookie';
 import { comparePassword, hashPassword, validatePassword } from '../utils/password.utils.js';
 import { signToken, JwtPayload, getJwtExpirationMs } from '../utils/jwt.utils.js';
 import { authMiddleware } from '../middleware/auth.middleware.js';
+import { viewerBlockMiddleware } from '../middleware/auth.middleware.js';
 import { loginLimiter } from '../middleware/rate-limit.middleware.js';
 import type { AppEnv } from '../types.js';
 
@@ -127,7 +128,7 @@ router.get('/system-config', authMiddleware, async (c) => {
   }
 });
 
-router.put('/password', authMiddleware, async (c) => {
+router.put('/password', authMiddleware, viewerBlockMiddleware, async (c) => {
   const { currentPassword, newPassword } = await c.req.json();
 
   if (!currentPassword || !newPassword) {

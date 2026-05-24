@@ -27,3 +27,11 @@ export const adminOnlyMiddleware = createMiddleware<AppEnv>(async (c, next) => {
   }
   await next();
 });
+
+export const viewerBlockMiddleware = createMiddleware<AppEnv>(async (c, next) => {
+  const user = c.get('user');
+  if (user?.role === 'VIEWER') {
+    return c.json({ error: '测试账号仅可查看，无法执行此操作' }, 403);
+  }
+  await next();
+});

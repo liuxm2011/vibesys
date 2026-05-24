@@ -4,7 +4,7 @@ import { api } from '@/utils/request';
 export interface User {
   studentId: string;
   name: string;
-  role: 'STUDENT' | 'ADMIN';
+  role: 'STUDENT' | 'ADMIN' | 'VIEWER';
   major: string;
   grade: string;
   class: string;

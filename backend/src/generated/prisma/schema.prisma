@@ -35,6 +35,7 @@ model User {
 enum Role {
   STUDENT // D-05
   ADMIN // D-05
+  VIEWER // Read-only test account
 }
 
 enum Status {

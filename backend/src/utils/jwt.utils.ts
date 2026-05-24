@@ -6,7 +6,7 @@ export interface JwtPayload {
   userId: number;
   studentId: string;
   name: string;
-  role: 'STUDENT' | 'ADMIN';
+  role: 'STUDENT' | 'ADMIN' | 'VIEWER';
 }
 
 export async function signToken(payload: JwtPayload, secret: string): Promise<string> {

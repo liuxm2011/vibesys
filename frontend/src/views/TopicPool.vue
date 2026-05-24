@@ -23,7 +23,7 @@
               </div>
               <template #dropdown>
                 <el-dropdown-menu>
-                  <el-dropdown-item @click="passwordDialogVisible = true">
+                  <el-dropdown-item v-if="!isViewer" @click="passwordDialogVisible = true">
                     <el-icon><Key /></el-icon>修改密码
                   </el-dropdown-item>
                   <el-dropdown-item divided @click="handleLogout" class="logout-item">
@@ -112,6 +112,7 @@
 
             <div class="panel-footer">
               <el-button
+                v-if="!isViewer"
                 class="custom-topic-btn"
                 @click="showCustomDialog = true"
               >
@@ -197,7 +198,7 @@
                   <el-icon><CircleCheck /></el-icon> 已加入项目
                 </div>
                 <el-button
-                  v-else
+                  v-else-if="!isViewer"
                   type="primary"
                   size="default"
                   @click="quickCreate(topic)"
@@ -267,6 +268,7 @@ import { PLATFORM_LABELS } from '@/types/topic';
 
 const router = useRouter();
 const authStore = useAuthStore();
+const isViewer = computed(() => authStore.isViewer);
 const appModeStore = useAppModeStore();
 const topicStore = useTopicStore();
 const projectStore = useProjectStore();

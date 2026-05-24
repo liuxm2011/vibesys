@@ -1,5 +1,5 @@
 import { Hono } from 'hono';
-import { authMiddleware } from '../middleware/auth.middleware.js';
+import { authMiddleware, viewerBlockMiddleware } from '../middleware/auth.middleware.js';
 import type { AppEnv } from '../types.js';
 
 const router = new Hono<AppEnv>();
@@ -43,7 +43,7 @@ router.get('/api-setting', async (c) => {
   }
 });
 
-router.put('/api-setting', async (c) => {
+router.put('/api-setting', viewerBlockMiddleware, async (c) => {
   try {
     const user = c.get('user');
     const prisma = c.get('prisma');
@@ -87,7 +87,7 @@ router.put('/api-setting', async (c) => {
   }
 });
 
-router.post('/api-setting/test', async (c) => {
+router.post('/api-setting/test', viewerBlockMiddleware, async (c) => {
   try {
     const user = c.get('user');
     const prisma = c.get('prisma');

@@ -1,7 +1,7 @@
 import { Hono } from 'hono';
 import { streamSSE } from 'hono/streaming';
 import { GraduationDocType } from '../generated/prisma'
-import { authMiddleware } from '../middleware/auth.middleware.js';
+import { authMiddleware, viewerBlockMiddleware } from '../middleware/auth.middleware.js';
 import { checkBannedMiddleware } from '../middleware/ban.middleware.js';
 import { graduationService, type TokenUsage } from '../services/graduation.service.js';
 import type { AppEnv } from '../types.js';
@@ -87,7 +87,7 @@ router.get('/:projectId', authMiddleware, async (c) => {
   }
 });
 
-router.put('/:id', authMiddleware, checkBannedMiddleware, async (c) => {
+router.put('/:id', authMiddleware, viewerBlockMiddleware, checkBannedMiddleware, async (c) => {
   const documentId = parseInt(c.req.param('id'));
   const { content } = await c.req.json();
 
@@ -133,7 +133,7 @@ router.put('/:id', authMiddleware, checkBannedMiddleware, async (c) => {
   }
 });
 
-router.post('/', authMiddleware, async (c) => {
+router.post('/', authMiddleware, viewerBlockMiddleware, async (c) => {
   const { projectId, docType } = await c.req.json();
 
   if (!projectId) {
@@ -193,7 +193,7 @@ router.post('/', authMiddleware, async (c) => {
   }
 });
 
-router.post('/generate', authMiddleware, checkBannedMiddleware, async (c) => {
+router.post('/generate', authMiddleware, viewerBlockMiddleware, checkBannedMiddleware, async (c) => {
   const { projectId, docType, forceRegenerate } = await c.req.json();
 
   if (!projectId) {
@@ -294,7 +294,7 @@ router.post('/generate', authMiddleware, checkBannedMiddleware, async (c) => {
   }
 });
 
-router.post('/generate/stream', authMiddleware, checkBannedMiddleware, async (c) => {
+router.post('/generate/stream', authMiddleware, viewerBlockMiddleware, checkBannedMiddleware, async (c) => {
   const { projectId, docType, forceRegenerate } = await c.req.json();
 
   if (!projectId) {

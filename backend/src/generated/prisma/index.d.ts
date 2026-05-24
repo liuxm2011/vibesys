@@ -75,7 +75,8 @@ export type ThesisProject = $Result.DefaultSelection<Prisma.$ThesisProjectPayloa
 export namespace $Enums {
   export const Role: {
   STUDENT: 'STUDENT',
-  ADMIN: 'ADMIN'
+  ADMIN: 'ADMIN',
+  VIEWER: 'VIEWER'
 };
 
 export type Role = (typeof Role)[keyof typeof Role]

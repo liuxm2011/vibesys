@@ -1,7 +1,7 @@
 import { Hono } from 'hono';
 import { streamSSE } from 'hono/streaming';
 import { DocType, Prisma } from '../generated/prisma';
-import { authMiddleware } from '../middleware/auth.middleware.js';
+import { authMiddleware, viewerBlockMiddleware } from '../middleware/auth.middleware.js';
 import { checkBannedMiddleware } from '../middleware/ban.middleware.js';
 import { aiService, type TokenUsage } from '../services/ai.service.js';
 import { DOC_GENERATION_ORDER, getContextDependencies, getGenerationBlockedReason } from '../constants/document-generation.js';
@@ -49,7 +49,7 @@ router.use('*', async (c, next) => {
 
 const validDocTypes: DocType[] = ['PRD', 'FRONTEND', 'BACKEND', 'API', 'TASK', 'CONTEXT_STATE', 'AGENTS'];
 
-router.post('/generate', authMiddleware, checkBannedMiddleware, async (c) => {
+router.post('/generate', authMiddleware, viewerBlockMiddleware, checkBannedMiddleware, async (c) => {
   const { projectId, docType, forceRegenerate } = await c.req.json();
 
   if (!projectId) {
@@ -196,7 +196,7 @@ router.post('/generate', authMiddleware, checkBannedMiddleware, async (c) => {
   }
 });
 
-router.post('/generate/stream', authMiddleware, checkBannedMiddleware, async (c) => {
+router.post('/generate/stream', authMiddleware, viewerBlockMiddleware, checkBannedMiddleware, async (c) => {
   const { projectId, docType, forceRegenerate } = await c.req.json();
 
   if (!projectId) {
@@ -359,7 +359,7 @@ router.post('/generate/stream', authMiddleware, checkBannedMiddleware, async (c)
   });
 });
 
-router.post('/review', authMiddleware, checkBannedMiddleware, async (c) => {
+router.post('/review', authMiddleware, viewerBlockMiddleware, checkBannedMiddleware, async (c) => {
   const { projectId, mode } = await c.req.json();
 
   if (!projectId) {
@@ -517,7 +517,7 @@ router.post('/review', authMiddleware, checkBannedMiddleware, async (c) => {
   }
 });
 
-router.post('/review/stream', authMiddleware, checkBannedMiddleware, async (c) => {
+router.post('/review/stream', authMiddleware, viewerBlockMiddleware, checkBannedMiddleware, async (c) => {
   const { projectId, mode } = await c.req.json();
 
   if (!projectId) {

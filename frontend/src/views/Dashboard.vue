@@ -24,7 +24,7 @@
               <el-icon><Monitor /></el-icon>管理后台
             </el-button>
             <el-button
-              v-if="!isAdmin"
+              v-if="!isAdmin && !isViewer"
               type="primary"
               @click="apiDialogVisible = true"
               class="nav-item action-btn-pro"
@@ -32,7 +32,7 @@
               <el-icon><Connection /></el-icon>API 设置
             </el-button>
             <el-button
-              v-if="!isAdmin"
+              v-if="!isAdmin && !isViewer"
               type="primary"
               @click="router.push('/topics')"
               class="nav-item action-btn-pro"
@@ -47,13 +47,13 @@
                 <el-avatar :size="36" class="user-avatar">{{ user?.name?.charAt(0) }}</el-avatar>
                 <div class="user-meta">
                   <span class="user-name">{{ user?.name }}</span>
-                  <span class="user-role">{{ isAdmin ? '管理员' : '学生用户' }}</span>
+                  <span class="user-role">{{ isAdmin ? '管理员' : isViewer ? '测试账号' : '学生用户' }}</span>
                 </div>
                 <el-icon class="dropdown-icon"><ArrowDown /></el-icon>
               </div>
               <template #dropdown>
                 <el-dropdown-menu>
-                  <el-dropdown-item @click="passwordDialogVisible = true">
+                  <el-dropdown-item v-if="!isViewer" @click="passwordDialogVisible = true">
                     <el-icon><Key /></el-icon>修改密码
                   </el-dropdown-item>
                   <el-dropdown-item divided @click="handleLogout" class="logout-item">
@@ -133,6 +133,7 @@
                       <el-icon><Calendar /></el-icon> {{ formatDate(project.createdAt) }}
                     </span>
                     <el-button
+                      v-if="!isViewer"
                       type="danger"
                       size="small"
                       link
@@ -154,7 +155,7 @@
               >
                 <template #extra>
                   <p class="empty-hint">探索课题池，开启你的第一个项目</p>
-                  <el-button type="primary" @click="router.push('/topics')" size="large" class="action-btn-pro">
+                  <el-button v-if="!isViewer" type="primary" @click="router.push('/topics')" size="large" class="action-btn-pro">
                     前往选题池
                   </el-button>
                 </template>
@@ -433,6 +434,7 @@ const systemConfig = ref({
 
 const user = computed(() => authStore.user);
 const isAdmin = computed(() => authStore.user?.role === 'ADMIN');
+const isViewer = computed(() => authStore.user?.role === 'VIEWER');
 
 onMounted(async () => {
   if (!isAdmin.value) {

@@ -15,6 +15,7 @@ export const useAuthStore = defineStore('auth', () => {
   // Computed
   const isAuthenticated = computed(() => user.value !== null);
   const isAdmin = computed(() => user.value?.role === 'ADMIN');
+  const isViewer = computed(() => user.value?.role === 'VIEWER');
 
   // Actions
 
@@ -94,6 +95,7 @@ export const useAuthStore = defineStore('auth', () => {
     // Computed
     isAuthenticated,
     isAdmin,
+    isViewer,
     // Actions
     login,
     logout,

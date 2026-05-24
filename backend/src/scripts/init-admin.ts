@@ -17,32 +17,63 @@ async function initAdmin() {
     console.log('Admin account already exists');
     console.log('StudentId: admin');
     console.log('If you need to reset password, manually delete and re-run');
-    return;
+  } else {
+    // Hash password with bcrypt (10 rounds)
+    const hashedPassword = await hashPassword(adminPassword);
+
+    // Create admin user (D-15, D-16)
+    await prisma.user.create({
+      data: {
+        studentId: adminStudentId,
+        name: adminName,
+        major: '系统',
+        grade: '系统',
+        class: '系统',
+        password: hashedPassword,
+        role: 'ADMIN',
+        status: 'ACTIVE'
+      }
+    });
+
+    console.log('Default admin account created successfully!');
+    console.log('Login credentials:');
+    console.log('  StudentId: admin');
+    console.log('  Password: admin123');
+    console.log('');
+    console.log('IMPORTANT: Please change password after first login!');
   }
 
-  // Hash password with bcrypt (10 rounds)
-  const hashedPassword = await hashPassword(adminPassword);
+  // Create test/viewer account
+  const testStudentId = 'test';
+  const testPassword = 'test123';
 
-  // Create admin user (D-15, D-16)
-  await prisma.user.create({
-    data: {
-      studentId: adminStudentId,
-      name: adminName,
-      major: '系统',
-      grade: '系统',
-      class: '系统',
-      password: hashedPassword,
-      role: 'ADMIN',
-      status: 'ACTIVE'
-    }
+  const existingTest = await prisma.user.findUnique({
+    where: { studentId: testStudentId }
   });
 
-  console.log('Default admin account created successfully!');
-  console.log('Login credentials:');
-  console.log('  StudentId: admin');
-  console.log('  Password: admin123');
-  console.log('');
-  console.log('IMPORTANT: Please change password after first login!');
+  if (existingTest) {
+    console.log('Test account already exists');
+  } else {
+    const hashedTestPassword = await hashPassword(testPassword);
+
+    await prisma.user.create({
+      data: {
+        studentId: testStudentId,
+        name: '测试账号',
+        major: '测试',
+        grade: '测试',
+        class: '测试',
+        password: hashedTestPassword,
+        role: 'VIEWER',
+        status: 'ACTIVE'
+      }
+    });
+
+    console.log('Test (VIEWER) account created successfully!');
+    console.log('Login credentials:');
+    console.log('  StudentId: test');
+    console.log('  Password: test123');
+  }
 }
 
 initAdmin()

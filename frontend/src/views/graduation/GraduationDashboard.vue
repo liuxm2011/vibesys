@@ -12,10 +12,10 @@
           </div>
         </div>
         <div class="header-right">
-          <el-button plain @click="switchMode">
+          <el-button v-if="!isViewer" plain @click="switchMode">
             <el-icon><Refresh /></el-icon>切换模式
           </el-button>
-          <el-button type="success" @click="router.push('/graduation/topics')">
+          <el-button v-if="!isViewer" type="success" @click="router.push('/graduation/topics')">
             <el-icon><Collection /></el-icon>选题管理
           </el-button>
           <el-divider direction="vertical" />
@@ -24,13 +24,13 @@
               <el-avatar :size="36">{{ user?.name?.charAt(0) }}</el-avatar>
               <div class="user-meta">
                 <span class="user-name">{{ user?.name }}</span>
-                <span class="user-role">学生用户</span>
+                <span class="user-role">{{ isViewer ? '测试账号' : '学生用户' }}</span>
               </div>
               <el-icon><ArrowDown /></el-icon>
             </div>
             <template #dropdown>
               <el-dropdown-menu>
-                <el-dropdown-item @click="passwordDialogVisible = true">
+                <el-dropdown-item v-if="!isViewer" @click="passwordDialogVisible = true">
                   <el-icon><Key /></el-icon>修改密码
                 </el-dropdown-item>
                 <el-dropdown-item divided @click="handleLogout">
@@ -61,6 +61,7 @@
             <h2 class="project-title">{{ thesisProject.topic.title }}</h2>
           </div>
           <el-popconfirm
+            v-if="!isViewer"
             title="放弃选题后，该题目将重新开放给其他同学。确定放弃吗？"
             confirm-button-text="确定放弃"
             cancel-button-text="取消"
@@ -70,6 +71,7 @@
               <el-button type="warning" plain :loading="releasing">放弃选题</el-button>
             </template>
           </el-popconfirm>
+          <el-tag v-if="isViewer" type="info">只读模式</el-tag>
         </div>
 
         <el-descriptions :column="2" border class="project-descriptions">
@@ -86,10 +88,10 @@
                 查看数据集
               </el-link>
               <el-link type="primary" @click="openUrlDialog('repo')">
-                {{ thesisProject.repoUrl ? '仓库地址' : '填写仓库地址' }}
+                {{ thesisProject.repoUrl ? '仓库地址' : isViewer ? '未填写' : '填写仓库地址' }}
               </el-link>
               <el-link type="primary" @click="openUrlDialog('deploy')">
-                {{ thesisProject.deployUrl ? '项目部署地址' : '填写部署地址' }}
+                {{ thesisProject.deployUrl ? '项目部署地址' : isViewer ? '未填写' : '填写部署地址' }}
               </el-link>
             </div>
           </el-descriptions-item>
@@ -132,6 +134,7 @@ const router = useRouter();
 const authStore = useAuthStore();
 const appModeStore = useAppModeStore();
 const user = authStore.user;
+const isViewer = authStore.isViewer;
 
 const thesisProject = ref<ThesisProject | null>(null);
 const loading = ref(false);
@@ -171,6 +174,10 @@ async function handleRelease() {
 }
 
 function openUrlDialog(type: 'repo' | 'deploy') {
+  if (isViewer) {
+    ElMessage.warning('测试账号仅可查看，无法执行此操作');
+    return;
+  }
   urlDialogType.value = type;
   urlDialogValue.value = type === 'repo'
     ? (thesisProject.value?.repoUrl || '')

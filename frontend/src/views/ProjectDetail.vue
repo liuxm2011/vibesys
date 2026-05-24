@@ -25,7 +25,7 @@
             <span>{{ currentGeneratingLabel }}文档正在生成中...</span>
           </div>
           <el-button
-            v-if="docSetMode === 'standard'"
+            v-if="docSetMode === 'standard' && !isViewer"
             type="primary"
             class="generate-all-btn"
             :loading="documentStore.generating"
@@ -48,6 +48,9 @@
 
     <!-- Main Content Layout -->
     <div class="detail-layout">
+      <el-alert v-if="isViewer" type="info" :closable="false" style="margin-bottom: 12px">
+        测试账号只读模式 — 仅可查看文档，无法生成、编辑或保存
+      </el-alert>
       <!-- Main Column -->
       <div class="main-column" style="position: relative;">
         <!-- Review Streaming Overlay -->
@@ -108,7 +111,7 @@
                     v-if="!isGeneratingDoc('PRD')"
                     description="PRD文档尚未生成"
                     button-label="立即生成 PRD"
-                    :disabled="documentStore.generating"
+                    :disabled="isViewer || documentStore.generating"
                     @generate="handleGenerateSingle('PRD')"
                   />
                 </div>
@@ -151,7 +154,7 @@
                     description="前端文档尚未生成"
                     button-label="立即生成前端文档"
                     :blocked-reason="getGenerateBlockedReason('FRONTEND')"
-                    :disabled="!canGenerateDoc('FRONTEND')"
+                    :disabled="isViewer || !canGenerateDoc('FRONTEND')"
                     @generate="handleGenerateSingle('FRONTEND')"
                   />
                 </div>
@@ -194,7 +197,7 @@
                     description="后端文档尚未生成"
                     button-label="立即生成后端文档"
                     :blocked-reason="getGenerateBlockedReason('BACKEND')"
-                    :disabled="!canGenerateDoc('BACKEND')"
+                    :disabled="isViewer || !canGenerateDoc('BACKEND')"
                     @generate="handleGenerateSingle('BACKEND')"
                   />
                 </div>
@@ -237,7 +240,7 @@
                     description="API 文档尚未生成"
                     button-label="立即生成 API 文档"
                     :blocked-reason="getGenerateBlockedReason('API')"
-                    :disabled="!canGenerateDoc('API')"
+                    :disabled="isViewer || !canGenerateDoc('API')"
                     @generate="handleGenerateSingle('API')"
                   />
                 </div>
@@ -280,7 +283,7 @@
                     description="任务清单尚未生成"
                     button-label="立即生成任务清单"
                     :blocked-reason="getGenerateBlockedReason('TASK')"
-                    :disabled="!canGenerateDoc('TASK')"
+                    :disabled="isViewer || !canGenerateDoc('TASK')"
                     @generate="handleGenerateSingle('TASK')"
                   />
                 </div>
@@ -323,7 +326,7 @@
                     description="状态追踪文档尚未生成"
                     button-label="立即生成状态文档"
                     :blocked-reason="getGenerateBlockedReason('CONTEXT_STATE')"
-                    :disabled="!canGenerateDoc('CONTEXT_STATE')"
+                    :disabled="isViewer || !canGenerateDoc('CONTEXT_STATE')"
                     @generate="handleGenerateSingle('CONTEXT_STATE')"
                   />
                 </div>
@@ -366,7 +369,7 @@
                     description="AI 规则文档尚未生成"
                     button-label="立即生成规则文档"
                     :blocked-reason="getGenerateBlockedReason('AGENTS')"
-                    :disabled="!canGenerateDoc('AGENTS')"
+                    :disabled="isViewer || !canGenerateDoc('AGENTS')"
                     @generate="handleGenerateSingle('AGENTS')"
                   />
                 </div>
@@ -393,7 +396,7 @@
                   />
                   <el-button
                     class="grad-doc-download-btn"
-                    :disabled="graduationStore.generating"
+                    :disabled="isViewer || graduationStore.generating"
                     @click="handleDownloadGraduationDocument('TASK_BOOK')"
                   >
                     <el-icon><Download /></el-icon>
@@ -425,7 +428,7 @@
                     v-if="!isGeneratingGradDoc('TASK_BOOK')"
                     description="任务书尚未生成"
                     button-label="立即生成任务书"
-                    :disabled="graduationStore.generating"
+                    :disabled="isViewer || graduationStore.generating"
                     @generate="handleGenerateGraduationSingle('TASK_BOOK')"
                   />
                 </div>
@@ -442,7 +445,7 @@
                   />
                   <el-button
                     class="grad-doc-download-btn"
-                    :disabled="graduationStore.generating"
+                    :disabled="isViewer || graduationStore.generating"
                     @click="handleDownloadGraduationDocument('PROPOSAL')"
                   >
                     <el-icon><Download /></el-icon>
@@ -474,7 +477,7 @@
                     v-if="!isGeneratingGradDoc('PROPOSAL')"
                     description="开题报告尚未生成"
                     button-label="立即生成开题报告"
-                    :disabled="graduationStore.generating"
+                    :disabled="isViewer || graduationStore.generating"
                     @generate="handleGenerateGraduationSingle('PROPOSAL')"
                   />
                 </div>
@@ -491,7 +494,7 @@
                   />
                   <el-button
                     class="grad-doc-download-btn"
-                    :disabled="graduationStore.generating"
+                    :disabled="isViewer || graduationStore.generating"
                     @click="handleDownloadGraduationDocument('PREPARATION')"
                   >
                     <el-icon><Download /></el-icon>
@@ -523,7 +526,7 @@
                     v-if="!isGeneratingGradDoc('PREPARATION')"
                     description="前期准备尚未生成"
                     button-label="立即生成前期准备"
-                    :disabled="graduationStore.generating"
+                    :disabled="isViewer || graduationStore.generating"
                     @generate="handleGenerateGraduationSingle('PREPARATION')"
                   />
                 </div>
@@ -540,7 +543,7 @@
                   />
                   <el-button
                     class="grad-doc-download-btn"
-                    :disabled="graduationStore.generating"
+                    :disabled="isViewer || graduationStore.generating"
                     @click="handleDownloadGraduationDocument('DRAFTING')"
                   >
                     <el-icon><Download /></el-icon>
@@ -572,7 +575,7 @@
                     v-if="!isGeneratingGradDoc('DRAFTING')"
                     description="撰写阶段尚未生成"
                     button-label="立即生成撰写阶段"
-                    :disabled="graduationStore.generating"
+                    :disabled="isViewer || graduationStore.generating"
                     @generate="handleGenerateGraduationSingle('DRAFTING')"
                   />
                 </div>
@@ -589,7 +592,7 @@
                   />
                   <el-button
                     class="grad-doc-download-btn"
-                    :disabled="graduationStore.generating"
+                    :disabled="isViewer || graduationStore.generating"
                     @click="handleDownloadGraduationDocument('MIDTERM_CHECK')"
                   >
                     <el-icon><Download /></el-icon>
@@ -621,7 +624,7 @@
                     v-if="!isGeneratingGradDoc('MIDTERM_CHECK')"
                     description="中期检查尚未生成"
                     button-label="立即生成中期检查"
-                    :disabled="graduationStore.generating"
+                    :disabled="isViewer || graduationStore.generating"
                     @generate="handleGenerateGraduationSingle('MIDTERM_CHECK')"
                   />
                 </div>
@@ -638,7 +641,7 @@
                   />
                   <el-button
                     class="grad-doc-download-btn"
-                    :disabled="graduationStore.generating"
+                    :disabled="isViewer || graduationStore.generating"
                     @click="handleDownloadGraduationDocument('REFINEMENT')"
                   >
                     <el-icon><Download /></el-icon>
@@ -670,7 +673,7 @@
                     v-if="!isGeneratingGradDoc('REFINEMENT')"
                     description="完善尚未生成"
                     button-label="立即生成完善"
-                    :disabled="graduationStore.generating"
+                    :disabled="isViewer || graduationStore.generating"
                     @generate="handleGenerateGraduationSingle('REFINEMENT')"
                   />
                 </div>
@@ -728,7 +731,7 @@
               v-for="type in ALL_DOC_TYPES"
               :key="type"
               class="action-item"
-              :disabled="documentStore.generating || !canGenerateDoc(type)"
+              :disabled="isViewer || documentStore.generating || !canGenerateDoc(type)"
               :title="getGenerateBlockedReason(type) || ''"
               :loading="isGeneratingDoc(type)"
               @click="handleGenerateSingle(type)"
@@ -751,7 +754,7 @@
               v-for="type in ALL_GRAD_DOC_TYPES"
               :key="type"
               class="action-item"
-              :disabled="graduationStore.generating"
+              :disabled="isViewer || graduationStore.generating"
               :loading="isGeneratingGradDoc(type)"
               @click="handleGenerateGraduationSingle(type)"
             >
@@ -807,6 +810,7 @@ import {
 import { useDocumentStore } from '@/stores/document.store';
 import { useGraduationDocumentStore } from '@/stores/graduation.store';
 import { useProjectStore } from '@/stores/project.store';
+import { useAuthStore } from '@/stores/auth.store';
 import { updateProjectTechStackApi, fetchProjectDetailApi, updateProjectRepoUrlApi, syncRepoApi, updateProjectDeployUrlApi } from '@/api/project.api';
 import JSZip from 'jszip';
 import { saveAs } from 'file-saver';
@@ -839,6 +843,8 @@ const router = useRouter();
 const documentStore = useDocumentStore();
 const graduationStore = useGraduationDocumentStore();
 const projectStore = useProjectStore();
+const authStore = useAuthStore();
+const isViewer = computed(() => authStore.isViewer);
 
 const projectId = computed(() => {
   const id = route.params.id;
@@ -847,21 +853,21 @@ const projectId = computed(() => {
 
 const activeDocType = ref<DocType>('PRD');
 const docModes = ref<Record<DocType, 'read' | 'edit'>>({
-  PRD: 'edit',
-  FRONTEND: 'edit',
-  BACKEND: 'edit',
-  API: 'edit',
-  TASK: 'edit',
-  CONTEXT_STATE: 'edit',
-  AGENTS: 'edit',
+  PRD: isViewer.value ? 'read' : 'edit',
+  FRONTEND: isViewer.value ? 'read' : 'edit',
+  BACKEND: isViewer.value ? 'read' : 'edit',
+  API: isViewer.value ? 'read' : 'edit',
+  TASK: isViewer.value ? 'read' : 'edit',
+  CONTEXT_STATE: isViewer.value ? 'read' : 'edit',
+  AGENTS: isViewer.value ? 'read' : 'edit',
 });
 const gradDocModes = ref<Record<GraduationDocType, 'read' | 'edit'>>({
-  TASK_BOOK: 'edit',
-  PROPOSAL: 'edit',
-  PREPARATION: 'edit',
-  DRAFTING: 'edit',
-  MIDTERM_CHECK: 'edit',
-  REFINEMENT: 'edit',
+  TASK_BOOK: isViewer.value ? 'read' : 'edit',
+  PROPOSAL: isViewer.value ? 'read' : 'edit',
+  PREPARATION: isViewer.value ? 'read' : 'edit',
+  DRAFTING: isViewer.value ? 'read' : 'edit',
+  MIDTERM_CHECK: isViewer.value ? 'read' : 'edit',
+  REFINEMENT: isViewer.value ? 'read' : 'edit',
 });
 
 // Graduation document set mode
