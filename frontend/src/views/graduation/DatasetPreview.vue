@@ -1,7 +1,7 @@
 <template>
   <div class="dataset-preview">
     <div class="preview-header">
-      <el-button text @click="router.back()">
+      <el-button text @click="router.push({ name: 'GraduationTopicPool' })">
         <el-icon><ArrowLeft /></el-icon>返回选题列表
       </el-button>
       <span class="header-title">{{ datasetName }} · 数据集预览</span>

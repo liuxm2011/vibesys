@@ -36,13 +36,13 @@ const routes: RouteRecordRaw[] = [
     path: '/graduation',
     name: 'GraduationDashboard',
     component: () => import('@/views/graduation/GraduationDashboard.vue'),
-    meta: { requiresAuth: true }
+    meta: { requiresAuth: true, skipModeCheck: true }
   },
   {
     path: '/graduation/topics',
     name: 'GraduationTopicPool',
     component: () => import('@/views/graduation/GraduationTopicPool.vue'),
-    meta: { requiresAuth: true }
+    meta: { requiresAuth: true, skipModeCheck: true }
   },
   {
     path: '/graduation/dataset',
