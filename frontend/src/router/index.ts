@@ -27,6 +27,24 @@ const routes: RouteRecordRaw[] = [
     meta: { requiresAuth: true }
   },
   {
+    path: '/mode-select',
+    name: 'ModeSelect',
+    component: () => import('@/views/ModeSelect.vue'),
+    meta: { requiresAuth: true, skipModeCheck: true }
+  },
+  {
+    path: '/graduation',
+    name: 'GraduationDashboard',
+    component: () => import('@/views/graduation/GraduationDashboard.vue'),
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/graduation/topics',
+    name: 'GraduationTopicPool',
+    component: () => import('@/views/graduation/GraduationTopicPool.vue'),
+    meta: { requiresAuth: true }
+  },
+  {
     path: '/admin',
     component: () => import('@/views/admin/AdminLayout.vue'),
     meta: { requiresAuth: true, requiresAdmin: true },
@@ -37,7 +55,8 @@ const routes: RouteRecordRaw[] = [
       { path: 'stats', name: 'AdminStats', component: () => import('@/views/admin/Statistics.vue') },
       { path: 'config', name: 'AdminConfig', component: () => import('@/views/admin/SystemConfig.vue') },
       { path: 'api-providers', name: 'AdminApiProviders', component: () => import('@/views/admin/ApiProviderManagement.vue') },
-      { path: 'repos', name: 'AdminRepos', component: () => import('@/views/admin/RepoManagement.vue') }
+      { path: 'repos', name: 'AdminRepos', component: () => import('@/views/admin/RepoManagement.vue') },
+      { path: 'graduation', name: 'AdminGraduation', component: () => import('@/views/admin/GraduationManagement.vue') }
     ]
   },
   {
@@ -63,5 +82,6 @@ declare module 'vue-router' {
   interface RouteMeta {
     requiresAuth?: boolean;
     requiresAdmin?: boolean;
+    skipModeCheck?: boolean;
   }
 }

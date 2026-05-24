@@ -1,6 +1,7 @@
 import { watch } from 'vue';
 import type { Router, RouteLocationNormalized, RouteLocationRaw } from 'vue-router';
 import { useAuthStore } from '@/stores/auth.store';
+import { useAppModeStore } from '@/stores/appMode.store';
 
 /**
  * Setup navigation guards for authentication (D-19)
@@ -49,6 +50,14 @@ export function setupRouterGuards(router: Router): void {
     // Redirect admin away from dashboard to admin panel
     if (to.name === 'Dashboard' && authStore.isAdmin) {
       return { name: 'Admin' };
+    }
+
+    // Non-admin students without a mode selected → redirect to mode selection
+    if (!authStore.isAdmin && !to.meta.skipModeCheck) {
+      const appModeStore = useAppModeStore();
+      if (!appModeStore.mode) {
+        return { name: 'ModeSelect' };
+      }
     }
 
     // All checks passed, proceed
