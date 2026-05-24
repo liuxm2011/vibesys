@@ -1359,4 +1359,68 @@ router.put('/projects/:id/deployUrl', async (c) => {
   }
 });
 
+// ============================================================
+// GRADUATION THESIS MANAGEMENT
+// ============================================================
+
+router.get('/thesis/topics', async (c) => {
+  try {
+    const prisma = c.get('prisma');
+    const topics = await prisma.thesisTopic.findMany({
+      orderBy: [{ category: 'asc' }, { id: 'asc' }],
+      include: {
+        lockedBy: {
+          select: { id: true, name: true, studentId: true, class: true, grade: true }
+        },
+        project: {
+          select: { id: true, repoUrl: true, deployUrl: true, createdAt: true }
+        }
+      }
+    });
+    return c.json({ topics, total: topics.length });
+  } catch (error) {
+    console.error('Admin thesis topics error:', error);
+    return c.json({ error: '获取毕业设计题目失败' }, 500);
+  }
+});
+
+router.get('/thesis/projects', async (c) => {
+  try {
+    const prisma = c.get('prisma');
+    const q = c.req.query();
+    const page = parseInt(q.page || '') || 1;
+    const pageSize = parseInt(q.pageSize || '') || 20;
+    const search = q.search || '';
+    const skip = (page - 1) * pageSize;
+
+    const whereClause: any = {};
+    if (search) {
+      whereClause.OR = [
+        { user: { name: { contains: search } } },
+        { user: { studentId: { contains: search } } },
+        { topic: { title: { contains: search } } },
+      ];
+    }
+
+    const [projects, total] = await Promise.all([
+      prisma.thesisProject.findMany({
+        where: whereClause,
+        skip,
+        take: pageSize,
+        orderBy: { createdAt: 'desc' },
+        include: {
+          user: { select: { id: true, name: true, studentId: true, class: true, grade: true } },
+          topic: { select: { id: true, title: true, category: true, datasetName: true } }
+        }
+      }),
+      prisma.thesisProject.count({ where: whereClause })
+    ]);
+
+    return c.json({ projects, total, page, pageSize });
+  } catch (error) {
+    console.error('Admin thesis projects error:', error);
+    return c.json({ error: '获取毕业设计项目失败' }, 500);
+  }
+});
+
 export default router;
