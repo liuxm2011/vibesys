@@ -271,8 +271,6 @@ model ThesisProject {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  user  User        @relation("UserThesisProject", fields: [userId], references: [id])
-  topic ThesisTopic @relation(fields: [topicId], references: [id])
-
-  @@index([userId])
+  user  User        @relation("UserThesisProject", fields: [userId], references: [id], onDelete: Restrict)
+  topic ThesisTopic @relation(fields: [topicId], references: [id], onDelete: Restrict)
 }
