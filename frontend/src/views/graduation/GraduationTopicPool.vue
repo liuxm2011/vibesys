@@ -135,8 +135,7 @@ const filteredTopics = computed(() => {
 });
 
 function openDataset(url: string) {
-  const target = url.replace(/\/$/, '') + '/数据集说明.txt';
-  window.open(target, '_blank', 'noopener,noreferrer');
+  router.push(`/graduation/dataset?url=${encodeURIComponent(url)}`);
 }
 
 async function loadData() {
