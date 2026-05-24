@@ -78,8 +78,11 @@
           <el-descriptions-item label="数据集大小">{{ thesisProject.topic.datasetSize }}</el-descriptions-item>
           <el-descriptions-item label="选题时间">{{ formatDate(thesisProject.createdAt) }}</el-descriptions-item>
           <el-descriptions-item label="数据集地址" :span="2">
-            <el-link :href="thesisProject.topic.datasetUrl" target="_blank" type="primary">
-              {{ thesisProject.topic.datasetUrl }}
+            <el-link
+              type="primary"
+              @click="router.push(`/graduation/dataset?url=${encodeURIComponent(thesisProject.topic.datasetUrl)}`)"
+            >
+              查看数据集
             </el-link>
           </el-descriptions-item>
         </el-descriptions>
