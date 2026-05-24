@@ -38,18 +38,34 @@
           text-color="#64748b"
           active-text-color="#4f46e5"
         >
+          <!-- 用户管理（共用） -->
           <el-menu-item index="/admin/users">
             <el-icon><User /></el-icon>
             <span>用户管理</span>
           </el-menu-item>
-          <el-menu-item index="/admin/topics">
-            <el-icon><Collection /></el-icon>
-            <span>选题管理</span>
-          </el-menu-item>
-          <el-menu-item index="/admin/stats">
-            <el-icon><TrendCharts /></el-icon>
-            <span>统计分析</span>
-          </el-menu-item>
+
+          <el-menu-item-group title="项目设计管理">
+            <el-menu-item index="/admin/topics">
+              <el-icon><Collection /></el-icon>
+              <span>选题管理</span>
+            </el-menu-item>
+            <el-menu-item index="/admin/repos">
+              <el-icon><Link /></el-icon>
+              <span>仓库管理</span>
+            </el-menu-item>
+            <el-menu-item index="/admin/stats">
+              <el-icon><TrendCharts /></el-icon>
+              <span>统计分析</span>
+            </el-menu-item>
+          </el-menu-item-group>
+
+          <el-menu-item-group title="毕业设计管理">
+            <el-menu-item index="/admin/graduation">
+              <el-icon><Document /></el-icon>
+              <span>毕业设计管理</span>
+            </el-menu-item>
+          </el-menu-item-group>
+
           <el-menu-item index="/admin/config">
             <el-icon><Setting /></el-icon>
             <span>系统配置</span>
@@ -57,10 +73,6 @@
           <el-menu-item index="/admin/api-providers">
             <el-icon><Connection /></el-icon>
             <span>API 服务管理</span>
-          </el-menu-item>
-          <el-menu-item index="/admin/repos">
-            <el-icon><Link /></el-icon>
-            <span>仓库管理</span>
           </el-menu-item>
         </el-menu>
       </aside>
@@ -83,7 +95,7 @@ import { computed, ref } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import { ElMessage } from 'element-plus';
 import { useAuthStore } from '@/stores/auth.store';
-import { Back, User, Collection, TrendCharts, Setting, Connection, Link, SwitchButton, Key } from '@element-plus/icons-vue';
+import { Back, User, Collection, TrendCharts, Setting, Connection, Link, SwitchButton, Key, Document } from '@element-plus/icons-vue';
 import SelfPasswordDialog from '@/components/SelfPasswordDialog.vue';
 
 const router = useRouter();
