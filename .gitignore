@@ -19,3 +19,4 @@ dist/
 .wrangler/
 backend/prisma/d1-import.sql
 backend/prisma/d1-splits/
+.superpowers/
