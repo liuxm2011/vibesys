@@ -77,51 +77,39 @@
           <el-descriptions-item label="分类">{{ thesisProject.topic.category }}</el-descriptions-item>
           <el-descriptions-item label="数据集大小">{{ thesisProject.topic.datasetSize }}</el-descriptions-item>
           <el-descriptions-item label="选题时间">{{ formatDate(thesisProject.createdAt) }}</el-descriptions-item>
-          <el-descriptions-item label="数据集地址" :span="2">
-            <el-link
-              type="primary"
-              @click="router.push(`/graduation/dataset?url=${encodeURIComponent(thesisProject.topic.datasetUrl)}`)"
-            >
-              查看数据集
-            </el-link>
+          <el-descriptions-item label="项目资料" :span="2">
+            <div class="project-links">
+              <el-link
+                type="primary"
+                @click="router.push(`/graduation/dataset?url=${encodeURIComponent(thesisProject.topic.datasetUrl)}`)"
+              >
+                查看数据集
+              </el-link>
+              <el-link type="primary" @click="openUrlDialog('repo')">
+                {{ thesisProject.repoUrl ? '仓库地址' : '填写仓库地址' }}
+              </el-link>
+              <el-link type="primary" @click="openUrlDialog('deploy')">
+                {{ thesisProject.deployUrl ? '项目部署地址' : '填写部署地址' }}
+              </el-link>
+            </div>
           </el-descriptions-item>
         </el-descriptions>
 
-        <el-divider>项目信息</el-divider>
-
-        <div class="project-urls">
-          <div class="url-field">
-            <label class="url-label">代码仓库地址</label>
-            <div class="url-input-row">
-              <el-input
-                v-model="editRepoUrl"
-                placeholder="请填写 Gitee/GitHub 仓库地址"
-                :disabled="!editingRepo"
-              />
-              <el-button v-if="!editingRepo" @click="editingRepo = true">编辑</el-button>
-              <template v-else>
-                <el-button type="primary" :loading="savingRepo" @click="saveRepoUrl">保存</el-button>
-                <el-button @click="cancelEditRepo">取消</el-button>
-              </template>
-            </div>
-          </div>
-
-          <div class="url-field">
-            <label class="url-label">项目展示/部署地址</label>
-            <div class="url-input-row">
-              <el-input
-                v-model="editDeployUrl"
-                placeholder="请填写项目运行演示地址"
-                :disabled="!editingDeploy"
-              />
-              <el-button v-if="!editingDeploy" @click="editingDeploy = true">编辑</el-button>
-              <template v-else>
-                <el-button type="primary" :loading="savingDeploy" @click="saveDeployUrl">保存</el-button>
-                <el-button @click="cancelEditDeploy">取消</el-button>
-              </template>
-            </div>
-          </div>
-        </div>
+        <el-dialog
+          v-model="urlDialogVisible"
+          :title="urlDialogType === 'repo' ? '代码仓库地址' : '项目部署地址'"
+          width="480px"
+          @close="cancelUrlDialog"
+        >
+          <el-input
+            v-model="urlDialogValue"
+            :placeholder="urlDialogType === 'repo' ? '请填写 Gitee/GitHub 仓库地址' : '请填写项目运行演示地址'"
+          />
+          <template #footer>
+            <el-button @click="cancelUrlDialog">取消</el-button>
+            <el-button type="primary" :loading="savingUrl" @click="saveUrlDialog">保存</el-button>
+          </template>
+        </el-dialog>
       </div>
     </main>
 
@@ -149,12 +137,10 @@ const thesisProject = ref<ThesisProject | null>(null);
 const loading = ref(false);
 const releasing = ref(false);
 const passwordDialogVisible = ref(false);
-const editRepoUrl = ref('');
-const editDeployUrl = ref('');
-const editingRepo = ref(false);
-const editingDeploy = ref(false);
-const savingRepo = ref(false);
-const savingDeploy = ref(false);
+const urlDialogVisible = ref(false);
+const urlDialogType = ref<'repo' | 'deploy'>('repo');
+const urlDialogValue = ref('');
+const savingUrl = ref(false);
 
 function formatDate(s: string) {
   return new Date(s).toLocaleDateString('zh-CN');
@@ -174,10 +160,8 @@ async function handleLogout() {
 async function handleRelease() {
   releasing.value = true;
   try {
-    await releaseThesisTopic();
+      await releaseThesisTopic();
     thesisProject.value = null;
-    editRepoUrl.value = '';
-    editDeployUrl.value = '';
     ElMessage.success('已放弃选题');
   } catch (err: any) {
     ElMessage.error(err?.message || '操作失败');
@@ -186,39 +170,33 @@ async function handleRelease() {
   }
 }
 
-function cancelEditRepo() {
-  editingRepo.value = false;
-  editRepoUrl.value = thesisProject.value?.repoUrl || '';
+function openUrlDialog(type: 'repo' | 'deploy') {
+  urlDialogType.value = type;
+  urlDialogValue.value = type === 'repo'
+    ? (thesisProject.value?.repoUrl || '')
+    : (thesisProject.value?.deployUrl || '');
+  urlDialogVisible.value = true;
 }
 
-function cancelEditDeploy() {
-  editingDeploy.value = false;
-  editDeployUrl.value = thesisProject.value?.deployUrl || '';
+function cancelUrlDialog() {
+  urlDialogVisible.value = false;
+  urlDialogValue.value = '';
 }
 
-async function saveRepoUrl() {
-  savingRepo.value = true;
+async function saveUrlDialog() {
+  savingUrl.value = true;
   try {
-    thesisProject.value = await updateThesisProject({ repoUrl: editRepoUrl.value });
-    editingRepo.value = false;
-    ElMessage.success('仓库地址已保存');
+    const payload = urlDialogType.value === 'repo'
+      ? { repoUrl: urlDialogValue.value }
+      : { deployUrl: urlDialogValue.value };
+    thesisProject.value = await updateThesisProject(payload);
+    urlDialogVisible.value = false;
+    urlDialogValue.value = '';
+    ElMessage.success('保存成功');
   } catch {
     ElMessage.error('保存失败');
   } finally {
-    savingRepo.value = false;
-  }
-}
-
-async function saveDeployUrl() {
-  savingDeploy.value = true;
-  try {
-    thesisProject.value = await updateThesisProject({ deployUrl: editDeployUrl.value });
-    editingDeploy.value = false;
-    ElMessage.success('部署地址已保存');
-  } catch {
-    ElMessage.error('保存失败');
-  } finally {
-    savingDeploy.value = false;
+    savingUrl.value = false;
   }
 }
 
@@ -226,10 +204,6 @@ onMounted(async () => {
   loading.value = true;
   try {
     thesisProject.value = await getMyThesisProject();
-    if (thesisProject.value) {
-      editRepoUrl.value = thesisProject.value.repoUrl || '';
-      editDeployUrl.value = thesisProject.value.deployUrl || '';
-    }
   } finally {
     loading.value = false;
   }
@@ -366,30 +340,10 @@ onMounted(async () => {
   margin-bottom: 0;
 }
 
-.project-urls {
+.project-links {
   display: flex;
-  flex-direction: column;
-  gap: 20px;
-}
-
-.url-field {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.url-label {
-  font-size: 14px;
-  font-weight: 600;
-  color: #374151;
-}
-
-.url-input-row {
-  display: flex;
-  gap: 8px;
-}
-
-.url-input-row .el-input {
-  flex: 1;
+  gap: 24px;
+  align-items: center;
+  flex-wrap: wrap;
 }
 </style>
