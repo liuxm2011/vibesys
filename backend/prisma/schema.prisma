@@ -25,6 +25,8 @@ model User {
   // Phase 2 relations
   projects        Project[]       // D-06: User has many projects
   customTopics    Topic[]         @relation("CustomTopic")  // D-14: User's custom topics
+  thesisProject      ThesisProject?   @relation("UserThesisProject")
+  lockedThesisTopics ThesisTopic[]    @relation("ThesisTopicLock")
 
   @@index([studentId])
   @@index([role])
@@ -236,4 +238,41 @@ model AiUsageLog {
   @@index([userId])
   @@index([createdAt])
   @@index([operation])
+}
+
+// 毕业设计选题池（从JSON导入，大数据专业专用）
+model ThesisTopic {
+  id           Int            @id @default(autoincrement())
+  title        String         // 毕业设计名
+  category     String         // 分类（机器学习-表格数据/自然语言处理/计算机视觉）
+  datasetName  String         // 数据集名
+  datasetUrl   String         // 数据集存储地址（COS路径）
+  datasetSize  String         // 数据集大小
+  isLocked     Boolean        @default(false)
+  lockedAt     DateTime?
+  lockedByUserId Int?
+  createdAt    DateTime       @default(now())
+
+  lockedBy     User?          @relation("ThesisTopicLock", fields: [lockedByUserId], references: [id], onDelete: SetNull)
+  project      ThesisProject?
+
+  @@index([isLocked])
+  @@index([lockedByUserId])
+  @@index([category])
+}
+
+// 毕业设计项目（一人一题，排他性）
+model ThesisProject {
+  id        Int          @id @default(autoincrement())
+  userId    Int          @unique
+  topicId   Int          @unique
+  repoUrl   String?
+  deployUrl String?
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+
+  user      User         @relation("UserThesisProject", fields: [userId], references: [id])
+  topic     ThesisTopic  @relation(fields: [topicId], references: [id])
+
+  @@index([userId])
 }

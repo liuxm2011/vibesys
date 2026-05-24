@@ -1,0 +1,278 @@
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider        = "prisma-client-js"
+  output          = "../src/generated/prisma"
+  previewFeatures = ["driverAdapters"]
+}
+
+model User {
+  id        Int      @id @default(autoincrement())
+  studentId String   @unique // D-02: 登录账号
+  name      String // D-04: 姓名
+  major     String // D-04: 专业
+  grade     String // D-04: 年级
+  class     String // D-04: 班级
+  password  String // D-09: bcrypt hash
+  role      Role     @default(STUDENT) // D-05: student/admin
+  status    Status   @default(ACTIVE) // D-06: active/banned
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Phase 2 relations
+  projects           Project[] // D-06: User has many projects
+  customTopics       Topic[]        @relation("CustomTopic") // D-14: User's custom topics
+  thesisProject      ThesisProject? @relation("UserThesisProject")
+  lockedThesisTopics ThesisTopic[]  @relation("ThesisTopicLock")
+
+  @@index([studentId])
+  @@index([role])
+}
+
+enum Role {
+  STUDENT // D-05
+  ADMIN // D-05
+}
+
+enum Status {
+  ACTIVE // D-06
+  BANNED // D-06
+}
+
+// Phase 2 enums (D-03, D-05, D-10)
+enum Domain {
+  SE // 软件工程 (D-03)
+  BD // 大数据 (D-03)
+}
+
+enum TopicType {
+  SYSTEM // 系统预设 (D-05)
+  CUSTOM // 学生自拟 (D-05)
+}
+
+enum Platform {
+  WEB // Web应用 (浏览器访问)
+  IOS // iOS原生应用
+  ANDROID // Android原生应用
+  WECHAT_MINI // 微信小程序
+  WINDOWS_DESKTOP // Windows桌面端
+  MAC_DESKTOP // Mac桌面端
+}
+
+enum ProjectStatus {
+  NOT_STARTED // 未开始 (D-10)
+  IN_PROGRESS // 进行中 (D-10)
+  COMPLETED // 已完成 (D-10)
+}
+
+enum ReviewStatus {
+  NONE // 未审核
+  PENDING_FIX // 已审核，有问题待处理
+  ACCEPTED // 已应用修复
+  DISCARDED // 已放弃修复
+}
+
+// Phase 3 enums (D-13)
+enum DocType {
+  PRD // 产品需求文档 (D-13)
+  FRONTEND // 前端技术文档 (D-13)
+  BACKEND // 后端技术文档 (D-13)
+  API // API 接口契约文档
+  TASK // 开发任务清单
+  CONTEXT_STATE // 项目状态追踪文档
+  AGENTS // AI 编码规则文档
+}
+
+// Graduation document types (毕设文档)
+enum GraduationDocType {
+  TASK_BOOK // 任务书
+  PROPOSAL // 开题报告
+  PREPARATION // 前期准备阶段
+  DRAFTING // 撰写阶段
+  MIDTERM_CHECK // 中期检查阶段
+  REFINEMENT // 完善阶段
+}
+
+// Phase 2: Topic model (D-01, D-04)
+model Topic {
+  id          Int       @id @default(autoincrement())
+  title       String // D-01: 标题
+  description String // D-01: 描述
+  background  String? // D-01: 背景
+  objectives  String? // D-01: 目标 master
+  domain      Domain // D-03: 领域分类
+  platform    Platform  @default(WEB) // 运行平台
+  techStack   Json // D-04: 技术栈建议 (JSON array)
+  type        TopicType @default(SYSTEM) // D-05: 类型
+  creatorId   Int? // D-14: 仅自定义选题有creator
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  // Relations
+  creator  User?     @relation("CustomTopic", fields: [creatorId], references: [id])
+  projects Project[]
+
+  @@index([domain])
+  @@index([type])
+  @@index([creatorId])
+}
+
+// Phase 2: Project model (D-10, D-11)
+model Project {
+  id           Int           @id @default(autoincrement())
+  userId       Int // D-11: 关联学生
+  topicId      Int // D-11: 关联选题
+  status       ProjectStatus @default(NOT_STARTED) // D-10
+  techStack    String? // D-07: 用户修改的技术栈 (DOC-07)
+  documentsRef Json? // D-11: 已生成文档引用 (Phase 2 placeholder - deprecated, use Document table)
+  reviewStatus ReviewStatus  @default(NONE)
+  reviewResult Json?
+  repoUrl      String? // Gitee 仓库地址
+  repoSyncData Json? // 同步数据: { commits: [...], readme: "...", syncedAt: "..." }
+  deployUrl    String? // 部署访问地址（学生填写）
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  // Relations
+  user                User                 @relation(fields: [userId], references: [id])
+  topic               Topic                @relation(fields: [topicId], references: [id])
+  documents           Document[] // Phase 3: 开发文档关联
+  graduationDocuments GraduationDocument[] // 毕设文档关联
+
+  @@index([userId])
+  @@index([status])
+  @@index([topicId])
+}
+
+// Phase 3: Document model (D-10~13)
+model Document {
+  id        Int      @id @default(autoincrement())
+  projectId Int // D-10: 关联项目
+  docType   DocType // D-13: 文档类型
+  content   String // D-13: Markdown内容，AI生成文档可能超过默认VARCHAR长度
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, docType]) // D-11: 每个项目每种类型只有一个文档
+  @@index([projectId])
+}
+
+// Graduation Document model (毕设文档)
+model GraduationDocument {
+  id        Int               @id @default(autoincrement())
+  projectId Int // 关联项目
+  docType   GraduationDocType // 毕设文档类型
+  content   String // HTML内容，AI生成文档可能超过默认VARCHAR长度
+  createdAt DateTime          @default(now())
+  updatedAt DateTime          @updatedAt
+
+  // Relations
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, docType]) // 每个项目每种类型只有一个毕设文档
+  @@index([projectId])
+}
+
+// Phase 5: System configuration model
+model SystemConfig {
+  id          Int      @id @default(autoincrement())
+  key         String   @unique // "announcement" | "guide"
+  value       String // JSON string or plain text，公告/指南可能包含较长文本
+  description String? // Optional description for admin reference
+  updatedAt   DateTime @updatedAt
+
+  @@index([key])
+}
+
+// Per-user API setting model (用户个人API设置，用于Dashboard上的API配置)
+model UserApiSetting {
+  id        Int      @id @default(autoincrement())
+  userId    Int      @unique // 每个用户只能有一条设置
+  baseURL   String // API base URL，默认 https://api-inference.modelscope.cn/v1
+  apiKey    String // 用户自己的 API Key
+  model     String // 用户选择的模型名称
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+}
+
+// API Provider management model (管理员可在后台切换AI服务提供商)
+model ApiProvider {
+  id           Int      @id @default(autoincrement())
+  name         String // 显示名称，如 "MiniMax 机房服务"、"NVIDIA 备用服务"
+  providerType String // 提供商类型: 'minimax' | 'openai_compatible'
+  baseURL      String // API base URL，如 https://api.minimax.chat/v1
+  apiKey       String // API 密钥
+  model        String // 模型名称，如 minimax-m2-7
+  isActive     Boolean  @default(false) // 是否当前活跃（同一时间只有一个活跃）
+  orderIndex   Int      @default(0) // 排序序号
+  description  String? // 备注说明
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([isActive])
+  @@index([orderIndex])
+}
+
+// AI usage tracking model
+model AiUsageLog {
+  id               Int      @id @default(autoincrement())
+  userId           Int
+  projectId        Int?
+  docType          String? // PRD/FRONTEND/BACKEND/API/TASK/CONTEXT_STATE/AGENTS
+  operation        String // 'generate' | 'generate_stream' | 'review' | 'review_stream' | 'fix'
+  promptTokens     Int      @default(0)
+  completionTokens Int      @default(0)
+  totalTokens      Int      @default(0)
+  status           String   @default("success") // 'success' | 'error' | 'timeout'
+  errorMessage     String?
+  createdAt        DateTime @default(now())
+
+  @@index([userId])
+  @@index([createdAt])
+  @@index([operation])
+}
+
+// 毕业设计选题池（从JSON导入，大数据专业专用）
+model ThesisTopic {
+  id             Int       @id @default(autoincrement())
+  title          String // 毕业设计名
+  category       String // 分类（机器学习-表格数据/自然语言处理/计算机视觉）
+  datasetName    String // 数据集名
+  datasetUrl     String // 数据集存储地址（COS路径）
+  datasetSize    String // 数据集大小
+  isLocked       Boolean   @default(false)
+  lockedAt       DateTime?
+  lockedByUserId Int?
+  createdAt      DateTime  @default(now())
+
+  lockedBy User?          @relation("ThesisTopicLock", fields: [lockedByUserId], references: [id], onDelete: SetNull)
+  project  ThesisProject?
+
+  @@index([isLocked])
+  @@index([lockedByUserId])
+  @@index([category])
+}
+
+// 毕业设计项目（一人一题，排他性）
+model ThesisProject {
+  id        Int      @id @default(autoincrement())
+  userId    Int      @unique
+  topicId   Int      @unique
+  repoUrl   String?
+  deployUrl String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user  User        @relation("UserThesisProject", fields: [userId], references: [id])
+  topic ThesisTopic @relation(fields: [topicId], references: [id])
+
+  @@index([userId])
+}
