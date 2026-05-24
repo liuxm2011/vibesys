@@ -31,6 +31,8 @@ interface TopicContext {
   major: string;
   className: string;
   grade: string;
+  datasetName?: string;
+  datasetCategory?: string;
 }
 
 interface PreviousDocs {
@@ -187,7 +189,9 @@ export class GraduationService {
             techStack: topicContext.techStack,
             prdContent: previousDocs.prdContent,
             frontendContent: previousDocs.frontendContent,
-            backendContent: previousDocs.backendContent
+            backendContent: previousDocs.backendContent,
+            datasetName: topicContext.datasetName,
+            datasetCategory: topicContext.datasetCategory
           })
         };
       case 'PROPOSAL':
@@ -201,7 +205,9 @@ export class GraduationService {
             techStack: topicContext.techStack,
             prdContent: previousDocs.prdContent,
             frontendContent: previousDocs.frontendContent,
-            backendContent: previousDocs.backendContent
+            backendContent: previousDocs.backendContent,
+            datasetName: topicContext.datasetName,
+            datasetCategory: topicContext.datasetCategory
           })
         };
       case 'PREPARATION':
@@ -226,7 +232,10 @@ export class GraduationService {
             frontendContent: previousDocs.frontendContent,
             backendContent: previousDocs.backendContent,
             taskBookContent: previousDocs.taskBookContent,
-            proposalContent: previousDocs.proposalContent
+            proposalContent: previousDocs.proposalContent,
+            domain: topicContext.domain,
+            datasetName: topicContext.datasetName,
+            datasetCategory: topicContext.datasetCategory
           })
         };
     }

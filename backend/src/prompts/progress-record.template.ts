@@ -17,6 +17,9 @@ export interface ProgressRecordContext {
   backendContent: string;
   taskBookContent: string;
   proposalContent: string;
+  domain?: string;
+  datasetName?: string;
+  datasetCategory?: string;
 }
 
 interface StageSpec {
@@ -78,6 +81,57 @@ const STAGE_SPECS: Partial<Record<GraduationDocType, StageSpec>> = {
   }
 };
 
+const STAGE_SPECS_BD: Partial<Record<GraduationDocType, StageSpec>> = {
+  PREPARATION: {
+    stageTitle: '前期准备阶段',
+    dateText: '自开题报告完成后至撰写阶段开始前',
+    focus: '围绕数据集调研、算法方案确认、开发环境搭建展开。',
+    progressItems: [
+      '查阅与数据集及算法方向相关的文献资料，明确研究背景与技术路线。',
+      '完成数据集下载、初步探索性分析（EDA），了解数据分布、缺失情况与特征含义。',
+      '确认技术栈与模型选型方案，搭建Python开发环境及Web可视化框架。',
+      '梳理系统功能模块与开发计划，为后续数据处理与建模工作奠定基础。'
+    ],
+    teacherOpinionFocus: '数据集调研充分，技术路线和环境准备较扎实，能够按计划进入数据处理与建模阶段。'
+  },
+  DRAFTING: {
+    stageTitle: '撰写阶段',
+    dateText: '自撰写阶段开始至中期检查前',
+    focus: '围绕数据预处理、模型训练、结果可视化和说明书初稿展开。',
+    progressItems: [
+      '完成数据预处理流程，包括缺失值处理、特征工程和训练/测试集划分。',
+      '实现核心模型训练，调整超参数并对比多种算法性能，确定最优模型。',
+      '完成模型评估与结果可视化，生成分析报告并搭建Web展示界面。',
+      '开始撰写毕业设计说明书，完成绪论、数据分析与系统设计等章节初稿。'
+    ],
+    teacherOpinionFocus: '数据分析与建模思路清晰，核心工作有序推进，说明书撰写能与开发过程同步开展。'
+  },
+  MIDTERM_CHECK: {
+    stageTitle: '中期检查阶段',
+    dateText: '自中期检查开始至完善阶段前',
+    focus: '围绕阶段成果核查、模型精度验证、系统联调和中期材料提交展开。',
+    progressItems: [
+      '对照开题报告检查研究目标完成情况，确认模型精度指标与功能实现进度。',
+      '完成主要算法模块开发，开展模型评估、接口联调和前端数据展示测试。',
+      '检查代码规范、数据处理流程的可复现性和说明书撰写进度，整理阶段性成果。',
+      '根据中期检查要求提交相关材料，结合指导教师意见优化模型与系统方案。'
+    ],
+    teacherOpinionFocus: '阶段目标完成情况较好，模型与系统开发进展符合预期，能及时提交中期材料并根据反馈改进。'
+  },
+  REFINEMENT: {
+    stageTitle: '完善阶段',
+    dateText: '自完善阶段开始至毕业设计定稿前',
+    focus: '围绕系统优化、综合测试、说明书定稿和材料归档展开。',
+    progressItems: [
+      '根据指导教师建议优化模型参数，提升预测精度并完善异常处理与边界情况。',
+      '完成系统整体测试，修复已知问题，提高Web展示界面的稳定性与用户体验。',
+      '完善毕业设计说明书，规范图表、参考文献和格式，确保内容完整准确。',
+      '整理源码、数据集、模型文件和过程材料，准备查重、归档及答辩展示。'
+    ],
+    teacherOpinionFocus: '能够根据反馈持续优化模型与系统，材料整理较完整，具备进入定稿和答辩准备的条件。'
+  }
+};
+
 export function getProgressRecordSystemPrompt(): string {
   return `你是一位高校指导教师，负责产出可直接交付的中文 Markdown 毕业设计进展情况记录。
 
@@ -126,7 +180,8 @@ export function getProgressRecordSystemPrompt(): string {
 }
 
 export function buildProgressRecordUserPrompt(context: ProgressRecordContext): string {
-  const spec = STAGE_SPECS[context.docType];
+  const isBD = context.domain === 'BD';
+  const spec = (isBD ? STAGE_SPECS_BD[context.docType] : STAGE_SPECS[context.docType]) ?? STAGE_SPECS[context.docType];
   if (!spec) {
     throw new Error(`Unsupported progress record doc type: ${context.docType}`);
   }
@@ -146,7 +201,7 @@ export function buildProgressRecordUserPrompt(context: ProgressRecordContext): s
 运行平台：${context.platform}
 技术栈：${techStackText}
 选题描述：${context.description}
-研究目标：${context.objectives}
+研究目标：${context.objectives}${context.datasetName ? `\n数据集名称：${context.datasetName}` : ''}${context.datasetCategory ? `\n数据方向分类：${context.datasetCategory}` : ''}
 
 [已生成文档摘要参考]
 任务书：${truncate(context.taskBookContent, 1200)}

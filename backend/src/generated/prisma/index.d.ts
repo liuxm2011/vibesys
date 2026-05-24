@@ -4771,6 +4771,7 @@ export namespace Prisma {
     topic?: boolean | TopicDefaultArgs<ExtArgs>
     documents?: boolean | Project$documentsArgs<ExtArgs>
     graduationDocuments?: boolean | Project$graduationDocumentsArgs<ExtArgs>
+    thesisProject?: boolean | Project$thesisProjectArgs<ExtArgs>
     _count?: boolean | ProjectCountOutputTypeDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["project"]>
 
@@ -4832,6 +4833,7 @@ export namespace Prisma {
     topic?: boolean | TopicDefaultArgs<ExtArgs>
     documents?: boolean | Project$documentsArgs<ExtArgs>
     graduationDocuments?: boolean | Project$graduationDocumentsArgs<ExtArgs>
+    thesisProject?: boolean | Project$thesisProjectArgs<ExtArgs>
     _count?: boolean | ProjectCountOutputTypeDefaultArgs<ExtArgs>
   }
   export type ProjectIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
@@ -4850,6 +4852,7 @@ export namespace Prisma {
       topic: Prisma.$TopicPayload<ExtArgs>
       documents: Prisma.$DocumentPayload<ExtArgs>[]
       graduationDocuments: Prisma.$GraduationDocumentPayload<ExtArgs>[]
+      thesisProject: Prisma.$ThesisProjectPayload<ExtArgs> | null
     }
     scalars: $Extensions.GetPayloadResult<{
       id: number
@@ -5263,6 +5266,7 @@ export namespace Prisma {
     topic<T extends TopicDefaultArgs<ExtArgs> = {}>(args?: Subset<T, TopicDefaultArgs<ExtArgs>>): Prisma__TopicClient<$Result.GetResult<Prisma.$TopicPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
     documents<T extends Project$documentsArgs<ExtArgs> = {}>(args?: Subset<T, Project$documentsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$DocumentPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     graduationDocuments<T extends Project$graduationDocumentsArgs<ExtArgs> = {}>(args?: Subset<T, Project$graduationDocumentsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$GraduationDocumentPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+    thesisProject<T extends Project$thesisProjectArgs<ExtArgs> = {}>(args?: Subset<T, Project$thesisProjectArgs<ExtArgs>>): Prisma__ThesisProjectClient<$Result.GetResult<Prisma.$ThesisProjectPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
     /**
      * Attaches callbacks for the resolution and/or rejection of the Promise.
      * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -5744,6 +5748,25 @@ export namespace Prisma {
     take?: number
     skip?: number
     distinct?: GraduationDocumentScalarFieldEnum | GraduationDocumentScalarFieldEnum[]
+  }
+
+  /**
+   * Project.thesisProject
+   */
+  export type Project$thesisProjectArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ThesisProject
+     */
+    select?: ThesisProjectSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ThesisProject
+     */
+    omit?: ThesisProjectOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ThesisProjectInclude<ExtArgs> | null
+    where?: ThesisProjectWhereInput
   }
 
   /**
@@ -13514,18 +13537,21 @@ export namespace Prisma {
     id: number | null
     userId: number | null
     topicId: number | null
+    projectId: number | null
   }
 
   export type ThesisProjectSumAggregateOutputType = {
     id: number | null
     userId: number | null
     topicId: number | null
+    projectId: number | null
   }
 
   export type ThesisProjectMinAggregateOutputType = {
     id: number | null
     userId: number | null
     topicId: number | null
+    projectId: number | null
     repoUrl: string | null
     deployUrl: string | null
     createdAt: Date | null
@@ -13536,6 +13562,7 @@ export namespace Prisma {
     id: number | null
     userId: number | null
     topicId: number | null
+    projectId: number | null
     repoUrl: string | null
     deployUrl: string | null
     createdAt: Date | null
@@ -13546,6 +13573,7 @@ export namespace Prisma {
     id: number
     userId: number
     topicId: number
+    projectId: number
     repoUrl: number
     deployUrl: number
     createdAt: number
@@ -13558,18 +13586,21 @@ export namespace Prisma {
     id?: true
     userId?: true
     topicId?: true
+    projectId?: true
   }
 
   export type ThesisProjectSumAggregateInputType = {
     id?: true
     userId?: true
     topicId?: true
+    projectId?: true
   }
 
   export type ThesisProjectMinAggregateInputType = {
     id?: true
     userId?: true
     topicId?: true
+    projectId?: true
     repoUrl?: true
     deployUrl?: true
     createdAt?: true
@@ -13580,6 +13611,7 @@ export namespace Prisma {
     id?: true
     userId?: true
     topicId?: true
+    projectId?: true
     repoUrl?: true
     deployUrl?: true
     createdAt?: true
@@ -13590,6 +13622,7 @@ export namespace Prisma {
     id?: true
     userId?: true
     topicId?: true
+    projectId?: true
     repoUrl?: true
     deployUrl?: true
     createdAt?: true
@@ -13687,6 +13720,7 @@ export namespace Prisma {
     id: number
     userId: number
     topicId: number
+    projectId: number | null
     repoUrl: string | null
     deployUrl: string | null
     createdAt: Date
@@ -13716,60 +13750,70 @@ export namespace Prisma {
     id?: boolean
     userId?: boolean
     topicId?: boolean
+    projectId?: boolean
     repoUrl?: boolean
     deployUrl?: boolean
     createdAt?: boolean
     updatedAt?: boolean
     user?: boolean | UserDefaultArgs<ExtArgs>
     topic?: boolean | ThesisTopicDefaultArgs<ExtArgs>
+    project?: boolean | ThesisProject$projectArgs<ExtArgs>
   }, ExtArgs["result"]["thesisProject"]>
 
   export type ThesisProjectSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
     id?: boolean
     userId?: boolean
     topicId?: boolean
+    projectId?: boolean
     repoUrl?: boolean
     deployUrl?: boolean
     createdAt?: boolean
     updatedAt?: boolean
     user?: boolean | UserDefaultArgs<ExtArgs>
     topic?: boolean | ThesisTopicDefaultArgs<ExtArgs>
+    project?: boolean | ThesisProject$projectArgs<ExtArgs>
   }, ExtArgs["result"]["thesisProject"]>
 
   export type ThesisProjectSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
     id?: boolean
     userId?: boolean
     topicId?: boolean
+    projectId?: boolean
     repoUrl?: boolean
     deployUrl?: boolean
     createdAt?: boolean
     updatedAt?: boolean
     user?: boolean | UserDefaultArgs<ExtArgs>
     topic?: boolean | ThesisTopicDefaultArgs<ExtArgs>
+    project?: boolean | ThesisProject$projectArgs<ExtArgs>
   }, ExtArgs["result"]["thesisProject"]>
 
   export type ThesisProjectSelectScalar = {
     id?: boolean
     userId?: boolean
     topicId?: boolean
+    projectId?: boolean
     repoUrl?: boolean
     deployUrl?: boolean
     createdAt?: boolean
     updatedAt?: boolean
   }
 
-  export type ThesisProjectOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "userId" | "topicId" | "repoUrl" | "deployUrl" | "createdAt" | "updatedAt", ExtArgs["result"]["thesisProject"]>
+  export type ThesisProjectOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "userId" | "topicId" | "projectId" | "repoUrl" | "deployUrl" | "createdAt" | "updatedAt", ExtArgs["result"]["thesisProject"]>
   export type ThesisProjectInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     user?: boolean | UserDefaultArgs<ExtArgs>
     topic?: boolean | ThesisTopicDefaultArgs<ExtArgs>
+    project?: boolean | ThesisProject$projectArgs<ExtArgs>
   }
   export type ThesisProjectIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     user?: boolean | UserDefaultArgs<ExtArgs>
     topic?: boolean | ThesisTopicDefaultArgs<ExtArgs>
+    project?: boolean | ThesisProject$projectArgs<ExtArgs>
   }
   export type ThesisProjectIncludeUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     user?: boolean | UserDefaultArgs<ExtArgs>
     topic?: boolean | ThesisTopicDefaultArgs<ExtArgs>
+    project?: boolean | ThesisProject$projectArgs<ExtArgs>
   }
 
   export type $ThesisProjectPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
@@ -13777,11 +13821,13 @@ export namespace Prisma {
     objects: {
       user: Prisma.$UserPayload<ExtArgs>
       topic: Prisma.$ThesisTopicPayload<ExtArgs>
+      project: Prisma.$ProjectPayload<ExtArgs> | null
     }
     scalars: $Extensions.GetPayloadResult<{
       id: number
       userId: number
       topicId: number
+      projectId: number | null
       repoUrl: string | null
       deployUrl: string | null
       createdAt: Date
@@ -14182,6 +14228,7 @@ export namespace Prisma {
     readonly [Symbol.toStringTag]: "PrismaPromise"
     user<T extends UserDefaultArgs<ExtArgs> = {}>(args?: Subset<T, UserDefaultArgs<ExtArgs>>): Prisma__UserClient<$Result.GetResult<Prisma.$UserPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
     topic<T extends ThesisTopicDefaultArgs<ExtArgs> = {}>(args?: Subset<T, ThesisTopicDefaultArgs<ExtArgs>>): Prisma__ThesisTopicClient<$Result.GetResult<Prisma.$ThesisTopicPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+    project<T extends ThesisProject$projectArgs<ExtArgs> = {}>(args?: Subset<T, ThesisProject$projectArgs<ExtArgs>>): Prisma__ProjectClient<$Result.GetResult<Prisma.$ProjectPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
     /**
      * Attaches callbacks for the resolution and/or rejection of the Promise.
      * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -14214,6 +14261,7 @@ export namespace Prisma {
     readonly id: FieldRef<"ThesisProject", 'Int'>
     readonly userId: FieldRef<"ThesisProject", 'Int'>
     readonly topicId: FieldRef<"ThesisProject", 'Int'>
+    readonly projectId: FieldRef<"ThesisProject", 'Int'>
     readonly repoUrl: FieldRef<"ThesisProject", 'String'>
     readonly deployUrl: FieldRef<"ThesisProject", 'String'>
     readonly createdAt: FieldRef<"ThesisProject", 'DateTime'>
@@ -14612,6 +14660,25 @@ export namespace Prisma {
   }
 
   /**
+   * ThesisProject.project
+   */
+  export type ThesisProject$projectArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Project
+     */
+    select?: ProjectSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the Project
+     */
+    omit?: ProjectOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProjectInclude<ExtArgs> | null
+    where?: ProjectWhereInput
+  }
+
+  /**
    * ThesisProject without action
    */
   export type ThesisProjectDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
@@ -14797,6 +14864,7 @@ export namespace Prisma {
     id: 'id',
     userId: 'userId',
     topicId: 'topicId',
+    projectId: 'projectId',
     repoUrl: 'repoUrl',
     deployUrl: 'deployUrl',
     createdAt: 'createdAt',
@@ -15186,6 +15254,7 @@ export namespace Prisma {
     topic?: XOR<TopicScalarRelationFilter, TopicWhereInput>
     documents?: DocumentListRelationFilter
     graduationDocuments?: GraduationDocumentListRelationFilter
+    thesisProject?: XOR<ThesisProjectNullableScalarRelationFilter, ThesisProjectWhereInput> | null
   }
 
   export type ProjectOrderByWithRelationInput = {
@@ -15206,6 +15275,7 @@ export namespace Prisma {
     topic?: TopicOrderByWithRelationInput
     documents?: DocumentOrderByRelationAggregateInput
     graduationDocuments?: GraduationDocumentOrderByRelationAggregateInput
+    thesisProject?: ThesisProjectOrderByWithRelationInput
   }
 
   export type ProjectWhereUniqueInput = Prisma.AtLeast<{
@@ -15229,6 +15299,7 @@ export namespace Prisma {
     topic?: XOR<TopicScalarRelationFilter, TopicWhereInput>
     documents?: DocumentListRelationFilter
     graduationDocuments?: GraduationDocumentListRelationFilter
+    thesisProject?: XOR<ThesisProjectNullableScalarRelationFilter, ThesisProjectWhereInput> | null
   }, "id">
 
   export type ProjectOrderByWithAggregationInput = {
@@ -15775,30 +15846,35 @@ export namespace Prisma {
     id?: IntFilter<"ThesisProject"> | number
     userId?: IntFilter<"ThesisProject"> | number
     topicId?: IntFilter<"ThesisProject"> | number
+    projectId?: IntNullableFilter<"ThesisProject"> | number | null
     repoUrl?: StringNullableFilter<"ThesisProject"> | string | null
     deployUrl?: StringNullableFilter<"ThesisProject"> | string | null
     createdAt?: DateTimeFilter<"ThesisProject"> | Date | string
     updatedAt?: DateTimeFilter<"ThesisProject"> | Date | string
     user?: XOR<UserScalarRelationFilter, UserWhereInput>
     topic?: XOR<ThesisTopicScalarRelationFilter, ThesisTopicWhereInput>
+    project?: XOR<ProjectNullableScalarRelationFilter, ProjectWhereInput> | null
   }
 
   export type ThesisProjectOrderByWithRelationInput = {
     id?: SortOrder
     userId?: SortOrder
     topicId?: SortOrder
+    projectId?: SortOrderInput | SortOrder
     repoUrl?: SortOrderInput | SortOrder
     deployUrl?: SortOrderInput | SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
     user?: UserOrderByWithRelationInput
     topic?: ThesisTopicOrderByWithRelationInput
+    project?: ProjectOrderByWithRelationInput
   }
 
   export type ThesisProjectWhereUniqueInput = Prisma.AtLeast<{
     id?: number
     userId?: number
     topicId?: number
+    projectId?: number
     AND?: ThesisProjectWhereInput | ThesisProjectWhereInput[]
     OR?: ThesisProjectWhereInput[]
     NOT?: ThesisProjectWhereInput | ThesisProjectWhereInput[]
@@ -15808,12 +15884,14 @@ export namespace Prisma {
     updatedAt?: DateTimeFilter<"ThesisProject"> | Date | string
     user?: XOR<UserScalarRelationFilter, UserWhereInput>
     topic?: XOR<ThesisTopicScalarRelationFilter, ThesisTopicWhereInput>
-  }, "id" | "userId" | "topicId">
+    project?: XOR<ProjectNullableScalarRelationFilter, ProjectWhereInput> | null
+  }, "id" | "userId" | "topicId" | "projectId">
 
   export type ThesisProjectOrderByWithAggregationInput = {
     id?: SortOrder
     userId?: SortOrder
     topicId?: SortOrder
+    projectId?: SortOrderInput | SortOrder
     repoUrl?: SortOrderInput | SortOrder
     deployUrl?: SortOrderInput | SortOrder
     createdAt?: SortOrder
@@ -15832,6 +15910,7 @@ export namespace Prisma {
     id?: IntWithAggregatesFilter<"ThesisProject"> | number
     userId?: IntWithAggregatesFilter<"ThesisProject"> | number
     topicId?: IntWithAggregatesFilter<"ThesisProject"> | number
+    projectId?: IntNullableWithAggregatesFilter<"ThesisProject"> | number | null
     repoUrl?: StringNullableWithAggregatesFilter<"ThesisProject"> | string | null
     deployUrl?: StringNullableWithAggregatesFilter<"ThesisProject"> | string | null
     createdAt?: DateTimeWithAggregatesFilter<"ThesisProject"> | Date | string
@@ -16069,6 +16148,7 @@ export namespace Prisma {
     topic: TopicCreateNestedOneWithoutProjectsInput
     documents?: DocumentCreateNestedManyWithoutProjectInput
     graduationDocuments?: GraduationDocumentCreateNestedManyWithoutProjectInput
+    thesisProject?: ThesisProjectCreateNestedOneWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateInput = {
@@ -16087,6 +16167,7 @@ export namespace Prisma {
     updatedAt?: Date | string
     documents?: DocumentUncheckedCreateNestedManyWithoutProjectInput
     graduationDocuments?: GraduationDocumentUncheckedCreateNestedManyWithoutProjectInput
+    thesisProject?: ThesisProjectUncheckedCreateNestedOneWithoutProjectInput
   }
 
   export type ProjectUpdateInput = {
@@ -16104,6 +16185,7 @@ export namespace Prisma {
     topic?: TopicUpdateOneRequiredWithoutProjectsNestedInput
     documents?: DocumentUpdateManyWithoutProjectNestedInput
     graduationDocuments?: GraduationDocumentUpdateManyWithoutProjectNestedInput
+    thesisProject?: ThesisProjectUpdateOneWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateInput = {
@@ -16122,6 +16204,7 @@ export namespace Prisma {
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     documents?: DocumentUncheckedUpdateManyWithoutProjectNestedInput
     graduationDocuments?: GraduationDocumentUncheckedUpdateManyWithoutProjectNestedInput
+    thesisProject?: ThesisProjectUncheckedUpdateOneWithoutProjectNestedInput
   }
 
   export type ProjectCreateManyInput = {
@@ -16695,12 +16778,14 @@ export namespace Prisma {
     updatedAt?: Date | string
     user: UserCreateNestedOneWithoutThesisProjectInput
     topic: ThesisTopicCreateNestedOneWithoutProjectInput
+    project?: ProjectCreateNestedOneWithoutThesisProjectInput
   }
 
   export type ThesisProjectUncheckedCreateInput = {
     id?: number
     userId: number
     topicId: number
+    projectId?: number | null
     repoUrl?: string | null
     deployUrl?: string | null
     createdAt?: Date | string
@@ -16714,12 +16799,14 @@ export namespace Prisma {
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     user?: UserUpdateOneRequiredWithoutThesisProjectNestedInput
     topic?: ThesisTopicUpdateOneRequiredWithoutProjectNestedInput
+    project?: ProjectUpdateOneWithoutThesisProjectNestedInput
   }
 
   export type ThesisProjectUncheckedUpdateInput = {
     id?: IntFieldUpdateOperationsInput | number
     userId?: IntFieldUpdateOperationsInput | number
     topicId?: IntFieldUpdateOperationsInput | number
+    projectId?: NullableIntFieldUpdateOperationsInput | number | null
     repoUrl?: NullableStringFieldUpdateOperationsInput | string | null
     deployUrl?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -16730,6 +16817,7 @@ export namespace Prisma {
     id?: number
     userId: number
     topicId: number
+    projectId?: number | null
     repoUrl?: string | null
     deployUrl?: string | null
     createdAt?: Date | string
@@ -16747,6 +16835,7 @@ export namespace Prisma {
     id?: IntFieldUpdateOperationsInput | number
     userId?: IntFieldUpdateOperationsInput | number
     topicId?: IntFieldUpdateOperationsInput | number
+    projectId?: NullableIntFieldUpdateOperationsInput | number | null
     repoUrl?: NullableStringFieldUpdateOperationsInput | string | null
     deployUrl?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -17722,10 +17811,16 @@ export namespace Prisma {
     isNot?: ThesisTopicWhereInput
   }
 
+  export type ProjectNullableScalarRelationFilter = {
+    is?: ProjectWhereInput | null
+    isNot?: ProjectWhereInput | null
+  }
+
   export type ThesisProjectCountOrderByAggregateInput = {
     id?: SortOrder
     userId?: SortOrder
     topicId?: SortOrder
+    projectId?: SortOrder
     repoUrl?: SortOrder
     deployUrl?: SortOrder
     createdAt?: SortOrder
@@ -17736,12 +17831,14 @@ export namespace Prisma {
     id?: SortOrder
     userId?: SortOrder
     topicId?: SortOrder
+    projectId?: SortOrder
   }
 
   export type ThesisProjectMaxOrderByAggregateInput = {
     id?: SortOrder
     userId?: SortOrder
     topicId?: SortOrder
+    projectId?: SortOrder
     repoUrl?: SortOrder
     deployUrl?: SortOrder
     createdAt?: SortOrder
@@ -17752,6 +17849,7 @@ export namespace Prisma {
     id?: SortOrder
     userId?: SortOrder
     topicId?: SortOrder
+    projectId?: SortOrder
     repoUrl?: SortOrder
     deployUrl?: SortOrder
     createdAt?: SortOrder
@@ -17762,6 +17860,7 @@ export namespace Prisma {
     id?: SortOrder
     userId?: SortOrder
     topicId?: SortOrder
+    projectId?: SortOrder
   }
 
   export type ProjectCreateNestedManyWithoutUserInput = {
@@ -18054,6 +18153,12 @@ export namespace Prisma {
     connect?: GraduationDocumentWhereUniqueInput | GraduationDocumentWhereUniqueInput[]
   }
 
+  export type ThesisProjectCreateNestedOneWithoutProjectInput = {
+    create?: XOR<ThesisProjectCreateWithoutProjectInput, ThesisProjectUncheckedCreateWithoutProjectInput>
+    connectOrCreate?: ThesisProjectCreateOrConnectWithoutProjectInput
+    connect?: ThesisProjectWhereUniqueInput
+  }
+
   export type DocumentUncheckedCreateNestedManyWithoutProjectInput = {
     create?: XOR<DocumentCreateWithoutProjectInput, DocumentUncheckedCreateWithoutProjectInput> | DocumentCreateWithoutProjectInput[] | DocumentUncheckedCreateWithoutProjectInput[]
     connectOrCreate?: DocumentCreateOrConnectWithoutProjectInput | DocumentCreateOrConnectWithoutProjectInput[]
@@ -18066,6 +18171,12 @@ export namespace Prisma {
     connectOrCreate?: GraduationDocumentCreateOrConnectWithoutProjectInput | GraduationDocumentCreateOrConnectWithoutProjectInput[]
     createMany?: GraduationDocumentCreateManyProjectInputEnvelope
     connect?: GraduationDocumentWhereUniqueInput | GraduationDocumentWhereUniqueInput[]
+  }
+
+  export type ThesisProjectUncheckedCreateNestedOneWithoutProjectInput = {
+    create?: XOR<ThesisProjectCreateWithoutProjectInput, ThesisProjectUncheckedCreateWithoutProjectInput>
+    connectOrCreate?: ThesisProjectCreateOrConnectWithoutProjectInput
+    connect?: ThesisProjectWhereUniqueInput
   }
 
   export type EnumProjectStatusFieldUpdateOperationsInput = {
@@ -18120,6 +18231,16 @@ export namespace Prisma {
     deleteMany?: GraduationDocumentScalarWhereInput | GraduationDocumentScalarWhereInput[]
   }
 
+  export type ThesisProjectUpdateOneWithoutProjectNestedInput = {
+    create?: XOR<ThesisProjectCreateWithoutProjectInput, ThesisProjectUncheckedCreateWithoutProjectInput>
+    connectOrCreate?: ThesisProjectCreateOrConnectWithoutProjectInput
+    upsert?: ThesisProjectUpsertWithoutProjectInput
+    disconnect?: ThesisProjectWhereInput | boolean
+    delete?: ThesisProjectWhereInput | boolean
+    connect?: ThesisProjectWhereUniqueInput
+    update?: XOR<XOR<ThesisProjectUpdateToOneWithWhereWithoutProjectInput, ThesisProjectUpdateWithoutProjectInput>, ThesisProjectUncheckedUpdateWithoutProjectInput>
+  }
+
   export type DocumentUncheckedUpdateManyWithoutProjectNestedInput = {
     create?: XOR<DocumentCreateWithoutProjectInput, DocumentUncheckedCreateWithoutProjectInput> | DocumentCreateWithoutProjectInput[] | DocumentUncheckedCreateWithoutProjectInput[]
     connectOrCreate?: DocumentCreateOrConnectWithoutProjectInput | DocumentCreateOrConnectWithoutProjectInput[]
@@ -18146,6 +18267,16 @@ export namespace Prisma {
     update?: GraduationDocumentUpdateWithWhereUniqueWithoutProjectInput | GraduationDocumentUpdateWithWhereUniqueWithoutProjectInput[]
     updateMany?: GraduationDocumentUpdateManyWithWhereWithoutProjectInput | GraduationDocumentUpdateManyWithWhereWithoutProjectInput[]
     deleteMany?: GraduationDocumentScalarWhereInput | GraduationDocumentScalarWhereInput[]
+  }
+
+  export type ThesisProjectUncheckedUpdateOneWithoutProjectNestedInput = {
+    create?: XOR<ThesisProjectCreateWithoutProjectInput, ThesisProjectUncheckedCreateWithoutProjectInput>
+    connectOrCreate?: ThesisProjectCreateOrConnectWithoutProjectInput
+    upsert?: ThesisProjectUpsertWithoutProjectInput
+    disconnect?: ThesisProjectWhereInput | boolean
+    delete?: ThesisProjectWhereInput | boolean
+    connect?: ThesisProjectWhereUniqueInput
+    update?: XOR<XOR<ThesisProjectUpdateToOneWithWhereWithoutProjectInput, ThesisProjectUpdateWithoutProjectInput>, ThesisProjectUncheckedUpdateWithoutProjectInput>
   }
 
   export type ProjectCreateNestedOneWithoutDocumentsInput = {
@@ -18252,6 +18383,12 @@ export namespace Prisma {
     connect?: ThesisTopicWhereUniqueInput
   }
 
+  export type ProjectCreateNestedOneWithoutThesisProjectInput = {
+    create?: XOR<ProjectCreateWithoutThesisProjectInput, ProjectUncheckedCreateWithoutThesisProjectInput>
+    connectOrCreate?: ProjectCreateOrConnectWithoutThesisProjectInput
+    connect?: ProjectWhereUniqueInput
+  }
+
   export type UserUpdateOneRequiredWithoutThesisProjectNestedInput = {
     create?: XOR<UserCreateWithoutThesisProjectInput, UserUncheckedCreateWithoutThesisProjectInput>
     connectOrCreate?: UserCreateOrConnectWithoutThesisProjectInput
@@ -18266,6 +18403,16 @@ export namespace Prisma {
     upsert?: ThesisTopicUpsertWithoutProjectInput
     connect?: ThesisTopicWhereUniqueInput
     update?: XOR<XOR<ThesisTopicUpdateToOneWithWhereWithoutProjectInput, ThesisTopicUpdateWithoutProjectInput>, ThesisTopicUncheckedUpdateWithoutProjectInput>
+  }
+
+  export type ProjectUpdateOneWithoutThesisProjectNestedInput = {
+    create?: XOR<ProjectCreateWithoutThesisProjectInput, ProjectUncheckedCreateWithoutThesisProjectInput>
+    connectOrCreate?: ProjectCreateOrConnectWithoutThesisProjectInput
+    upsert?: ProjectUpsertWithoutThesisProjectInput
+    disconnect?: ProjectWhereInput | boolean
+    delete?: ProjectWhereInput | boolean
+    connect?: ProjectWhereUniqueInput
+    update?: XOR<XOR<ProjectUpdateToOneWithWhereWithoutThesisProjectInput, ProjectUpdateWithoutThesisProjectInput>, ProjectUncheckedUpdateWithoutThesisProjectInput>
   }
 
   export type NestedIntFilter<$PrismaModel = never> = {
@@ -18672,6 +18819,7 @@ export namespace Prisma {
     topic: TopicCreateNestedOneWithoutProjectsInput
     documents?: DocumentCreateNestedManyWithoutProjectInput
     graduationDocuments?: GraduationDocumentCreateNestedManyWithoutProjectInput
+    thesisProject?: ThesisProjectCreateNestedOneWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutUserInput = {
@@ -18689,6 +18837,7 @@ export namespace Prisma {
     updatedAt?: Date | string
     documents?: DocumentUncheckedCreateNestedManyWithoutProjectInput
     graduationDocuments?: GraduationDocumentUncheckedCreateNestedManyWithoutProjectInput
+    thesisProject?: ThesisProjectUncheckedCreateNestedOneWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutUserInput = {
@@ -18744,11 +18893,13 @@ export namespace Prisma {
     createdAt?: Date | string
     updatedAt?: Date | string
     topic: ThesisTopicCreateNestedOneWithoutProjectInput
+    project?: ProjectCreateNestedOneWithoutThesisProjectInput
   }
 
   export type ThesisProjectUncheckedCreateWithoutUserInput = {
     id?: number
     topicId: number
+    projectId?: number | null
     repoUrl?: string | null
     deployUrl?: string | null
     createdAt?: Date | string
@@ -18880,11 +19031,13 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     topic?: ThesisTopicUpdateOneRequiredWithoutProjectNestedInput
+    project?: ProjectUpdateOneWithoutThesisProjectNestedInput
   }
 
   export type ThesisProjectUncheckedUpdateWithoutUserInput = {
     id?: IntFieldUpdateOperationsInput | number
     topicId?: IntFieldUpdateOperationsInput | number
+    projectId?: NullableIntFieldUpdateOperationsInput | number | null
     repoUrl?: NullableStringFieldUpdateOperationsInput | string | null
     deployUrl?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -18975,6 +19128,7 @@ export namespace Prisma {
     user: UserCreateNestedOneWithoutProjectsInput
     documents?: DocumentCreateNestedManyWithoutProjectInput
     graduationDocuments?: GraduationDocumentCreateNestedManyWithoutProjectInput
+    thesisProject?: ThesisProjectCreateNestedOneWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutTopicInput = {
@@ -18992,6 +19146,7 @@ export namespace Prisma {
     updatedAt?: Date | string
     documents?: DocumentUncheckedCreateNestedManyWithoutProjectInput
     graduationDocuments?: GraduationDocumentUncheckedCreateNestedManyWithoutProjectInput
+    thesisProject?: ThesisProjectUncheckedCreateNestedOneWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutTopicInput = {
@@ -19183,6 +19338,30 @@ export namespace Prisma {
     data: GraduationDocumentCreateManyProjectInput | GraduationDocumentCreateManyProjectInput[]
   }
 
+  export type ThesisProjectCreateWithoutProjectInput = {
+    repoUrl?: string | null
+    deployUrl?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    user: UserCreateNestedOneWithoutThesisProjectInput
+    topic: ThesisTopicCreateNestedOneWithoutProjectInput
+  }
+
+  export type ThesisProjectUncheckedCreateWithoutProjectInput = {
+    id?: number
+    userId: number
+    topicId: number
+    repoUrl?: string | null
+    deployUrl?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type ThesisProjectCreateOrConnectWithoutProjectInput = {
+    where: ThesisProjectWhereUniqueInput
+    create: XOR<ThesisProjectCreateWithoutProjectInput, ThesisProjectUncheckedCreateWithoutProjectInput>
+  }
+
   export type UserUpsertWithoutProjectsInput = {
     update: XOR<UserUpdateWithoutProjectsInput, UserUncheckedUpdateWithoutProjectsInput>
     create: XOR<UserCreateWithoutProjectsInput, UserUncheckedCreateWithoutProjectsInput>
@@ -19323,6 +19502,36 @@ export namespace Prisma {
     updatedAt?: DateTimeFilter<"GraduationDocument"> | Date | string
   }
 
+  export type ThesisProjectUpsertWithoutProjectInput = {
+    update: XOR<ThesisProjectUpdateWithoutProjectInput, ThesisProjectUncheckedUpdateWithoutProjectInput>
+    create: XOR<ThesisProjectCreateWithoutProjectInput, ThesisProjectUncheckedCreateWithoutProjectInput>
+    where?: ThesisProjectWhereInput
+  }
+
+  export type ThesisProjectUpdateToOneWithWhereWithoutProjectInput = {
+    where?: ThesisProjectWhereInput
+    data: XOR<ThesisProjectUpdateWithoutProjectInput, ThesisProjectUncheckedUpdateWithoutProjectInput>
+  }
+
+  export type ThesisProjectUpdateWithoutProjectInput = {
+    repoUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    deployUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    user?: UserUpdateOneRequiredWithoutThesisProjectNestedInput
+    topic?: ThesisTopicUpdateOneRequiredWithoutProjectNestedInput
+  }
+
+  export type ThesisProjectUncheckedUpdateWithoutProjectInput = {
+    id?: IntFieldUpdateOperationsInput | number
+    userId?: IntFieldUpdateOperationsInput | number
+    topicId?: IntFieldUpdateOperationsInput | number
+    repoUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    deployUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
   export type ProjectCreateWithoutDocumentsInput = {
     status?: $Enums.ProjectStatus
     techStack?: string | null
@@ -19337,6 +19546,7 @@ export namespace Prisma {
     user: UserCreateNestedOneWithoutProjectsInput
     topic: TopicCreateNestedOneWithoutProjectsInput
     graduationDocuments?: GraduationDocumentCreateNestedManyWithoutProjectInput
+    thesisProject?: ThesisProjectCreateNestedOneWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutDocumentsInput = {
@@ -19354,6 +19564,7 @@ export namespace Prisma {
     createdAt?: Date | string
     updatedAt?: Date | string
     graduationDocuments?: GraduationDocumentUncheckedCreateNestedManyWithoutProjectInput
+    thesisProject?: ThesisProjectUncheckedCreateNestedOneWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutDocumentsInput = {
@@ -19386,6 +19597,7 @@ export namespace Prisma {
     user?: UserUpdateOneRequiredWithoutProjectsNestedInput
     topic?: TopicUpdateOneRequiredWithoutProjectsNestedInput
     graduationDocuments?: GraduationDocumentUpdateManyWithoutProjectNestedInput
+    thesisProject?: ThesisProjectUpdateOneWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutDocumentsInput = {
@@ -19403,6 +19615,7 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     graduationDocuments?: GraduationDocumentUncheckedUpdateManyWithoutProjectNestedInput
+    thesisProject?: ThesisProjectUncheckedUpdateOneWithoutProjectNestedInput
   }
 
   export type ProjectCreateWithoutGraduationDocumentsInput = {
@@ -19419,6 +19632,7 @@ export namespace Prisma {
     user: UserCreateNestedOneWithoutProjectsInput
     topic: TopicCreateNestedOneWithoutProjectsInput
     documents?: DocumentCreateNestedManyWithoutProjectInput
+    thesisProject?: ThesisProjectCreateNestedOneWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutGraduationDocumentsInput = {
@@ -19436,6 +19650,7 @@ export namespace Prisma {
     createdAt?: Date | string
     updatedAt?: Date | string
     documents?: DocumentUncheckedCreateNestedManyWithoutProjectInput
+    thesisProject?: ThesisProjectUncheckedCreateNestedOneWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutGraduationDocumentsInput = {
@@ -19468,6 +19683,7 @@ export namespace Prisma {
     user?: UserUpdateOneRequiredWithoutProjectsNestedInput
     topic?: TopicUpdateOneRequiredWithoutProjectsNestedInput
     documents?: DocumentUpdateManyWithoutProjectNestedInput
+    thesisProject?: ThesisProjectUpdateOneWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutGraduationDocumentsInput = {
@@ -19485,6 +19701,7 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     documents?: DocumentUncheckedUpdateManyWithoutProjectNestedInput
+    thesisProject?: ThesisProjectUncheckedUpdateOneWithoutProjectNestedInput
   }
 
   export type UserCreateWithoutLockedThesisTopicsInput = {
@@ -19531,11 +19748,13 @@ export namespace Prisma {
     createdAt?: Date | string
     updatedAt?: Date | string
     user: UserCreateNestedOneWithoutThesisProjectInput
+    project?: ProjectCreateNestedOneWithoutThesisProjectInput
   }
 
   export type ThesisProjectUncheckedCreateWithoutTopicInput = {
     id?: number
     userId: number
+    projectId?: number | null
     repoUrl?: string | null
     deployUrl?: string | null
     createdAt?: Date | string
@@ -19608,11 +19827,13 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     user?: UserUpdateOneRequiredWithoutThesisProjectNestedInput
+    project?: ProjectUpdateOneWithoutThesisProjectNestedInput
   }
 
   export type ThesisProjectUncheckedUpdateWithoutTopicInput = {
     id?: IntFieldUpdateOperationsInput | number
     userId?: IntFieldUpdateOperationsInput | number
+    projectId?: NullableIntFieldUpdateOperationsInput | number | null
     repoUrl?: NullableStringFieldUpdateOperationsInput | string | null
     deployUrl?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -19685,6 +19906,46 @@ export namespace Prisma {
   export type ThesisTopicCreateOrConnectWithoutProjectInput = {
     where: ThesisTopicWhereUniqueInput
     create: XOR<ThesisTopicCreateWithoutProjectInput, ThesisTopicUncheckedCreateWithoutProjectInput>
+  }
+
+  export type ProjectCreateWithoutThesisProjectInput = {
+    status?: $Enums.ProjectStatus
+    techStack?: string | null
+    documentsRef?: NullableJsonNullValueInput | InputJsonValue
+    reviewStatus?: $Enums.ReviewStatus
+    reviewResult?: NullableJsonNullValueInput | InputJsonValue
+    repoUrl?: string | null
+    repoSyncData?: NullableJsonNullValueInput | InputJsonValue
+    deployUrl?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    user: UserCreateNestedOneWithoutProjectsInput
+    topic: TopicCreateNestedOneWithoutProjectsInput
+    documents?: DocumentCreateNestedManyWithoutProjectInput
+    graduationDocuments?: GraduationDocumentCreateNestedManyWithoutProjectInput
+  }
+
+  export type ProjectUncheckedCreateWithoutThesisProjectInput = {
+    id?: number
+    userId: number
+    topicId: number
+    status?: $Enums.ProjectStatus
+    techStack?: string | null
+    documentsRef?: NullableJsonNullValueInput | InputJsonValue
+    reviewStatus?: $Enums.ReviewStatus
+    reviewResult?: NullableJsonNullValueInput | InputJsonValue
+    repoUrl?: string | null
+    repoSyncData?: NullableJsonNullValueInput | InputJsonValue
+    deployUrl?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    documents?: DocumentUncheckedCreateNestedManyWithoutProjectInput
+    graduationDocuments?: GraduationDocumentUncheckedCreateNestedManyWithoutProjectInput
+  }
+
+  export type ProjectCreateOrConnectWithoutThesisProjectInput = {
+    where: ProjectWhereUniqueInput
+    create: XOR<ProjectCreateWithoutThesisProjectInput, ProjectUncheckedCreateWithoutThesisProjectInput>
   }
 
   export type UserUpsertWithoutThesisProjectInput = {
@@ -19767,6 +20028,52 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
+  export type ProjectUpsertWithoutThesisProjectInput = {
+    update: XOR<ProjectUpdateWithoutThesisProjectInput, ProjectUncheckedUpdateWithoutThesisProjectInput>
+    create: XOR<ProjectCreateWithoutThesisProjectInput, ProjectUncheckedCreateWithoutThesisProjectInput>
+    where?: ProjectWhereInput
+  }
+
+  export type ProjectUpdateToOneWithWhereWithoutThesisProjectInput = {
+    where?: ProjectWhereInput
+    data: XOR<ProjectUpdateWithoutThesisProjectInput, ProjectUncheckedUpdateWithoutThesisProjectInput>
+  }
+
+  export type ProjectUpdateWithoutThesisProjectInput = {
+    status?: EnumProjectStatusFieldUpdateOperationsInput | $Enums.ProjectStatus
+    techStack?: NullableStringFieldUpdateOperationsInput | string | null
+    documentsRef?: NullableJsonNullValueInput | InputJsonValue
+    reviewStatus?: EnumReviewStatusFieldUpdateOperationsInput | $Enums.ReviewStatus
+    reviewResult?: NullableJsonNullValueInput | InputJsonValue
+    repoUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    repoSyncData?: NullableJsonNullValueInput | InputJsonValue
+    deployUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    user?: UserUpdateOneRequiredWithoutProjectsNestedInput
+    topic?: TopicUpdateOneRequiredWithoutProjectsNestedInput
+    documents?: DocumentUpdateManyWithoutProjectNestedInput
+    graduationDocuments?: GraduationDocumentUpdateManyWithoutProjectNestedInput
+  }
+
+  export type ProjectUncheckedUpdateWithoutThesisProjectInput = {
+    id?: IntFieldUpdateOperationsInput | number
+    userId?: IntFieldUpdateOperationsInput | number
+    topicId?: IntFieldUpdateOperationsInput | number
+    status?: EnumProjectStatusFieldUpdateOperationsInput | $Enums.ProjectStatus
+    techStack?: NullableStringFieldUpdateOperationsInput | string | null
+    documentsRef?: NullableJsonNullValueInput | InputJsonValue
+    reviewStatus?: EnumReviewStatusFieldUpdateOperationsInput | $Enums.ReviewStatus
+    reviewResult?: NullableJsonNullValueInput | InputJsonValue
+    repoUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    repoSyncData?: NullableJsonNullValueInput | InputJsonValue
+    deployUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    documents?: DocumentUncheckedUpdateManyWithoutProjectNestedInput
+    graduationDocuments?: GraduationDocumentUncheckedUpdateManyWithoutProjectNestedInput
+  }
+
   export type ProjectCreateManyUserInput = {
     id?: number
     topicId: number
@@ -19822,6 +20129,7 @@ export namespace Prisma {
     topic?: TopicUpdateOneRequiredWithoutProjectsNestedInput
     documents?: DocumentUpdateManyWithoutProjectNestedInput
     graduationDocuments?: GraduationDocumentUpdateManyWithoutProjectNestedInput
+    thesisProject?: ThesisProjectUpdateOneWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutUserInput = {
@@ -19839,6 +20147,7 @@ export namespace Prisma {
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     documents?: DocumentUncheckedUpdateManyWithoutProjectNestedInput
     graduationDocuments?: GraduationDocumentUncheckedUpdateManyWithoutProjectNestedInput
+    thesisProject?: ThesisProjectUncheckedUpdateOneWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateManyWithoutUserInput = {
@@ -19965,6 +20274,7 @@ export namespace Prisma {
     user?: UserUpdateOneRequiredWithoutProjectsNestedInput
     documents?: DocumentUpdateManyWithoutProjectNestedInput
     graduationDocuments?: GraduationDocumentUpdateManyWithoutProjectNestedInput
+    thesisProject?: ThesisProjectUpdateOneWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutTopicInput = {
@@ -19982,6 +20292,7 @@ export namespace Prisma {
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     documents?: DocumentUncheckedUpdateManyWithoutProjectNestedInput
     graduationDocuments?: GraduationDocumentUncheckedUpdateManyWithoutProjectNestedInput
+    thesisProject?: ThesisProjectUncheckedUpdateOneWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateManyWithoutTopicInput = {

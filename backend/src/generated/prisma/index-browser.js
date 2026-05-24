@@ -244,6 +244,7 @@ exports.Prisma.ThesisProjectScalarFieldEnum = {
   id: 'id',
   userId: 'userId',
   topicId: 'topicId',
+  projectId: 'projectId',
   repoUrl: 'repoUrl',
   deployUrl: 'deployUrl',
   createdAt: 'createdAt',

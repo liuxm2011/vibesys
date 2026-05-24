@@ -7,6 +7,8 @@ export interface ProposalContext {
   prdContent: string;
   frontendContent: string;
   backendContent: string;
+  datasetName?: string;
+  datasetCategory?: string;
 }
 
 export function getProposalSystemPrompt(): string {
@@ -71,7 +73,7 @@ export function buildProposalUserPrompt(context: ProposalContext): string {
 选题描述：${context.description}
 研究目标：${context.objectives}
 运行平台：${context.platform}
-技术栈：${context.techStack.join('、')}
+技术栈：${context.techStack.join('、')}${context.datasetName ? `\n数据集名称：${context.datasetName}` : ''}${context.datasetCategory ? `\n数据方向分类：${context.datasetCategory}` : ''}
 
 [PRD 文档]
 ${context.prdContent || '（暂无）'}

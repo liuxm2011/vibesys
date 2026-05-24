@@ -48,6 +48,8 @@ export function buildTaskBookUserPrompt(params: {
   prdContent: string;
   frontendContent: string;
   backendContent: string;
+  datasetName?: string;
+  datasetCategory?: string;
 }): string {
   const platformLabels: Record<string, string> = {
     WEB: 'Web应用（浏览器访问）',
@@ -76,7 +78,7 @@ export function buildTaskBookUserPrompt(params: {
 选题描述：${params.description}
 项目目标：${params.objectives}
 运行平台：${platformLabel}
-推荐技术栈：${params.techStack.join(', ')}
+推荐技术栈：${params.techStack.join(', ')}${params.datasetName ? `\n数据集名称：${params.datasetName}` : ''}${params.datasetCategory ? `\n数据方向分类：${params.datasetCategory}` : ''}
 
 [参考文档 - PRD]
 ${truncatedContent('PRD', params.prdContent, 4000)}

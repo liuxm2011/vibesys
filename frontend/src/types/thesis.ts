@@ -16,6 +16,7 @@ export interface ThesisProject {
   id: number
   userId: number
   topicId: number
+  projectId?: number
   repoUrl?: string
   deployUrl?: string
   createdAt: string

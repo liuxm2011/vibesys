@@ -216,13 +216,14 @@ router.post('/generate', authMiddleware, viewerBlockMiddleware, checkBannedMiddl
 
     const project = await prisma.project.findFirst({
       where: { id: parsedProjectId, userId },
-      include: { topic: true, user: true, documents: true, graduationDocuments: true }
+      include: { topic: true, user: true, documents: true, graduationDocuments: true, thesisProject: { include: { topic: true } } }
     });
 
     if (!project) {
       return c.json({ error: '项目不存在或无权限访问' }, 404);
     }
 
+    const thesisTopic = (project as any).thesisProject?.topic;
     const topicInfo = {
       title: project.topic.title,
       description: project.topic.description,
@@ -234,7 +235,9 @@ router.post('/generate', authMiddleware, viewerBlockMiddleware, checkBannedMiddl
       studentName: project.user.name,
       major: project.user.major,
       className: project.user.class,
-      grade: project.user.grade
+      grade: project.user.grade,
+      datasetName: thesisTopic?.datasetName,
+      datasetCategory: thesisTopic?.category
     };
 
     const prdDoc = project.documents.find(d => d.docType === 'PRD');
@@ -316,13 +319,14 @@ router.post('/generate/stream', authMiddleware, viewerBlockMiddleware, checkBann
 
   const project = await prisma.project.findFirst({
     where: { id: parsedProjectId, userId },
-    include: { topic: true, user: true, documents: true, graduationDocuments: true }
+    include: { topic: true, user: true, documents: true, graduationDocuments: true, thesisProject: { include: { topic: true } } }
   });
 
   if (!project) {
     return c.json({ error: '项目不存在或无权限访问' }, 404);
   }
 
+  const thesisTopic = (project as any).thesisProject?.topic;
   const topicInfo = {
     title: project.topic.title,
     description: project.topic.description,
@@ -334,7 +338,9 @@ router.post('/generate/stream', authMiddleware, viewerBlockMiddleware, checkBann
     studentName: project.user.name,
     major: project.user.major,
     className: project.user.class,
-    grade: project.user.grade
+    grade: project.user.grade,
+    datasetName: thesisTopic?.datasetName,
+    datasetCategory: thesisTopic?.category
   };
 
   const prdDoc = project.documents.find(d => d.docType === 'PRD');
