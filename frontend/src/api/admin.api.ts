@@ -306,3 +306,20 @@ export async function exportProjectReposApi(): Promise<void> {
   const blob = await response.blob();
   saveAs(blob, getFilenameFromResponse(response, '项目仓库地址.xlsx'));
 }
+
+// ============================================================
+// GRADUATION / THESIS MANAGEMENT
+// ============================================================
+
+export async function adminGetThesisTopics(): Promise<any[]> {
+  const data = await api.get<{ topics: any[] }>('/api/admin/thesis/topics');
+  return data.topics;
+}
+
+export async function adminGetThesisProjects(params: { page?: number; pageSize?: number; search?: string } = {}): Promise<{ projects: any[]; total: number; page: number; pageSize: number }> {
+  const q = new URLSearchParams();
+  if (params.page) q.set('page', String(params.page));
+  if (params.pageSize) q.set('pageSize', String(params.pageSize));
+  if (params.search) q.set('search', params.search);
+  return api.get<{ projects: any[]; total: number; page: number; pageSize: number }>(`/api/admin/thesis/projects?${q}`);
+}
