@@ -13,6 +13,7 @@ import documentsRoutes from './routes/documents.routes.js';
 import adminRoutes from './routes/admin.routes.js';
 import graduationRoutes from './routes/graduation.routes.js';
 import userRoutes from './routes/user.routes.js';
+import thesisRouter from './routes/thesis.routes.js';
 import { generalLimiter } from './middleware/rate-limit.middleware.js';
 
 const app = new Hono<AppEnv>();
@@ -66,6 +67,7 @@ app.route('/api/documents', documentsRoutes);
 app.route('/api/admin', adminRoutes);
 app.route('/api/graduation', graduationRoutes);
 app.route('/api/user', userRoutes);
+app.route('/api/thesis', thesisRouter);
 
 app.onError((err, c) => {
   console.error(err.stack);
