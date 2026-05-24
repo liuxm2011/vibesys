@@ -1,7 +1,7 @@
 # STATE.md: VibeCoding 教学实践平台
 
-**Updated:** 2026-04-20
-**Status:** All Phases Complete
+**Updated:** 2026-05-24
+**Status:** All Phases Complete (Phase 6 added and complete)
 
 ## Project Reference
 
@@ -19,6 +19,7 @@ See: .planning/PROJECT.md (updated 2026-04-18)
 | 3 | ✓ Complete | 100% |
 | 4 | ✓ Complete | 100% |
 | 5 | ✓ Complete | 100% |
+| 6 | ✓ Complete | 100% |
 
 ## Completed Phases
 
@@ -162,8 +163,34 @@ See: .planning/PROJECT.md (updated 2026-04-18)
 
 ---
 
+**Phase 6: 毕业设计双模式 — Complete**
+
+- Status: Complete (15 commits, 2026-05-24)
+- Goal: 登录后模式选择拦截页 + 毕业设计题目排他性选择模块 + 管理员毕业设计管理
+- Commits: `feat: add ThesisTopic and ThesisProject models` → `fix: correct error message disambiguation`
+
+### Key Features
+
+- ModeSelect 拦截页（`/mode-select`）：学生登录后必须选择"项目设计"或"毕业设计"，通过 `sessionStorage` + Pinia 持久化
+- 毕业设计题目池（`/graduation/topics`）：131条大数据专业题目，支持分类筛选和关键词搜索
+- 排他性选题：`D1 native batch` 保证原子性，一人一题，题目被锁定后其他人无法选择
+- 毕业设计 Dashboard（`/graduation`）：展示已选题目，可填写仓库地址和部署地址，可放弃选题
+- 管理员毕业设计管理（`/admin/graduation`）：选题概况 + 学生选题情况两个 Tab
+- 管理后台侧边栏重构：分"项目设计管理"和"毕业设计管理"两个分组
+
+### New DB Models
+
+- `ThesisTopic`：131条题目，含 `isLocked / lockedByUserId / lockedAt`
+- `ThesisProject`：学生选题记录，`userId UNIQUE + topicId UNIQUE`
+
+### New Routes
+
+- `GET/POST/DELETE/PUT /api/thesis/*` — 学生端毕业设计路由
+- `GET /api/admin/thesis/topics` — 管理员题目总览
+- `GET /api/admin/thesis/projects` — 管理员学生选题列表（分页+搜索）
+
 ## Next Action
 
-All 5 phases complete. Ready for deployment or further iterations.
+All 6 phases complete. Project is live on Cloudflare Workers + D1.
 
-*State updated: 2026-04-20 - All phases complete*
+*State updated: 2026-05-24 - Phase 6 (毕业设计双模式) complete*

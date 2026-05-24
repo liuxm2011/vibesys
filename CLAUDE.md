@@ -4,7 +4,11 @@
 
 ## 项目概述
 
-学生自主式软件开发实践平台。学生通过选题 → AI生成PRD → AI生成技术文档 → 外部AI编码工具开发的完整流程。
+学生自主式软件开发实践平台，支持**双模式**：
+- **项目设计模式**：学生自主选题 → AI生成PRD → AI生成技术文档 → 外部AI编码工具开发
+- **毕业设计模式**：大数据专业学生从题库独占选题，记录仓库地址与部署地址（题目排他性锁定）
+
+登录后通过 `/mode-select` 页面选择进入哪个模式。
 
 ## 技术栈
 
@@ -22,6 +26,7 @@
 3. **Phase 3:** 文档生成与AI服务
 4. **Phase 4:** 文档导出功能
 5. **Phase 5:** 管理后台
+6. **Phase 6:** 毕业设计双模式（新）
 
 每个阶段：
 - `/gsd-discuss-phase N` — 收集上下文，澄清方案
@@ -31,9 +36,37 @@
 
 ## 关键约束
 
-- 认证必须对接学校SSO（CAS/OAuth）
-- AI API调用需限额控制（Redis计数）
-- 文档模板需领域特定（软件工程/大数据）
+- 认证：本地认证（学号+密码），已替代学校SSO
+- AI API：无配额限制，使用学校自部署 MiniMax API
+- 文档模板：软件工程 / 大数据领域差异化
+- 毕业设计题目：排他性锁定（一人一题），通过 D1 native batch 保证原子性
+
+## 毕业设计模块
+
+### 数据模型
+
+- `ThesisTopic` — 131条题目（大数据专业），含 `isLocked / lockedByUserId / lockedAt`
+- `ThesisProject` — 学生选题记录，`userId UNIQUE + topicId UNIQUE` 双唯一约束
+
+### 关键路由
+
+| 路径 | 说明 |
+|------|------|
+| `GET /api/thesis/topics` | 题目列表（含锁定状态） |
+| `POST /api/thesis/select` | 原子性选题（D1 batch） |
+| `DELETE /api/thesis/release` | 放弃选题（D1 batch） |
+| `PUT /api/thesis/project` | 更新仓库/部署地址 |
+| `GET /admin/thesis/topics` | 管理员查看所有题目 |
+| `GET /admin/thesis/projects` | 管理员查看学生选题情况 |
+
+### 原子性说明
+
+`prisma.$transaction()` 在 D1 适配器下静默为 no-op，选题和放弃操作均使用 `c.env.DB.batch([stmt1, stmt2])` 保证原子性。
+
+### 题目数据
+
+题目来源：根目录 `毕业设计数据集信息.json`（131条）  
+导入命令：`cd backend && npm run import:thesis`（生成 SQL）→ 手动执行到 D1
 
 ## 规划文档
 
