@@ -256,6 +256,7 @@ import {
   Box
 } from '@element-plus/icons-vue';
 import { useAuthStore } from '@/stores/auth.store';
+import { useAppModeStore } from '@/stores/appMode.store';
 import { useTopicStore } from '@/stores/topic.store';
 import { useProjectStore } from '@/stores/project.store';
 import TopicDetailDialog from '@/components/TopicDetailDialog.vue';
@@ -266,6 +267,7 @@ import { PLATFORM_LABELS } from '@/types/topic';
 
 const router = useRouter();
 const authStore = useAuthStore();
+const appModeStore = useAppModeStore();
 const topicStore = useTopicStore();
 const projectStore = useProjectStore();
 
@@ -297,6 +299,7 @@ function setType(type: 'SYSTEM' | 'CUSTOM' | null) {
 }
 
 async function handleLogout() {
+  appModeStore.clearMode();
   await authStore.logout();
   router.push('/login');
 }
