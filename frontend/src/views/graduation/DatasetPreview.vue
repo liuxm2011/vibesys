@@ -93,6 +93,7 @@ import { ref, computed, onMounted } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import JSZip from 'jszip';
 import { saveAs } from 'file-saver';
+import { ElMessage } from 'element-plus';
 import { ArrowLeft, Download } from '@element-plus/icons-vue';
 import datasetIndex from '@/data/datasetIndex.json';
 
@@ -102,9 +103,10 @@ const CSV_RANGE_BYTES = 8192;
 const router = useRouter();
 const route = useRoute();
 
-const folderUrl = computed(() =>
-  decodeURIComponent((route.query.url as string) || '').replace(/\/$/, '')
-);
+const folderUrl = computed(() => {
+  const raw = Array.isArray(route.query.url) ? route.query.url[0] : route.query.url;
+  return decodeURIComponent(raw || '').replace(/\/$/, '');
+});
 const datasetName = computed(() => folderUrl.value.split('/').pop() || '数据集');
 
 const files = computed(() => {
@@ -135,9 +137,24 @@ function formatSize(bytes: number): string {
 function parseCSV(text: string): { headers: string[]; rows: Record<string, string>[] } {
   const lines = text.split('\n').filter(l => l.trim());
   if (lines.length < 2) return { headers: [], rows: [] };
-  const splitLine = (line: string) =>
-    line.match(/(".*?"|[^,]+|(?<=,)(?=,)|^(?=,)|(?<=,)$)/g)
-      ?.map(v => v.trim().replace(/^"|"$/g, '')) ?? line.split(',').map(v => v.trim());
+  const splitLine = (line: string): string[] => {
+    const result: string[] = [];
+    let cur = '';
+    let inQuotes = false;
+    for (let i = 0; i < line.length; i++) {
+      const ch = line[i];
+      if (ch === '"') {
+        inQuotes = !inQuotes;
+      } else if (ch === ',' && !inQuotes) {
+        result.push(cur.trim());
+        cur = '';
+      } else {
+        cur += ch;
+      }
+    }
+    result.push(cur.trim());
+    return result;
+  };
   const headers = splitLine(lines[0]);
   const rows = lines.slice(1, 11).map(line => {
     const vals = splitLine(line);
@@ -162,11 +179,11 @@ async function loadCSVPreview() {
   csvLoading.value = true;
   try {
     const csvFile = files.value.find(f => f.name.toLowerCase().endsWith('.csv'));
-    if (!csvFile) { csvLoading.value = false; return; }
+    if (!csvFile) return;
     const res = await fetch(fileUrl(csvFile), {
       headers: { Range: `bytes=0-${CSV_RANGE_BYTES - 1}` }
     });
-    if (!res.ok && res.status !== 206) { csvLoading.value = false; return; }
+    if (!res.ok && res.status !== 206) return;
     const text = await res.text();
     const trimmed = res.status === 206 ? text.substring(0, text.lastIndexOf('\n')) : text;
     const { headers, rows } = parseCSV(trimmed);
@@ -192,12 +209,15 @@ async function downloadZip() {
     for (let i = 0; i < total; i++) {
       const file = files.value[i];
       const res = await fetch(fileUrl(file));
+      if (!res.ok) throw new Error(`下载失败: ${file.name}`);
       zip.file(file.name, await res.blob());
       downloadProgress.value = Math.round(((i + 1) / total) * 90);
     }
     const blob = await zip.generateAsync({ type: 'blob' });
     downloadProgress.value = 100;
     saveAs(blob, `${datasetName.value}.zip`);
+  } catch (e) {
+    ElMessage.error(e instanceof Error ? e.message : '下载失败，请重试');
   } finally {
     downloading.value = false;
     downloadProgress.value = 0;
