@@ -103,9 +103,14 @@ router.post('/select', authMiddleware, checkBannedMiddleware, async (c) => {
     });
     return c.json({ project }, 201);
   } catch (err: any) {
-    // P2002 or SQLITE UNIQUE constraint: student already has a project
+    // P2002 or SQLITE UNIQUE constraint: could be userId already has a project, or topicId taken
     if (err?.code === 'P2002' || (typeof err?.message === 'string' && err.message.includes('UNIQUE'))) {
-      return c.json({ error: '您已选择了毕业设计题目，请先放弃当前选题再重新选择' }, 409);
+      // Could be topicId taken by someone else, or userId already has a project — disambiguate
+      const hasProject = await prisma.thesisProject.findUnique({ where: { userId: user.userId } });
+      if (hasProject) {
+        return c.json({ error: '您已选择了毕业设计题目，请先放弃当前选题再重新选择' }, 409);
+      }
+      return c.json({ error: '该题目刚刚被其他同学选择，请选择其他题目' }, 409);
     }
     console.error('Thesis select error:', err);
     return c.json({ error: '选题失败，请重试' }, 500);
@@ -147,21 +152,26 @@ router.put('/project', authMiddleware, checkBannedMiddleware, async (c) => {
   const prisma = c.get('prisma');
   const user = c.get('user');
 
-  const project = await prisma.thesisProject.findUnique({ where: { userId: user.userId } });
-  if (!project) {
-    return c.json({ error: '请先选择毕业设计题目' }, 404);
+  try {
+    const project = await prisma.thesisProject.findUnique({ where: { userId: user.userId } });
+    if (!project) {
+      return c.json({ error: '请先选择毕业设计题目' }, 404);
+    }
+
+    const updated = await prisma.thesisProject.update({
+      where: { userId: user.userId },
+      data: {
+        ...(repoUrl !== undefined && { repoUrl }),
+        ...(deployUrl !== undefined && { deployUrl }),
+      },
+      include: { topic: true }
+    });
+
+    return c.json({ project: updated });
+  } catch (err) {
+    console.error('Thesis project update error:', err);
+    return c.json({ error: '保存失败，请重试' }, 500);
   }
-
-  const updated = await prisma.thesisProject.update({
-    where: { userId: user.userId },
-    data: {
-      ...(repoUrl !== undefined && { repoUrl }),
-      ...(deployUrl !== undefined && { deployUrl }),
-    },
-    include: { topic: true }
-  });
-
-  return c.json({ project: updated });
 });
 
 export default router;

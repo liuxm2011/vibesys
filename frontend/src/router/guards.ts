@@ -65,8 +65,7 @@ export function setupRouterGuards(router: Router): void {
   });
 
   // Optional: afterEach for analytics or logging
-  router.afterEach((to) => {
+  router.afterEach((_to) => {
     // Could add page tracking here
-    console.log(`Navigated to: ${to.path}`);
   });
 }

@@ -359,6 +359,7 @@ import {
 } from '@element-plus/icons-vue';
 import { useAuthStore } from '@/stores/auth.store';
 import { useProjectStore } from '@/stores/project.store';
+import { useAppModeStore } from '@/stores/appMode.store';
 import type { Project } from '@/types/project';
 import SelfPasswordDialog from '@/components/SelfPasswordDialog.vue';
 import { fetchStudentSystemConfigApi } from '@/api/auth.api';
@@ -395,6 +396,7 @@ interface TestResult {
 const router = useRouter();
 const authStore = useAuthStore();
 const projectStore = useProjectStore();
+const appModeStore = useAppModeStore();
 const passwordDialogVisible = ref(false);
 const contactDialogVisible = ref(false);
 const apiDialogVisible = ref(false);
@@ -449,6 +451,7 @@ onMounted(async () => {
 
 async function handleLogout() {
   await authStore.logout();
+  appModeStore.clearMode();
   ElMessage.success('已退出登录');
   router.push('/login');
 }
