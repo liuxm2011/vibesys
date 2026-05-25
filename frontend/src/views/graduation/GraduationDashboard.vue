@@ -546,10 +546,6 @@ async function handleLogout() {
   router.push('/login');
 }
 
-function formatDate(s: string) {
-  return new Date(s).toLocaleDateString('zh-CN');
-}
-
 async function initDocuments() {
   initializingDocs.value = true;
   try {
