@@ -83,7 +83,8 @@ router.post('/generate', authMiddleware, viewerBlockMiddleware, checkBannedMiddl
             platform: true,
             techStack: true
           }
-        }
+        },
+        thesisProject: { include: { topic: { select: { datasetName: true, category: true } } } }
       }
     });
 
@@ -91,13 +92,16 @@ router.post('/generate', authMiddleware, viewerBlockMiddleware, checkBannedMiddl
       return c.json({ error: '项目不存在或无权限访问' }, 404);
     }
 
+    const thesisTopic1 = (project as any).thesisProject?.topic;
     const topicInfo = {
       title: project.topic.title,
       description: project.topic.description,
       domain: project.topic.domain,
       platform: project.topic.platform,
       objectives: project.topic.objectives || project.topic.background,
-      techStack: project.topic.techStack as string[]
+      techStack: project.topic.techStack as string[],
+      datasetName: thesisTopic1?.datasetName,
+      datasetCategory: thesisTopic1?.category,
     };
 
     const allDocs = await prisma.document.findMany({
@@ -229,7 +233,8 @@ router.post('/generate/stream', authMiddleware, viewerBlockMiddleware, checkBann
           platform: true,
           techStack: true
         }
-      }
+      },
+      thesisProject: { include: { topic: { select: { datasetName: true, category: true } } } }
     }
   });
 
@@ -237,13 +242,16 @@ router.post('/generate/stream', authMiddleware, viewerBlockMiddleware, checkBann
     return c.json({ error: '项目不存在或无权限访问' }, 404);
   }
 
+  const thesisTopic2 = (project as any).thesisProject?.topic;
   const topicInfo = {
     title: project.topic.title,
     description: project.topic.description,
     domain: project.topic.domain,
     platform: project.topic.platform,
     objectives: project.topic.objectives || project.topic.background,
-    techStack: project.topic.techStack as string[]
+    techStack: project.topic.techStack as string[],
+    datasetName: thesisTopic2?.datasetName,
+    datasetCategory: thesisTopic2?.category,
   };
 
   const allDocs = await prisma.document.findMany({
@@ -393,7 +401,8 @@ router.post('/review', authMiddleware, viewerBlockMiddleware, checkBannedMiddlew
             platform: true,
             techStack: true
           }
-        }
+        },
+        thesisProject: { include: { topic: { select: { datasetName: true, category: true } } } }
       }
     });
 
@@ -401,13 +410,16 @@ router.post('/review', authMiddleware, viewerBlockMiddleware, checkBannedMiddlew
       return c.json({ error: '项目不存在或无权限访问' }, 404);
     }
 
+    const thesisTopic3 = (project as any).thesisProject?.topic;
     const topicInfo = {
       title: project.topic.title,
       description: project.topic.description,
       domain: project.topic.domain,
       platform: project.topic.platform,
       objectives: project.topic.objectives || project.topic.background,
-      techStack: project.topic.techStack as string[]
+      techStack: project.topic.techStack as string[],
+      datasetName: thesisTopic3?.datasetName,
+      datasetCategory: thesisTopic3?.category,
     };
 
     const allDocs = await prisma.document.findMany({
@@ -554,7 +566,8 @@ router.post('/review/stream', authMiddleware, viewerBlockMiddleware, checkBanned
           platform: true,
           techStack: true
         }
-      }
+      },
+      thesisProject: { include: { topic: { select: { datasetName: true, category: true } } } }
     }
   });
 
@@ -562,13 +575,16 @@ router.post('/review/stream', authMiddleware, viewerBlockMiddleware, checkBanned
     return c.json({ error: '项目不存在或无权限访问' }, 404);
   }
 
+  const thesisTopic4 = (project as any).thesisProject?.topic;
   const topicInfo = {
     title: project.topic.title,
     description: project.topic.description,
     domain: project.topic.domain,
     platform: project.topic.platform,
     objectives: project.topic.objectives || project.topic.background,
-    techStack: project.topic.techStack as string[]
+    techStack: project.topic.techStack as string[],
+    datasetName: thesisTopic4?.datasetName,
+    datasetCategory: thesisTopic4?.category,
   };
 
   const allDocs = await prisma.document.findMany({

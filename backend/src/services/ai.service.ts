@@ -27,8 +27,9 @@ interface TopicInfo {
   platform: Platform;
   objectives: string | null;
   techStack: string[];
-  // 新增：前置文档内容，用于上下文传递
-  previousDocs?: Record<string, string>; // { 'PRD': content, 'BACKEND': content, ... }
+  datasetName?: string;
+  datasetCategory?: string;
+  previousDocs?: Record<string, string>;
 }
 
 interface ChatCompletionResponse {
@@ -606,6 +607,10 @@ These guidelines are working if: fewer unnecessary changes in diffs, fewer rewri
     };
     const platformLabel = platformLabels[topicInfo.platform] ?? topicInfo.platform;
 
+    const datasetSection = (topicInfo.domain === 'BD' && topicInfo.datasetName)
+      ? `**数据集名称**: ${topicInfo.datasetName}\n**数据方向分类**: ${topicInfo.datasetCategory || ''}\n`
+      : '';
+
     const baseInfo = `
 **选题标题**: ${topicInfo.title}
 **选题描述**: ${topicInfo.description}
@@ -613,7 +618,7 @@ These guidelines are working if: fewer unnecessary changes in diffs, fewer rewri
 **运行平台**: ${platformLabel}
 **项目目标**: ${topicInfo.objectives}
 **推荐技术栈**: ${topicInfo.techStack.join(', ')}
-`;
+${datasetSection}`;
 
     let contextSection = '';
     if (topicInfo.previousDocs && Object.keys(topicInfo.previousDocs).length > 0) {
@@ -636,9 +641,13 @@ These guidelines are working if: fewer unnecessary changes in diffs, fewer rewri
       AGENTS: 'AI 编码规则文档'
     };
 
+    const bdConstraint = (topicInfo.domain === 'BD' && topicInfo.datasetName)
+      ? `\n注意：文档内容必须紧扣上述数据集，不得编造数据集的字段、规模、来源或特征；所有功能模块、数据处理流程、模型选型均应围绕该数据集的实际特点展开。`
+      : '';
+
     return `
 请根据以下选题信息生成${docTypeLabels[docType]}，直接输出最终 Markdown 文档，不要输出分析过程、思考说明、前言或多余内容。
-${baseInfo}${contextSection}
+${baseInfo}${contextSection}${bdConstraint}
 文档必须一次性尽可能完整输出；如果内容较长，也必须优先保证结构完整、章节完整、结尾完整。
 `;
   }
