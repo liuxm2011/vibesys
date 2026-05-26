@@ -1,7 +1,7 @@
 # STATE.md: VibeCoding 教学实践平台
 
-**Updated:** 2026-05-24
-**Status:** All Phases Complete (Phase 6 added and complete)
+**Updated:** 2026-05-25
+**Status:** All Phases Complete (Phase 6 extended with full doc generation)
 
 ## Project Reference
 
@@ -156,20 +156,21 @@ See: .planning/PROJECT.md (updated 2026-04-18)
 
 ### Active Context
 
-- Tech stack: Vue 3 + Node.js + MySQL (backend), Vue 3 + Element Plus + Pinia (frontend)
-- Architecture: 前后端分离，JWT认证，httpOnly Cookie
-- Build order: 认证 → 选题 → 文档 → 导出 → 后台
-- MiniMax API: OpenAI SDK with custom baseURL (backend/src/services/ai.service.ts)
+- Tech stack: Vue 3 + TypeScript + Vite + Element Plus + Pinia（前端）；Hono + Cloudflare Workers + D1（后端）
+- Runtime: Cloudflare Workers（后端）+ Cloudflare Pages（前端 vibesys.7878.cloud）
+- Database: Cloudflare D1（SQLite），Prisma + @prisma/adapter-d1，生成客户端纳入 git 追踪
+- Auth: 本地认证，JWT httpOnly Cookie，7天有效期
+- AI: 学校自部署 MiniMax API（OpenAI SDK 兼容），backend/src/services/ai.service.ts
+- D1 迁移规则：必须先 ALTER TABLE 生产 D1，再 push 代码（CI/CD 不自动迁移）
 
 ---
 
 **Phase 6: 毕业设计双模式 — Complete**
 
-- Status: Complete (15 commits, 2026-05-24)
-- Goal: 登录后模式选择拦截页 + 毕业设计题目排他性选择模块 + 管理员毕业设计管理
-- Commits: `feat: add ThesisTopic and ThesisProject models` → `fix: correct error message disambiguation`
+- Status: Complete (2026-05-24 基础功能 + 2026-05-25 文档生成扩展)
+- Goal: 登录后模式选择拦截页 + 毕业设计题目排他性选择模块 + 管理员毕业设计管理 + 全套文档生成
 
-### Key Features
+### Key Features（基础，2026-05-24）
 
 - ModeSelect 拦截页（`/mode-select`）：学生登录后必须选择"项目设计"或"毕业设计"，通过 `sessionStorage` + Pinia 持久化
 - 毕业设计题目池（`/graduation/topics`）：131条大数据专业题目，支持分类筛选和关键词搜索
@@ -177,20 +178,39 @@ See: .planning/PROJECT.md (updated 2026-04-18)
 - 毕业设计 Dashboard（`/graduation`）：展示已选题目，可填写仓库地址和部署地址，可放弃选题
 - 管理员毕业设计管理（`/admin/graduation`）：选题概况 + 学生选题情况两个 Tab
 - 管理后台侧边栏重构：分"项目设计管理"和"毕业设计管理"两个分组
+- VIEWER 角色（test/test123）：只读测试账号，后端 `viewerBlockMiddleware` 拦截全部写操作
 
-### New DB Models
+### Key Features（文档生成扩展，2026-05-25）
+
+- **ThesisProject → Project 懒创建关联**：`ThesisProject` 新增 `projectId` 字段（nullable unique），选题后首次进入毕业设计页面时自动 `POST /api/thesis/project/init-docs`，懒创建关联的 `Project + Topic`（domain=BD），放弃选题时级联删除
+- **GraduationDashboard 全套文档生成**：页面重构为紧凑信息栏 + 两列文档区，支持 7 份标准文档（PRD/FRONTEND/BACKEND/API/TASK/CONTEXT_STATE/AGENTS）+ 6 份毕设文档（任务书/开题报告/前期准备/撰写阶段/中期检查/完善）的生成、编辑、下载和导出
+- **毕设 Prompt 改进**：任务书/开题报告/进展记录模板加入数据集名称和分类；进展记录新增 BD 专向阶段描述（区别于软件工程模式）
+- **标准文档数据集感知**：`ai.routes.ts` 在生成 PRD 等标准文档时 join `ThesisTopic`，将 `datasetName/category` 独立字段传入 prompt，并追加约束防止 AI 编造数据集内容
+
+### DB Schema Changes
 
 - `ThesisTopic`：131条题目，含 `isLocked / lockedByUserId / lockedAt`
-- `ThesisProject`：学生选题记录，`userId UNIQUE + topicId UNIQUE`
+- `ThesisProject`：学生选题记录，`userId UNIQUE + topicId UNIQUE`；新增 `projectId Int? @unique`（关联懒创建的 Project）
+- `Project.thesisProject`：反向关联字段（无新列）
 
-### New Routes
+### Key Routes
 
-- `GET/POST/DELETE/PUT /api/thesis/*` — 学生端毕业设计路由
-- `GET /api/admin/thesis/topics` — 管理员题目总览
-- `GET /api/admin/thesis/projects` — 管理员学生选题列表（分页+搜索）
+| Method | Path | Description |
+|--------|------|-------------|
+| GET/POST/DELETE/PUT | `/api/thesis/*` | 学生端毕业设计 |
+| POST | `/api/thesis/project/init-docs` | 懒创建关联 Project（幂等） |
+| GET | `/api/admin/thesis/topics` | 管理员题目总览 |
+| GET | `/api/admin/thesis/projects` | 管理员学生选题列表（分页+搜索） |
+| POST | `/api/graduation/generate/stream` | 毕设文档流式生成（含数据集信息） |
+
+### Key Architecture Decisions
+
+- D1 `prisma.$transaction()` 是 no-op，选题/放弃/init-docs 均使用 `c.env.DB.batch()` 保证原子性
+- `init-docs` 并发保护：UPDATE 返回 `meta.changes === 0` 时说明被抢占，清理孤儿 Project 后返回竞争胜出者的 projectId
+- 标准文档生成路由（`ai.routes.ts`）通过 join `thesisProject.topic` 获取数据集元数据，对非 BD 项目完全透明
 
 ## Next Action
 
-All 6 phases complete. Project is live on Cloudflare Workers + D1.
+All 6 phases complete. Project is live on Cloudflare Workers + D1 + Cloudflare Pages.
 
-*State updated: 2026-05-24 - Phase 6 (毕业设计双模式) complete*
+*State updated: 2026-05-25 - Phase 6 文档生成扩展 complete*

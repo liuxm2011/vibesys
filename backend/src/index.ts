@@ -38,22 +38,20 @@ const prisma = new PrismaClient();
 const app = new Hono<AppEnv>();
 
 app.use('*', cors({
-  origin: (origin, c) => {
-    const configuredOrigin = process.env.FRONTEND_URL?.trim();
+  origin: (origin) => {
+    if (!origin) return undefined;
+
     const defaults = ['http://127.0.0.1:5173', 'http://localhost:5173'];
 
-    if (!origin) return origin;
-
-    if (configuredOrigin) {
-      const normalized = configuredOrigin.replace(/\/+$/, '');
-      if (origin === normalized || defaults.includes(origin)) {
-        return origin;
-      }
-    } else if (defaults.includes(origin)) {
-      return origin;
+    const configured = process.env.FRONTEND_URL?.trim();
+    if (configured) {
+      configured.split(',').forEach((o) => {
+        const trimmed = o.trim().replace(/\/+$/, '');
+        if (trimmed) defaults.push(trimmed);
+      });
     }
 
-    return '';
+    return defaults.includes(origin) ? origin : undefined;
   },
   credentials: true,
   allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
