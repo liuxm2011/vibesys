@@ -43,6 +43,20 @@ router.get('/api-setting', async (c) => {
   }
 });
 
+router.delete('/api-setting', viewerBlockMiddleware, async (c) => {
+  try {
+    const user = c.get('user');
+    const prisma = c.get('prisma');
+    const userId = user.userId;
+
+    await prisma.userApiSetting.deleteMany({ where: { userId } });
+    return c.json({ message: '个人 API 设置已清除，已恢复使用系统默认 API' });
+  } catch (error) {
+    console.error('Delete user API setting error:', error);
+    return c.json({ error: '清除API设置失败' }, 500);
+  }
+});
+
 router.put('/api-setting', viewerBlockMiddleware, async (c) => {
   try {
     const user = c.get('user');

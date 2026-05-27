@@ -52,3 +52,7 @@ export async function saveUserApiSettingApi(data: SaveApiSettingRequest): Promis
 export async function testUserApiSettingApi(data: TestConnectionRequest): Promise<TestConnectionResponse> {
   return api.post('/api/user/api-setting/test', data);
 }
+
+export async function deleteUserApiSettingApi(): Promise<{ message: string }> {
+  return api.delete('/api/user/api-setting');
+}

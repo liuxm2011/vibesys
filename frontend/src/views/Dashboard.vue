@@ -368,6 +368,7 @@ import {
   fetchUserApiSettingApi,
   saveUserApiSettingApi,
   testUserApiSettingApi,
+  deleteUserApiSettingApi,
 } from '@/api/user.api';
 import { SuccessFilled, WarningFilled, Lock, CircleCheckFilled } from '@element-plus/icons-vue';
 import type { FormInstance } from 'element-plus';
@@ -543,13 +544,27 @@ async function handleTestConnection() {
   }
 }
 
-function handleClearApiSettings() {
-  apiForm.value.apiKey = '';
-  apiForm.value.baseURL = DEFAULT_BASE_URL;
-  apiForm.value.model = MODEL_OPTIONS[0].value;
-  testResult.value = null;
-  hasSavedSettings.value = false;
-  savedKeyHint.value = '';
+async function handleClearApiSettings() {
+  try {
+    await ElMessageBox.confirm(
+      '清除后将恢复使用系统默认 API 生成文档，确认清除？',
+      '清除个人 API 设置',
+      { confirmButtonText: '确认清除', cancelButtonText: '取消', type: 'warning' }
+    );
+    await deleteUserApiSettingApi();
+    apiForm.value.apiKey = '';
+    apiForm.value.baseURL = DEFAULT_BASE_URL;
+    apiForm.value.model = MODEL_OPTIONS[0].value;
+    testResult.value = null;
+    hasSavedSettings.value = false;
+    savedKeyHint.value = '';
+    ElMessage.success('已清除个人 API 设置，将使用系统默认 API');
+    apiDialogVisible.value = false;
+  } catch (e: any) {
+    if (e !== 'cancel') {
+      ElMessage.error(e?.message || '清除失败');
+    }
+  }
 }
 
 async function loadStudentSystemConfig() {
