@@ -3,6 +3,7 @@ import { authMiddleware, viewerBlockMiddleware } from '../middleware/auth.middle
 import { checkBannedMiddleware } from '../middleware/ban.middleware.js';
 import { asyncHandler } from '../lib/handler.js';
 import type { AppEnv } from '../types.js';
+import { logger } from '../lib/logger.js';
 
 const router = new Hono<AppEnv>();
 
@@ -35,7 +36,7 @@ router.get('/status', authMiddleware, async (c) => {
 
     return c.json({ enabled: false });
   } catch (error) {
-    console.error('Graduation status check error:', error);
+    logger.error('Graduation status check error:', error);
     return c.json({ enabled: false });
   }
 });
@@ -223,7 +224,7 @@ router.post('/select', authMiddleware, viewerBlockMiddleware, checkBannedMiddlew
       }
       return c.json({ error: '该题目刚刚被其他同学选择，请选择其他题目' }, 409);
     }
-    console.error('Thesis select error:', err);
+    logger.error('Thesis select error:', err);
     return c.json({ error: '选题失败，请重试' }, 500);
   }
 });

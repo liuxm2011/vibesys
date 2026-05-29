@@ -1,11 +1,12 @@
 import { Hono } from 'hono';
 import { streamSSE } from 'hono/streaming';
-import { GraduationDocType } from '../generated/prisma'
+import { GraduationDocType, PrismaClient } from '../generated/prisma'
 import { authMiddleware, viewerBlockMiddleware } from '../middleware/auth.middleware.js';
 import { checkBannedMiddleware } from '../middleware/ban.middleware.js';
 import { graduationService, type TokenUsage } from '../services/graduation.service.js';
 import { asyncHandler } from '../lib/handler.js';
 import type { AppEnv } from '../types.js';
+import { logger } from '../lib/logger.js';
 
 const router = new Hono<AppEnv>();
 
@@ -28,7 +29,7 @@ const validGraduationDocTypes: GraduationDocType[] = [
 ];
 
 async function recordAiUsage(
-  prisma: any,
+  prisma: PrismaClient,
   userId: number,
   projectId: number | null,
   docType: string | null,
@@ -52,7 +53,7 @@ async function recordAiUsage(
       }
     });
   } catch (err) {
-    console.error('[AI Usage Log] Failed to record graduation doc usage:', err);
+    logger.error('[AI Usage Log] Failed to record graduation doc usage:', err);
   }
 }
 
@@ -278,7 +279,7 @@ router.post('/generate', authMiddleware, viewerBlockMiddleware, checkBannedMiddl
 
     return c.json({ document });
   } catch (error) {
-    console.error('Graduation document generation error:', error);
+    logger.error('Graduation document generation error:', error);
     return c.json({
       error: error instanceof Error ? error.message : '生成失败'
     }, 500);
@@ -399,7 +400,7 @@ router.post('/generate/stream', authMiddleware, viewerBlockMiddleware, checkBann
         return;
       }
 
-      console.error('Graduation document stream error:', error);
+      logger.error('Graduation document stream error:', error);
       const errMsg = error instanceof Error ? error.message : '生成失败';
       await stream.writeSSE({ event: 'error', data: JSON.stringify({ message: errMsg }) });
     }

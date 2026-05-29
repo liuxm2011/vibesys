@@ -1,4 +1,4 @@
-import { GraduationDocType, Domain, Platform } from '../generated/prisma';
+import { GraduationDocType, Domain, Platform, PrismaClient } from '../generated/prisma';
 import { apiProviderService } from './apiProvider.service.js';
 import { getTaskBookSystemPrompt, buildTaskBookUserPrompt } from '../prompts/task-book.template.js';
 import { getProposalSystemPrompt, buildProposalUserPrompt } from '../prompts/proposal.template.js';
@@ -58,10 +58,10 @@ interface StreamChunkResponse {
 
 export class GraduationService {
   private readonly REQUEST_TIMEOUT = 600_000;
-  private _prisma?: any;
+  private _prisma?: PrismaClient;
   private _env?: { MINIMAX_BASE_URL?: string; MINIMAX_API_KEY?: string; MINIMAX_MODEL?: string };
 
-  setContext(prisma: any, env?: { MINIMAX_BASE_URL?: string; MINIMAX_API_KEY?: string; MINIMAX_MODEL?: string }) {
+  setContext(prisma: PrismaClient, env?: { MINIMAX_BASE_URL?: string; MINIMAX_API_KEY?: string; MINIMAX_MODEL?: string }) {
     this._prisma = prisma;
     this._env = env;
   }

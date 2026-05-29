@@ -6,6 +6,7 @@ import { checkBannedMiddleware } from '../middleware/ban.middleware.js';
 import { updateRepoUrl, syncRepoData, getProjectRepoInfo, updateDeployUrl } from '../services/repo.service.js';
 import { asyncHandler } from '../lib/handler.js';
 import type { AppEnv } from '../types.js';
+import { logger } from '../lib/logger.js';
 
 const router = new Hono<AppEnv>();
 
@@ -226,7 +227,7 @@ router.put('/:id/repoUrl', authMiddleware, viewerBlockMiddleware, checkBannedMid
     if (error.message === 'INVALID_GITEE_URL') {
       return c.json({ error: '请输入有效的 Gitee 仓库地址（如 https://gitee.com/owner/repo）' }, 400);
     }
-    console.error('Repo URL update error:', error);
+    logger.error('Repo URL update error:', error);
     return c.json({ error: '更新仓库地址失败' }, 500);
   }
 });
@@ -253,7 +254,7 @@ router.put('/:id/deployUrl', authMiddleware, viewerBlockMiddleware, checkBannedM
     if (error.message === 'PROJECT_NOT_FOUND') {
       return c.json({ error: '项目不存在或无权限访问' }, 404);
     }
-    console.error('Deploy URL update error:', error);
+    logger.error('Deploy URL update error:', error);
     return c.json({ error: '更新访问地址失败' }, 500);
   }
 });
@@ -281,7 +282,7 @@ router.post('/:id/syncRepo', authMiddleware, viewerBlockMiddleware, checkBannedM
     if (error.message === 'INVALID_GITEE_URL') {
       return c.json({ error: '仓库地址格式无效，请输入 Gitee 地址' }, 400);
     }
-    console.error('Repo sync error:', error);
+    logger.error('Repo sync error:', error);
     return c.json({ error: '同步仓库数据失败，请检查仓库地址是否正确且为公开仓库' }, 500);
   }
 });
@@ -303,7 +304,7 @@ router.get('/:id/repoInfo', authMiddleware, async (c) => {
     if (error.message === 'PROJECT_NOT_FOUND') {
       return c.json({ error: '项目不存在或无权限访问' }, 404);
     }
-    console.error('Repo info error:', error);
+    logger.error('Repo info error:', error);
     return c.json({ error: '获取仓库信息失败' }, 500);
   }
 });

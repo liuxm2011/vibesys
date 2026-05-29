@@ -1,4 +1,4 @@
-import { DocType, Domain, Platform } from '../generated/prisma';
+import { DocType, Domain, Platform, PrismaClient } from '../generated/prisma';
 import { apiProviderService } from './apiProvider.service.js';
 import { getPRDPromptTemplate } from '../prompts/prd.template.js';
 import { getFrontendPromptTemplate } from '../prompts/frontend.template.js';
@@ -13,6 +13,7 @@ import {
   buildPatchHintRecoveryUserPrompt
 } from '../prompts/review.template.js';
 import { getAgentsPromptTemplate } from '../prompts/agents.template.js';
+import { logger } from '../lib/logger.js';
 
 /**
  * AI Service for document generation
@@ -151,10 +152,10 @@ interface SectionRange {
 }
 
 export class AIService {
-  private _prisma?: any;
+  private _prisma?: PrismaClient;
   private _env?: { MINIMAX_BASE_URL?: string; MINIMAX_API_KEY?: string; MINIMAX_MODEL?: string };
 
-  setContext(prisma: any, env?: { MINIMAX_BASE_URL?: string; MINIMAX_API_KEY?: string; MINIMAX_MODEL?: string }) {
+  setContext(prisma: PrismaClient, env?: { MINIMAX_BASE_URL?: string; MINIMAX_API_KEY?: string; MINIMAX_MODEL?: string }) {
     this._prisma = prisma;
     this._env = env;
   }
@@ -264,7 +265,7 @@ These guidelines are working if: fewer unnecessary changes in diffs, fewer rewri
     return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
   }
 
-  private async getConfig(userId?: number, prisma?: any, env?: { MINIMAX_BASE_URL?: string; MINIMAX_API_KEY?: string; MINIMAX_MODEL?: string }) {
+  private async getConfig(userId?: number, prisma?: PrismaClient, env?: { MINIMAX_BASE_URL?: string; MINIMAX_API_KEY?: string; MINIMAX_MODEL?: string }) {
     const p = prisma || this._prisma;
     const e = env || this._env;
     const providerConfig = userId && p
@@ -323,7 +324,7 @@ These guidelines are working if: fewer unnecessary changes in diffs, fewer rewri
 
     // Mock mode for development/testing when API is unavailable
     if (config.mockMode) {
-      console.log('[AI Mock] Generating mock document for', docType);
+      logger.debug('[AI Mock] Generating mock document for', docType);
       const content = this.postProcessGeneratedContent(docType, this.generateMockDocument(docType, topicInfo));
       const usage = this.estimateTokens(content);
       return { content, usage };
@@ -336,7 +337,7 @@ These guidelines are working if: fewer unnecessary changes in diffs, fewer rewri
       // 1. Check result cache
       const cached = this.resultCache.get(cacheKey);
       if (cached && Date.now() - cached.timestamp < this.CACHE_TTL) {
-        console.log('[AI Cache] Hit for', cacheKey);
+        logger.debug('[AI Cache] Hit for', cacheKey);
         const content = this.postProcessGeneratedContent(docType, cached.content);
         const usage = this.estimateTokens(content);
         return { content, usage };
@@ -345,7 +346,7 @@ These guidelines are working if: fewer unnecessary changes in diffs, fewer rewri
       // 2. Check pending request (deduplication)
       const pending = this.pendingRequests.get(cacheKey);
       if (pending && Date.now() - pending.timestamp < 60_000) {
-        console.log('[AI Dedup] Reusing pending request for', cacheKey);
+        logger.debug('[AI Dedup] Reusing pending request for', cacheKey);
         const content = await pending.promise;
         const usage = this.estimateTokens(content);
         return { content, usage };
@@ -485,7 +486,7 @@ These guidelines are working if: fewer unnecessary changes in diffs, fewer rewri
           break;
         }
 
-        console.log(`[AI] Continuation triggered (attempt ${attempt + 1}, finish_reason=length, chars=${content.length})`);
+        logger.debug(`[AI] Continuation triggered (attempt ${attempt + 1}, finish_reason=length, chars=${content.length})`);
 
         messages = [
           { role: 'system', content: this.buildContinuationSystemPrompt() },
@@ -539,7 +540,7 @@ These guidelines are working if: fewer unnecessary changes in diffs, fewer rewri
           break;
         }
 
-        console.log(`[AI Stream] Continuation triggered (attempt ${attempt + 1}, finished reason=length, chars=${cleanedContent.length})`);
+        logger.debug(`[AI Stream] Continuation triggered (attempt ${attempt + 1}, finished reason=length, chars=${cleanedContent.length})`);
 
         messages = [
           { role: 'system', content: this.buildContinuationSystemPrompt() },
@@ -553,7 +554,7 @@ These guidelines are working if: fewer unnecessary changes in diffs, fewer rewri
 
     const finalContent = this.cleanGeneratedContent(this.mergeContinuationParts(contentParts));
     if (contentParts.length > 1) {
-      console.log(`[AI Stream] Merged ${contentParts.length} parts, final=${finalContent.length} chars`);
+      logger.debug(`[AI Stream] Merged ${contentParts.length} parts, final=${finalContent.length} chars`);
     }
     if (totalUsage.totalTokens === 0) {
       totalUsage = this.estimateTokens(finalContent);
@@ -752,7 +753,7 @@ ${baseInfo}${contextSection}${bdConstraint}
       if (isContinuation && previewContentText) {
         const hasH1 = /^#\s+/m.test(previewContentText);
         if (hasH1) {
-          console.log('[AI Stream] Continuation produced H1 restart, suppressing from UI preview');
+          logger.debug('[AI Stream] Continuation produced H1 restart, suppressing from UI preview');
           previewContentText = '';
         }
       }
@@ -1991,7 +1992,7 @@ ${getAgentsPromptTemplate(domain)}
     }
 
     if (candidates.length > 0) {
-      console.warn('[AI Review] Failed to parse structured review JSON', {
+      logger.warn('[AI Review] Failed to parse structured review JSON', {
         candidateCount: candidates.length,
         tail: rawContent.slice(-1000)
       });
@@ -2757,7 +2758,7 @@ ${getAgentsPromptTemplate(domain)}
         })
       };
     } catch (error) {
-      console.warn('Patch hint recovery failed:', error);
+      logger.warn('Patch hint recovery failed:', error);
       return reviewResult;
     }
   }

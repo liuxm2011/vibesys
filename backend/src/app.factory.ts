@@ -16,6 +16,7 @@ import userRoutes from './routes/user.routes.js';
 import thesisRouter from './routes/thesis.routes.js';
 import { generalLimiter } from './middleware/rate-limit.middleware.js';
 import { AppError } from './lib/errors.js';
+import { logger as log } from './lib/logger.js';
 
 export interface CreateAppOptions {
   /**
@@ -88,7 +89,7 @@ export function createApp(options: CreateAppOptions): Hono<AppEnv> {
     if (err instanceof AppError) {
       return c.json({ error: err.message }, err.status);
     }
-    console.error(err.stack);
+    log.error(err.stack);
     return c.json({ error: '服务器错误' }, 500);
   });
 

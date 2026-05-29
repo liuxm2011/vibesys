@@ -1,5 +1,6 @@
 import { createMiddleware } from 'hono/factory';
 import type { AppEnv } from '../types.js';
+import { logger } from '../lib/logger.js';
 
 export const checkBannedMiddleware = createMiddleware<AppEnv>(async (c, next) => {
   try {
@@ -25,7 +26,7 @@ export const checkBannedMiddleware = createMiddleware<AppEnv>(async (c, next) =>
 
     await next();
   } catch (error) {
-    console.error('Ban check error:', error);
+    logger.error('Ban check error:', error);
     return c.json({ error: '服务器错误' }, 500);
   }
 });

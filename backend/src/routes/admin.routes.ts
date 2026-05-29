@@ -11,6 +11,7 @@ import {
 import { apiProviderService } from '../services/apiProvider.service.js';
 import { getAllProjectRepos, adminUpdateDeployUrl } from '../services/repo.service.js';
 import { asyncHandler } from '../lib/handler.js';
+import { logger } from '../lib/logger.js';
 import type { AppEnv } from '../types.js';
 
 const router = new Hono<AppEnv>();
@@ -1226,7 +1227,7 @@ router.put('/projects/:id/deployUrl', async (c) => {
     if (error.message === 'PROJECT_NOT_FOUND') {
       return c.json({ error: '项目不存在' }, 404);
     }
-    console.error('Admin deploy URL update error:', error);
+    logger.error('Admin deploy URL update error:', error);
     return c.json({ error: '更新访问地址失败' }, 500);
   }
 });

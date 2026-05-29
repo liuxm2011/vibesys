@@ -1,4 +1,5 @@
 import { PrismaClient } from '../generated/prisma';
+import { logger } from '../lib/logger.js';
 
 export interface ProviderConfig {
   baseURL: string;
@@ -30,7 +31,7 @@ class ApiProviderService {
       });
 
       if (activeProvider) {
-        console.log(`[ApiProvider] Using active provider from DB: "${activeProvider.name}" (${activeProvider.providerType})`);
+        logger.debug(`[ApiProvider] Using active provider from DB: "${activeProvider.name}" (${activeProvider.providerType})`);
         return {
           baseURL: activeProvider.baseURL,
           apiKey: activeProvider.apiKey,
@@ -43,7 +44,7 @@ class ApiProviderService {
     }
 
     // Fall back to environment variables (works in both Node.js and Workers)
-    console.log('[ApiProvider] No active provider in DB, falling back to environment variables');
+    logger.debug('[ApiProvider] No active provider in DB, falling back to environment variables');
     return {
       baseURL: env?.MINIMAX_BASE_URL || 'https://api.minimax.chat/v1',
       apiKey: env?.MINIMAX_API_KEY || '',
@@ -76,7 +77,7 @@ class ApiProviderService {
       });
 
       if (userSetting?.apiKey && userSetting?.baseURL && userSetting?.model) {
-        console.log(`[ApiProvider] Using personal API config for user ${userId}: "${userSetting.model}"`);
+        logger.debug(`[ApiProvider] Using personal API config for user ${userId}: "${userSetting.model}"`);
         return {
           baseURL: userSetting.baseURL,
           apiKey: userSetting.apiKey,

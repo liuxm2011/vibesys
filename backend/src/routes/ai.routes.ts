@@ -1,14 +1,15 @@
 import { Hono } from 'hono';
 import { streamSSE } from 'hono/streaming';
-import { DocType, Prisma } from '../generated/prisma';
+import { DocType, Prisma, PrismaClient } from '../generated/prisma';
 import { authMiddleware, viewerBlockMiddleware } from '../middleware/auth.middleware.js';
 import { checkBannedMiddleware } from '../middleware/ban.middleware.js';
 import { aiService, type TokenUsage } from '../services/ai.service.js';
 import { DOC_GENERATION_ORDER, getContextDependencies, getGenerationBlockedReason } from '../constants/document-generation.js';
 import type { AppEnv } from '../types.js';
+import { logger } from '../lib/logger.js';
 
 async function recordAiUsage(
-  prisma: any,
+  prisma: PrismaClient,
   userId: number,
   projectId: number | null,
   docType: string | null,
@@ -32,7 +33,7 @@ async function recordAiUsage(
       }
     });
   } catch (err) {
-    console.error('[AI Usage Log] Failed to record usage:', err);
+    logger.error('[AI Usage Log] Failed to record usage:', err);
   }
 }
 
@@ -175,7 +176,7 @@ router.post('/generate', authMiddleware, viewerBlockMiddleware, checkBannedMiddl
 
     return c.json({ document });
   } catch (error) {
-    console.error('AI generation error:', error);
+    logger.error('AI generation error:', error);
 
     const errorMsg = error instanceof Error ? error.message : 'Unknown error';
     const isTimeout = errorMsg.includes('timeout');
@@ -340,7 +341,7 @@ router.post('/generate/stream', authMiddleware, viewerBlockMiddleware, checkBann
         return;
       }
 
-      console.error('AI streaming generation error:', error);
+      logger.error('AI streaming generation error:', error);
 
       const errorMsg = error instanceof Error ? error.message : 'Unknown error';
       const isTimeout = errorMsg.includes('timeout');
@@ -515,7 +516,7 @@ router.post('/review', authMiddleware, viewerBlockMiddleware, checkBannedMiddlew
       unresolved: fixedDocs.unresolved
     });
   } catch (error) {
-    console.error('AI review error:', error);
+    logger.error('AI review error:', error);
     const actionLabel = mode === 'fix' ? '修复' : '审核';
 
     if (error instanceof Error) {
@@ -628,7 +629,7 @@ router.post('/review/stream', authMiddleware, viewerBlockMiddleware, checkBanned
         return;
       }
 
-      console.error('AI review streaming error:', error);
+      logger.error('AI review streaming error:', error);
 
       await stream.writeSSE({
         event: 'error',

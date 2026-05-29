@@ -1,6 +1,7 @@
 import type { Context } from 'hono';
 import type { AppEnv } from '../types.js';
 import { AppError } from './errors.js';
+import { logger } from './logger.js';
 
 type Handler = (c: Context<AppEnv>) => Response | Promise<Response>;
 
@@ -22,7 +23,7 @@ export function asyncHandler(fallbackMessage: string, handler: Handler): Handler
       if (error instanceof AppError) {
         return c.json({ error: error.message }, error.status);
       }
-      console.error(`${fallbackMessage}:`, error);
+      logger.error(`${fallbackMessage}:`, error);
       return c.json({ error: fallbackMessage }, 500);
     }
   };
