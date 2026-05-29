@@ -153,14 +153,20 @@ export async function adminUpdateDeployUrl(
 
 export async function getAllProjectRepos(
   prisma: PrismaClient,
-  hasDeployUrl?: boolean
+  filters: { hasDeployUrl?: boolean; major?: string; className?: string } = {}
 ) {
+  const { hasDeployUrl, major, className } = filters;
   const where: any = {};
   if (hasDeployUrl === true) {
     where.deployUrl = { not: null };
   } else if (hasDeployUrl === false) {
     where.deployUrl = null;
   }
+
+  const userWhere: any = {};
+  if (major) userWhere.major = major;
+  if (className) userWhere.class = className;
+  if (Object.keys(userWhere).length > 0) where.user = userWhere;
 
   const projects = await prisma.project.findMany({
     where,
@@ -169,7 +175,7 @@ export async function getAllProjectRepos(
       repoUrl: true,
       repoSyncData: true,
       deployUrl: true,
-      user: { select: { studentId: true, name: true, major: true } },
+      user: { select: { studentId: true, name: true, major: true, grade: true, class: true } },
       topic: { select: { title: true } },
       updatedAt: true,
     },
@@ -180,6 +186,8 @@ export async function getAllProjectRepos(
     studentId: p.user.studentId,
     studentName: p.user.name,
     major: p.user.major,
+    grade: p.user.grade,
+    className: p.user.class,
     topicTitle: p.topic.title,
     repoUrl: p.repoUrl,
     syncedAt: (p.repoSyncData as any)?.syncedAt ?? null,

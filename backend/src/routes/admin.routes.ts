@@ -1383,7 +1383,11 @@ router.get('/projects/repos', async (c) => {
     let hasDeployUrl: boolean | undefined;
     if (q.hasDeployUrl === 'true') hasDeployUrl = true;
     else if (q.hasDeployUrl === 'false') hasDeployUrl = false;
-    const repos = await getAllProjectRepos(prisma, hasDeployUrl);
+    const repos = await getAllProjectRepos(prisma, {
+      hasDeployUrl,
+      major: q.major || undefined,
+      className: q.class || undefined,
+    });
     return c.json({ repos });
   } catch (error) {
     console.error('Get project repos error:', error);
@@ -1394,12 +1398,22 @@ router.get('/projects/repos', async (c) => {
 router.get('/projects/repos/export', async (c) => {
   try {
     const prisma = c.get('prisma');
-    const repos = await getAllProjectRepos(prisma);
+    const q = c.req.query();
+    let hasDeployUrl: boolean | undefined;
+    if (q.hasDeployUrl === 'true') hasDeployUrl = true;
+    else if (q.hasDeployUrl === 'false') hasDeployUrl = false;
+    const repos = await getAllProjectRepos(prisma, {
+      hasDeployUrl,
+      major: q.major || undefined,
+      className: q.class || undefined,
+    });
     const XLSX = await import('xlsx');
     const rows = repos.map((r: any) => ({
       '学号': r.studentId,
       '姓名': r.studentName,
       '专业': r.major,
+      '年级': r.grade,
+      '班级': r.className,
       '选题名称': r.topicTitle,
       '仓库地址': r.repoUrl || '',
       '访问地址': r.deployUrl || '',

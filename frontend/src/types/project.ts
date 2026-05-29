@@ -108,6 +108,8 @@ export interface ProjectRepoInfo {
   studentId: string;
   studentName: string;
   major: string;
+  grade: string;
+  className: string;
   topicTitle: string;
   repoUrl: string | null;
   syncedAt: string | null;

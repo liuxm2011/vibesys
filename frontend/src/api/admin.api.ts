@@ -299,11 +299,25 @@ export async function fetchActiveApiProviderApi(): Promise<{ active: ActiveProvi
 // PROJECT REPO MANAGEMENT
 // ============================================================
 
+export interface ProjectRepoFilters {
+  hasDeployUrl?: boolean;
+  major?: string;
+  class?: string;
+}
+
+function buildRepoFilterQuery(filters: ProjectRepoFilters = {}): string {
+  const params = new URLSearchParams();
+  if (filters.hasDeployUrl !== undefined) params.set('hasDeployUrl', String(filters.hasDeployUrl));
+  if (filters.major) params.set('major', filters.major);
+  if (filters.class) params.set('class', filters.class);
+  const qs = params.toString();
+  return qs ? `?${qs}` : '';
+}
+
 export async function fetchProjectReposApi(
-  hasDeployUrl?: boolean
+  filters: ProjectRepoFilters = {}
 ): Promise<{ repos: ProjectRepoInfo[] }> {
-  const params = hasDeployUrl !== undefined ? `?hasDeployUrl=${hasDeployUrl}` : '';
-  return api.get(`/api/admin/projects/repos${params}`);
+  return api.get(`/api/admin/projects/repos${buildRepoFilterQuery(filters)}`);
 }
 
 export async function adminUpdateDeployUrlApi(
@@ -313,8 +327,8 @@ export async function adminUpdateDeployUrlApi(
   return api.put(`/api/admin/projects/${projectId}/deployUrl`, { deployUrl });
 }
 
-export async function exportProjectReposApi(): Promise<void> {
-  const response = await fetch(resolveApiUrl('/api/admin/projects/repos/export'), {
+export async function exportProjectReposApi(filters: ProjectRepoFilters = {}): Promise<void> {
+  const response = await fetch(resolveApiUrl(`/api/admin/projects/repos/export${buildRepoFilterQuery(filters)}`), {
     method: 'GET',
     credentials: 'include'
   });
