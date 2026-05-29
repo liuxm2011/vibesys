@@ -1,19 +1,7 @@
-import { Hono } from 'hono';
-import { cors } from 'hono/cors';
-import { logger } from 'hono/logger';
 import { serve } from '@hono/node-server';
 import dotenv from 'dotenv';
 import { PrismaClient } from './generated/prisma';
-import type { AppEnv } from './types.js';
-import authRoutes from './routes/auth.routes.js';
-import projectsRoutes from './routes/projects.routes.js';
-import topicsRoutes from './routes/topics.routes.js';
-import aiRoutes from './routes/ai.routes.js';
-import documentsRoutes from './routes/documents.routes.js';
-import adminRoutes from './routes/admin.routes.js';
-import graduationRoutes from './routes/graduation.routes.js';
-import userRoutes from './routes/user.routes.js';
-import { generalLimiter } from './middleware/rate-limit.middleware.js';
+import { createApp } from './app.factory.js';
 
 dotenv.config();
 
@@ -35,61 +23,21 @@ validateEnvironment();
 
 const prisma = new PrismaClient();
 
-const app = new Hono<AppEnv>();
-
-app.use('*', cors({
-  origin: (origin) => {
-    if (!origin) return undefined;
-
-    const defaults = ['http://127.0.0.1:5173', 'http://localhost:5173'];
-
-    const configured = process.env.FRONTEND_URL?.trim();
-    if (configured) {
-      configured.split(',').forEach((o) => {
-        const trimmed = o.trim().replace(/\/+$/, '');
-        if (trimmed) defaults.push(trimmed);
-      });
-    }
-
-    return defaults.includes(origin) ? origin : undefined;
+const app = createApp({
+  resolveFrontendUrl: () => process.env.FRONTEND_URL,
+  contextMiddleware: async (c, next) => {
+    c.set('prisma', prisma);
+    (c.env as any) = {
+      DB: undefined,
+      JWT_SECRET: process.env.JWT_SECRET!,
+      FRONTEND_URL: process.env.FRONTEND_URL,
+      MINIMAX_API_KEY: process.env.MINIMAX_API_KEY,
+      MINIMAX_BASE_URL: process.env.MINIMAX_BASE_URL,
+      MINIMAX_MODEL: process.env.MINIMAX_MODEL,
+      NODE_ENV: process.env.NODE_ENV,
+    };
+    await next();
   },
-  credentials: true,
-  allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-  allowHeaders: ['Content-Type', 'Authorization'],
-}));
-
-app.use('*', logger());
-
-app.use('*', async (c, next) => {
-  c.set('prisma', prisma);
-  (c.env as any) = {
-    DB: undefined,
-    JWT_SECRET: process.env.JWT_SECRET!,
-    FRONTEND_URL: process.env.FRONTEND_URL,
-    MINIMAX_API_KEY: process.env.MINIMAX_API_KEY,
-    MINIMAX_BASE_URL: process.env.MINIMAX_BASE_URL,
-    MINIMAX_MODEL: process.env.MINIMAX_MODEL,
-    NODE_ENV: process.env.NODE_ENV,
-  };
-  await next();
-});
-
-app.use('*', generalLimiter);
-
-app.get('/api/health', (c) => c.json({ status: 'ok', timestamp: new Date().toISOString() }));
-
-app.route('/api/auth', authRoutes);
-app.route('/api/topics', topicsRoutes);
-app.route('/api/projects', projectsRoutes);
-app.route('/api/ai', aiRoutes);
-app.route('/api/documents', documentsRoutes);
-app.route('/api/admin', adminRoutes);
-app.route('/api/graduation', graduationRoutes);
-app.route('/api/user', userRoutes);
-
-app.onError((err, c) => {
-  console.error(err.stack);
-  return c.json({ error: '服务器错误' }, 500);
 });
 
 const PORT = parseInt(process.env.PORT || '3001');
