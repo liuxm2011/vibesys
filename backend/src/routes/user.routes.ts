@@ -1,106 +1,94 @@
 import { Hono } from 'hono';
 import { authMiddleware, viewerBlockMiddleware } from '../middleware/auth.middleware.js';
+import { asyncHandler } from '../lib/handler.js';
 import type { AppEnv } from '../types.js';
 
 const router = new Hono<AppEnv>();
 
 router.use('*', authMiddleware);
 
-router.get('/api-setting', async (c) => {
-  try {
-    const user = c.get('user');
-    const prisma = c.get('prisma');
-    const userId = user.userId;
-    const setting = await prisma.userApiSetting.findUnique({
-      where: { userId }
-    });
+router.get('/api-setting', asyncHandler('获取API设置失败', async (c) => {
+  const user = c.get('user');
+  const prisma = c.get('prisma');
+  const userId = user.userId;
+  const setting = await prisma.userApiSetting.findUnique({
+    where: { userId }
+  });
 
-    if (!setting) {
-      return c.json({
-        exists: false,
-        setting: null
-      });
-    }
-
-    const maskedKey = setting.apiKey
-      ? `${setting.apiKey.slice(0, 8)}...${setting.apiKey.slice(-4)}`
-      : '';
-
+  if (!setting) {
     return c.json({
-      exists: true,
-      setting: {
-        id: setting.id,
-        baseURL: setting.baseURL,
-        apiKey: maskedKey,
-        model: setting.model,
-        hasRealKey: !!setting.apiKey,
-        updatedAt: setting.updatedAt
-      }
+      exists: false,
+      setting: null
     });
-  } catch (error) {
-    console.error('Get user API setting error:', error);
-    return c.json({ error: '获取API设置失败' }, 500);
   }
-});
 
-router.delete('/api-setting', viewerBlockMiddleware, async (c) => {
-  try {
-    const user = c.get('user');
-    const prisma = c.get('prisma');
-    const userId = user.userId;
+  const maskedKey = setting.apiKey
+    ? `${setting.apiKey.slice(0, 8)}...${setting.apiKey.slice(-4)}`
+    : '';
 
-    await prisma.userApiSetting.deleteMany({ where: { userId } });
-    return c.json({ message: '个人 API 设置已清除，已恢复使用系统默认 API' });
-  } catch (error) {
-    console.error('Delete user API setting error:', error);
-    return c.json({ error: '清除API设置失败' }, 500);
+  return c.json({
+    exists: true,
+    setting: {
+      id: setting.id,
+      baseURL: setting.baseURL,
+      apiKey: maskedKey,
+      model: setting.model,
+      hasRealKey: !!setting.apiKey,
+      updatedAt: setting.updatedAt
+    }
+  });
+}));
+
+router.delete('/api-setting', viewerBlockMiddleware, asyncHandler('清除API设置失败', async (c) => {
+  const user = c.get('user');
+  const prisma = c.get('prisma');
+  const userId = user.userId;
+
+  await prisma.userApiSetting.deleteMany({ where: { userId } });
+  return c.json({ message: '个人 API 设置已清除，已恢复使用系统默认 API' });
+}));
+
+router.put('/api-setting', viewerBlockMiddleware, asyncHandler('保存API设置失败', async (c) => {
+  const user = c.get('user');
+  const prisma = c.get('prisma');
+  const userId = user.userId;
+  const { baseURL, apiKey, model } = await c.req.json();
+
+  if (!baseURL) {
+    return c.json({ error: 'API地址不能为空' }, 400);
   }
-});
-
-router.put('/api-setting', viewerBlockMiddleware, async (c) => {
-  try {
-    const user = c.get('user');
-    const prisma = c.get('prisma');
-    const userId = user.userId;
-    const { baseURL, apiKey, model } = await c.req.json();
-
-    if (!baseURL) {
-      return c.json({ error: 'API地址不能为空' }, 400);
-    }
-    if (!model) {
-      return c.json({ error: '请选择模型' }, 400);
-    }
-
-    let finalApiKey = apiKey;
-    if (!finalApiKey) {
-      const existing = await prisma.userApiSetting.findUnique({ where: { userId } });
-      if (!existing) {
-        return c.json({ error: '首次设置必须提供 API Key' }, 400);
-      }
-      finalApiKey = existing.apiKey;
-    }
-
-    const setting = await prisma.userApiSetting.upsert({
-      where: { userId },
-      update: { baseURL, apiKey: finalApiKey, model },
-      create: { userId, baseURL: baseURL || '', apiKey: finalApiKey, model: model || '' }
-    });
-
-    return c.json({
-      message: 'API设置已保存',
-      setting: {
-        id: setting.id,
-        baseURL: setting.baseURL,
-        model: setting.model,
-        updatedAt: setting.updatedAt
-      }
-    });
-  } catch (error) {
-    console.error('Save user API setting error:', error);
-    return c.json({ error: '保存API设置失败' }, 500);
+  if (!model) {
+    return c.json({ error: '请选择模型' }, 400);
   }
-});
 
+  let finalApiKey = apiKey;
+  if (!finalApiKey) {
+    const existing = await prisma.userApiSetting.findUnique({ where: { userId } });
+    if (!existing) {
+      return c.json({ error: '首次设置必须提供 API Key' }, 400);
+    }
+    finalApiKey = existing.apiKey;
+  }
+
+  const setting = await prisma.userApiSetting.upsert({
+    where: { userId },
+    update: { baseURL, apiKey: finalApiKey, model },
+    create: { userId, baseURL: baseURL || '', apiKey: finalApiKey, model: model || '' }
+  });
+
+  return c.json({
+    message: 'API设置已保存',
+    setting: {
+      id: setting.id,
+      baseURL: setting.baseURL,
+      model: setting.model,
+      updatedAt: setting.updatedAt
+    }
+  });
+}));
+
+// Keeps its own try/catch: connection failures return a 200 { success: false } payload,
+// not a 500, so it must not use asyncHandler.
 router.post('/api-setting/test', viewerBlockMiddleware, async (c) => {
   try {
     const user = c.get('user');

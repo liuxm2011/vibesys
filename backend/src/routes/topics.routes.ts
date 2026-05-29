@@ -2,110 +2,101 @@ import { Hono } from 'hono';
 import { Domain, Platform, TopicType } from '../generated/prisma';
 import { authMiddleware } from '../middleware/auth.middleware.js';
 import { viewerBlockMiddleware } from '../middleware/auth.middleware.js';
+import { asyncHandler } from '../lib/handler.js';
 import type { AppEnv } from '../types.js';
 
 const router = new Hono<AppEnv>();
 
-router.get('/', authMiddleware, async (c) => {
-  try {
-    const user = c.get('user');
-    const prisma = c.get('prisma');
-    const userId = user.userId;
-    const q = c.req.query();
-    const domain = q.domain as Domain | undefined;
-    const type = q.type as TopicType | undefined;
-    const platform = q.platform as Platform | undefined;
+router.get('/', authMiddleware, asyncHandler('获取选题失败，请刷新页面重试', async (c) => {
+  const user = c.get('user');
+  const prisma = c.get('prisma');
+  const userId = user.userId;
+  const q = c.req.query();
+  const domain = q.domain as Domain | undefined;
+  const type = q.type as TopicType | undefined;
+  const platform = q.platform as Platform | undefined;
 
-    const whereClause: any = {
+  const whereClause: any = {
+    OR: [
+      { type: TopicType.SYSTEM },
+      { creatorId: userId }
+    ]
+  };
+
+  if (type === TopicType.SYSTEM) {
+    whereClause.OR = [{ type: TopicType.SYSTEM }];
+  } else if (type === TopicType.CUSTOM) {
+    whereClause.OR = [{ creatorId: userId }];
+  }
+
+  if (domain) {
+    if (type === TopicType.SYSTEM) {
+      whereClause.OR = [{ type: TopicType.SYSTEM, domain }];
+    } else if (type === TopicType.CUSTOM) {
+      whereClause.OR = [{ creatorId: userId, domain }];
+    } else {
+      whereClause.OR = [
+        { type: TopicType.SYSTEM, domain },
+        { creatorId: userId, domain }
+      ];
+    }
+  }
+
+  if (platform) {
+    const applyPlatform = (clause: any) => ({ ...clause, platform });
+    if (Array.isArray(whereClause.OR)) {
+      whereClause.OR = whereClause.OR.map(applyPlatform);
+    } else {
+      whereClause.platform = platform;
+    }
+  }
+
+  const topics = await prisma.topic.findMany({
+    where: whereClause,
+    orderBy: { createdAt: 'desc' }
+  });
+
+  const typedTopics = topics.map(t => ({
+    ...t,
+    techStack: t.techStack as string[]
+  }));
+
+  return c.json({ topics: typedTopics });
+}));
+
+router.get('/:id', authMiddleware, asyncHandler('获取选题详情失败', async (c) => {
+  const user = c.get('user');
+  const prisma = c.get('prisma');
+  const userId = user.userId;
+  const topicId = parseInt(c.req.param('id')!);
+
+  if (isNaN(topicId)) {
+    return c.json({ error: '无效的选题ID' }, 400);
+  }
+
+  const topic = await prisma.topic.findFirst({
+    where: {
+      id: topicId,
       OR: [
         { type: TopicType.SYSTEM },
         { creatorId: userId }
       ]
-    };
-
-    if (type === TopicType.SYSTEM) {
-      whereClause.OR = [{ type: TopicType.SYSTEM }];
-    } else if (type === TopicType.CUSTOM) {
-      whereClause.OR = [{ creatorId: userId }];
     }
+  });
 
-    if (domain) {
-      if (type === TopicType.SYSTEM) {
-        whereClause.OR = [{ type: TopicType.SYSTEM, domain }];
-      } else if (type === TopicType.CUSTOM) {
-        whereClause.OR = [{ creatorId: userId, domain }];
-      } else {
-        whereClause.OR = [
-          { type: TopicType.SYSTEM, domain },
-          { creatorId: userId, domain }
-        ];
-      }
-    }
-
-    if (platform) {
-      const applyPlatform = (clause: any) => ({ ...clause, platform });
-      if (Array.isArray(whereClause.OR)) {
-        whereClause.OR = whereClause.OR.map(applyPlatform);
-      } else {
-        whereClause.platform = platform;
-      }
-    }
-
-    const topics = await prisma.topic.findMany({
-      where: whereClause,
-      orderBy: { createdAt: 'desc' }
-    });
-
-    const typedTopics = topics.map(t => ({
-      ...t,
-      techStack: t.techStack as string[]
-    }));
-
-    return c.json({ topics: typedTopics });
-  } catch (error) {
-    console.error('Topics list error:', error);
-    return c.json({ error: '获取选题失败，请刷新页面重试' }, 500);
+  if (!topic) {
+    return c.json({ error: '选题不存在' }, 404);
   }
-});
 
-router.get('/:id', authMiddleware, async (c) => {
-  try {
-    const user = c.get('user');
-    const prisma = c.get('prisma');
-    const userId = user.userId;
-    const topicId = parseInt(c.req.param('id'));
+  const typedTopic = {
+    ...topic,
+    techStack: topic.techStack as string[]
+  };
 
-    if (isNaN(topicId)) {
-      return c.json({ error: '无效的选题ID' }, 400);
-    }
+  return c.json({ topic: typedTopic });
+}));
 
-    const topic = await prisma.topic.findFirst({
-      where: {
-        id: topicId,
-        OR: [
-          { type: TopicType.SYSTEM },
-          { creatorId: userId }
-        ]
-      }
-    });
-
-    if (!topic) {
-      return c.json({ error: '选题不存在' }, 404);
-    }
-
-    const typedTopic = {
-      ...topic,
-      techStack: topic.techStack as string[]
-    };
-
-    return c.json({ topic: typedTopic });
-  } catch (error) {
-    console.error('Topic detail error:', error);
-    return c.json({ error: '获取选题详情失败' }, 500);
-  }
-});
-
-router.post('/custom', authMiddleware, viewerBlockMiddleware, async (c) => {
+router.post('/custom', authMiddleware, viewerBlockMiddleware, asyncHandler('服务器错误，请稍后重试', async (c) => {
   const { title, description, background, objectives, domain, platform, techStack } = await c.req.json();
 
   if (!title || !description || !domain || !platform) {
@@ -141,30 +132,25 @@ router.post('/custom', authMiddleware, viewerBlockMiddleware, async (c) => {
     return c.json({ error: '请至少选择3项技术栈' }, 400);
   }
 
-  try {
-    const user = c.get('user');
-    const prisma = c.get('prisma');
-    const userId = user.userId;
+  const user = c.get('user');
+  const prisma = c.get('prisma');
+  const userId = user.userId;
 
-    const topic = await prisma.topic.create({
-      data: {
-        title,
-        description,
-        background: background || null,
-        objectives: objectives || null,
-        domain: domain as Domain,
-        platform: platform as Platform,
-        techStack: techStack,
-        type: TopicType.CUSTOM,
-        creatorId: userId
-      }
-    });
+  const topic = await prisma.topic.create({
+    data: {
+      title,
+      description,
+      background: background || null,
+      objectives: objectives || null,
+      domain: domain as Domain,
+      platform: platform as Platform,
+      techStack: techStack,
+      type: TopicType.CUSTOM,
+      creatorId: userId
+    }
+  });
 
-    return c.json({ topic: { ...topic, techStack } });
-  } catch (error) {
-    console.error('Custom topic error:', error);
-    return c.json({ error: '服务器错误，请稍后重试' }, 500);
-  }
-});
+  return c.json({ topic: { ...topic, techStack } });
+}));
 
 export default router;

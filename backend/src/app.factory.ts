@@ -15,6 +15,7 @@ import graduationRoutes from './routes/graduation.routes.js';
 import userRoutes from './routes/user.routes.js';
 import thesisRouter from './routes/thesis.routes.js';
 import { generalLimiter } from './middleware/rate-limit.middleware.js';
+import { AppError } from './lib/errors.js';
 
 export interface CreateAppOptions {
   /**
@@ -84,6 +85,9 @@ export function createApp(options: CreateAppOptions): Hono<AppEnv> {
   app.route('/api/thesis', thesisRouter);
 
   app.onError((err, c) => {
+    if (err instanceof AppError) {
+      return c.json({ error: err.message }, err.status);
+    }
     console.error(err.stack);
     return c.json({ error: '服务器错误' }, 500);
   });
