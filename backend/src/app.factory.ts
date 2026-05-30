@@ -37,24 +37,25 @@ export interface CreateAppOptions {
  * and the Node dev/test entry (`index.ts`) use this so their middleware,
  * route table, and error handling cannot drift apart.
  */
+function resolveAllowedOrigins(c: Context<AppEnv>, options: CreateAppOptions): string[] {
+  const allowed = ['http://127.0.0.1:5173', 'http://localhost:5173'];
+  const configured = options.resolveFrontendUrl(c)?.trim().replace(/\/+$/, '');
+  if (configured) {
+    configured.split(',').forEach((o: string) => {
+      const trimmed = o.trim().replace(/\/+$/, '');
+      if (trimmed) allowed.push(trimmed);
+    });
+  }
+  return allowed;
+}
+
 export function createApp(options: CreateAppOptions): Hono<AppEnv> {
   const app = new Hono<AppEnv>();
 
   app.use('*', cors({
     origin: (origin, c) => {
       if (!origin) return undefined;
-
-      const allowed = ['http://127.0.0.1:5173', 'http://localhost:5173'];
-
-      const configured = options.resolveFrontendUrl(c)?.trim().replace(/\/+$/, '');
-      if (configured) {
-        // Support comma-separated list of origins
-        configured.split(',').forEach((o: string) => {
-          const trimmed = o.trim().replace(/\/+$/, '');
-          if (trimmed) allowed.push(trimmed);
-        });
-      }
-
+      const allowed = resolveAllowedOrigins(c, options);
       return allowed.includes(origin) ? origin : undefined;
     },
     credentials: true,
@@ -86,6 +87,16 @@ export function createApp(options: CreateAppOptions): Hono<AppEnv> {
   app.route('/api/thesis', thesisRouter);
 
   app.onError((err, c) => {
+    // cors() middleware sets the header after next(); when an error bypasses that
+    // post-next phase, the header is absent. Re-apply it here so error responses
+    // are never blocked by the browser's CORS check.
+    const origin = c.req.header('Origin');
+    if (origin && resolveAllowedOrigins(c, options).includes(origin)) {
+      c.header('Access-Control-Allow-Origin', origin);
+      c.header('Access-Control-Allow-Credentials', 'true');
+      c.header('Vary', 'Origin');
+    }
+
     if (err instanceof AppError) {
       return c.json({ error: err.message }, err.status);
     }
