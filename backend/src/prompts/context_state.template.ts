@@ -47,8 +47,8 @@ export function getContextStatePromptTemplate(domain: Domain): string {
 
 ---
 
-**长度要求**：
-- 全文总字数控制在 1500-2000 中文字符
+**篇幅要求**：
+- 全文目标 2500-3500 中文字符
 - 任务状态表格必须完整列出所有任务
 - 下一步行动至少列出 3 个具体任务
 

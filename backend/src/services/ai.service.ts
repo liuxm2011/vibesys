@@ -626,8 +626,8 @@ ${datasetSection}`;
     if (topicInfo.previousDocs && Object.keys(topicInfo.previousDocs).length > 0) {
       contextSection = '\n### 参考文档（前置文档内容）\n\n';
       for (const [dType, content] of Object.entries(topicInfo.previousDocs)) {
-        const truncated = content.length > 3000
-          ? content.substring(0, 3000) + '\n...(内容过长已截断)'
+        const truncated = content.length > 6000
+          ? content.substring(0, 6000) + '\n...(内容过长已截断)'
           : content;
         contextSection += `#### ${dType} 文档\n\n${truncated}\n\n`;
       }
