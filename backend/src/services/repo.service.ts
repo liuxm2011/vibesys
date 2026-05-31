@@ -156,22 +156,20 @@ export async function getAllProjectRepos(
   filters: { hasDeployUrl?: boolean; major?: string; className?: string } = {}
 ) {
   const { hasDeployUrl, major, className } = filters;
+  // 注意：hasDeployUrl 不在 SQL 层过滤。一个学生可选多个题目，去重规则需要看到该学生
+  // 的全部选题才能判断是否「至少有一个填了地址」，因此先取全量（仅按 major/class 过滤，
+  // 这两个是按用户维度的、不会拆分同一学生的选题），去重后再在内存里应用 hasDeployUrl。
   const where: any = {};
-  if (hasDeployUrl === true) {
-    where.deployUrl = { not: null };
-  } else if (hasDeployUrl === false) {
-    where.deployUrl = null;
-  }
-
   const userWhere: any = {};
   if (major) userWhere.major = major;
   if (className) userWhere.class = className;
   if (Object.keys(userWhere).length > 0) where.user = userWhere;
 
-  const projects = await prisma.project.findMany({
+  const allProjects = await prisma.project.findMany({
     where,
     select: {
       id: true,
+      userId: true,
       repoUrl: true,
       repoSyncData: true,
       deployUrl: true,
@@ -181,6 +179,28 @@ export async function getAllProjectRepos(
     },
     orderBy: { updatedAt: 'desc' },
   });
+
+  // 判定一个项目是否为「有效项目」：仓库地址或访问地址任意一个填写了即有效。
+  const hasAddress = (p: { repoUrl: string | null; deployUrl: string | null }) =>
+    !!(p.repoUrl && p.repoUrl.trim()) || !!(p.deployUrl && p.deployUrl.trim());
+
+  // 按学生（userId）分组：若该学生名下至少有一个有效项目，则只保留其有效项目，
+  // 隐藏其空白项目；若全部为空白，则原样全部保留。
+  const userHasAddress = new Set<number>();
+  for (const p of allProjects) {
+    if (hasAddress(p)) userHasAddress.add(p.userId);
+  }
+  let projects = allProjects.filter(
+    (p) => !userHasAddress.has(p.userId) || hasAddress(p)
+  );
+
+  // 去重后再应用 hasDeployUrl 过滤（已填写 / 未填写 访问地址）。
+  if (hasDeployUrl === true) {
+    projects = projects.filter((p) => !!(p.deployUrl && p.deployUrl.trim()));
+  } else if (hasDeployUrl === false) {
+    projects = projects.filter((p) => !(p.deployUrl && p.deployUrl.trim()));
+  }
+
   return projects.map((p) => ({
     projectId: p.id,
     studentId: p.user.studentId,
