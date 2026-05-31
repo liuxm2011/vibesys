@@ -252,6 +252,35 @@ exports.Prisma.ThesisProjectScalarFieldEnum = {
   updatedAt: 'updatedAt'
 };
 
+exports.Prisma.ArchivedGradeScalarFieldEnum = {
+  id: 'id',
+  grade: 'grade',
+  archivedByUserId: 'archivedByUserId',
+  studentCount: 'studentCount',
+  projectCount: 'projectCount',
+  thesisCount: 'thesisCount',
+  archivedAt: 'archivedAt'
+};
+
+exports.Prisma.ArchivedThesisProjectScalarFieldEnum = {
+  id: 'id',
+  grade: 'grade',
+  originalThesisProjectId: 'originalThesisProjectId',
+  userId: 'userId',
+  studentId: 'studentId',
+  studentName: 'studentName',
+  className: 'className',
+  topicId: 'topicId',
+  topicTitle: 'topicTitle',
+  topicCategory: 'topicCategory',
+  datasetName: 'datasetName',
+  linkedProjectId: 'linkedProjectId',
+  repoUrl: 'repoUrl',
+  deployUrl: 'deployUrl',
+  originalCreatedAt: 'originalCreatedAt',
+  archivedAt: 'archivedAt'
+};
+
 exports.Prisma.SortOrder = {
   asc: 'asc',
   desc: 'desc'
@@ -354,7 +383,9 @@ exports.Prisma.ModelName = {
   ApiProvider: 'ApiProvider',
   AiUsageLog: 'AiUsageLog',
   ThesisTopic: 'ThesisTopic',
-  ThesisProject: 'ThesisProject'
+  ThesisProject: 'ThesisProject',
+  ArchivedGrade: 'ArchivedGrade',
+  ArchivedThesisProject: 'ArchivedThesisProject'
 };
 
 /**

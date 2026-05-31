@@ -68,6 +68,16 @@ export type ThesisTopic = $Result.DefaultSelection<Prisma.$ThesisTopicPayload>
  * 
  */
 export type ThesisProject = $Result.DefaultSelection<Prisma.$ThesisProjectPayload>
+/**
+ * Model ArchivedGrade
+ * 
+ */
+export type ArchivedGrade = $Result.DefaultSelection<Prisma.$ArchivedGradePayload>
+/**
+ * Model ArchivedThesisProject
+ * 
+ */
+export type ArchivedThesisProject = $Result.DefaultSelection<Prisma.$ArchivedThesisProjectPayload>
 
 /**
  * Enums
@@ -426,6 +436,26 @@ export class PrismaClient<
     * ```
     */
   get thesisProject(): Prisma.ThesisProjectDelegate<ExtArgs, ClientOptions>;
+
+  /**
+   * `prisma.archivedGrade`: Exposes CRUD operations for the **ArchivedGrade** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more ArchivedGrades
+    * const archivedGrades = await prisma.archivedGrade.findMany()
+    * ```
+    */
+  get archivedGrade(): Prisma.ArchivedGradeDelegate<ExtArgs, ClientOptions>;
+
+  /**
+   * `prisma.archivedThesisProject`: Exposes CRUD operations for the **ArchivedThesisProject** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more ArchivedThesisProjects
+    * const archivedThesisProjects = await prisma.archivedThesisProject.findMany()
+    * ```
+    */
+  get archivedThesisProject(): Prisma.ArchivedThesisProjectDelegate<ExtArgs, ClientOptions>;
 }
 
 export namespace Prisma {
@@ -877,7 +907,9 @@ export namespace Prisma {
     ApiProvider: 'ApiProvider',
     AiUsageLog: 'AiUsageLog',
     ThesisTopic: 'ThesisTopic',
-    ThesisProject: 'ThesisProject'
+    ThesisProject: 'ThesisProject',
+    ArchivedGrade: 'ArchivedGrade',
+    ArchivedThesisProject: 'ArchivedThesisProject'
   };
 
   export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -896,7 +928,7 @@ export namespace Prisma {
       omit: GlobalOmitOptions
     }
     meta: {
-      modelProps: "user" | "topic" | "project" | "document" | "graduationDocument" | "systemConfig" | "userApiSetting" | "apiProvider" | "aiUsageLog" | "thesisTopic" | "thesisProject"
+      modelProps: "user" | "topic" | "project" | "document" | "graduationDocument" | "systemConfig" | "userApiSetting" | "apiProvider" | "aiUsageLog" | "thesisTopic" | "thesisProject" | "archivedGrade" | "archivedThesisProject"
       txIsolationLevel: Prisma.TransactionIsolationLevel
     }
     model: {
@@ -1714,6 +1746,154 @@ export namespace Prisma {
           }
         }
       }
+      ArchivedGrade: {
+        payload: Prisma.$ArchivedGradePayload<ExtArgs>
+        fields: Prisma.ArchivedGradeFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.ArchivedGradeFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ArchivedGradePayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.ArchivedGradeFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ArchivedGradePayload>
+          }
+          findFirst: {
+            args: Prisma.ArchivedGradeFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ArchivedGradePayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.ArchivedGradeFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ArchivedGradePayload>
+          }
+          findMany: {
+            args: Prisma.ArchivedGradeFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ArchivedGradePayload>[]
+          }
+          create: {
+            args: Prisma.ArchivedGradeCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ArchivedGradePayload>
+          }
+          createMany: {
+            args: Prisma.ArchivedGradeCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.ArchivedGradeCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ArchivedGradePayload>[]
+          }
+          delete: {
+            args: Prisma.ArchivedGradeDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ArchivedGradePayload>
+          }
+          update: {
+            args: Prisma.ArchivedGradeUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ArchivedGradePayload>
+          }
+          deleteMany: {
+            args: Prisma.ArchivedGradeDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.ArchivedGradeUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.ArchivedGradeUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ArchivedGradePayload>[]
+          }
+          upsert: {
+            args: Prisma.ArchivedGradeUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ArchivedGradePayload>
+          }
+          aggregate: {
+            args: Prisma.ArchivedGradeAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateArchivedGrade>
+          }
+          groupBy: {
+            args: Prisma.ArchivedGradeGroupByArgs<ExtArgs>
+            result: $Utils.Optional<ArchivedGradeGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.ArchivedGradeCountArgs<ExtArgs>
+            result: $Utils.Optional<ArchivedGradeCountAggregateOutputType> | number
+          }
+        }
+      }
+      ArchivedThesisProject: {
+        payload: Prisma.$ArchivedThesisProjectPayload<ExtArgs>
+        fields: Prisma.ArchivedThesisProjectFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.ArchivedThesisProjectFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ArchivedThesisProjectPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.ArchivedThesisProjectFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ArchivedThesisProjectPayload>
+          }
+          findFirst: {
+            args: Prisma.ArchivedThesisProjectFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ArchivedThesisProjectPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.ArchivedThesisProjectFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ArchivedThesisProjectPayload>
+          }
+          findMany: {
+            args: Prisma.ArchivedThesisProjectFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ArchivedThesisProjectPayload>[]
+          }
+          create: {
+            args: Prisma.ArchivedThesisProjectCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ArchivedThesisProjectPayload>
+          }
+          createMany: {
+            args: Prisma.ArchivedThesisProjectCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.ArchivedThesisProjectCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ArchivedThesisProjectPayload>[]
+          }
+          delete: {
+            args: Prisma.ArchivedThesisProjectDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ArchivedThesisProjectPayload>
+          }
+          update: {
+            args: Prisma.ArchivedThesisProjectUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ArchivedThesisProjectPayload>
+          }
+          deleteMany: {
+            args: Prisma.ArchivedThesisProjectDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.ArchivedThesisProjectUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.ArchivedThesisProjectUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ArchivedThesisProjectPayload>[]
+          }
+          upsert: {
+            args: Prisma.ArchivedThesisProjectUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ArchivedThesisProjectPayload>
+          }
+          aggregate: {
+            args: Prisma.ArchivedThesisProjectAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateArchivedThesisProject>
+          }
+          groupBy: {
+            args: Prisma.ArchivedThesisProjectGroupByArgs<ExtArgs>
+            result: $Utils.Optional<ArchivedThesisProjectGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.ArchivedThesisProjectCountArgs<ExtArgs>
+            result: $Utils.Optional<ArchivedThesisProjectCountAggregateOutputType> | number
+          }
+        }
+      }
     }
   } & {
     other: {
@@ -1821,6 +2001,8 @@ export namespace Prisma {
     aiUsageLog?: AiUsageLogOmit
     thesisTopic?: ThesisTopicOmit
     thesisProject?: ThesisProjectOmit
+    archivedGrade?: ArchivedGradeOmit
+    archivedThesisProject?: ArchivedThesisProjectOmit
   }
 
   /* Types for Logging */
@@ -14711,6 +14893,2261 @@ export namespace Prisma {
 
 
   /**
+   * Model ArchivedGrade
+   */
+
+  export type AggregateArchivedGrade = {
+    _count: ArchivedGradeCountAggregateOutputType | null
+    _avg: ArchivedGradeAvgAggregateOutputType | null
+    _sum: ArchivedGradeSumAggregateOutputType | null
+    _min: ArchivedGradeMinAggregateOutputType | null
+    _max: ArchivedGradeMaxAggregateOutputType | null
+  }
+
+  export type ArchivedGradeAvgAggregateOutputType = {
+    id: number | null
+    archivedByUserId: number | null
+    studentCount: number | null
+    projectCount: number | null
+    thesisCount: number | null
+  }
+
+  export type ArchivedGradeSumAggregateOutputType = {
+    id: number | null
+    archivedByUserId: number | null
+    studentCount: number | null
+    projectCount: number | null
+    thesisCount: number | null
+  }
+
+  export type ArchivedGradeMinAggregateOutputType = {
+    id: number | null
+    grade: string | null
+    archivedByUserId: number | null
+    studentCount: number | null
+    projectCount: number | null
+    thesisCount: number | null
+    archivedAt: Date | null
+  }
+
+  export type ArchivedGradeMaxAggregateOutputType = {
+    id: number | null
+    grade: string | null
+    archivedByUserId: number | null
+    studentCount: number | null
+    projectCount: number | null
+    thesisCount: number | null
+    archivedAt: Date | null
+  }
+
+  export type ArchivedGradeCountAggregateOutputType = {
+    id: number
+    grade: number
+    archivedByUserId: number
+    studentCount: number
+    projectCount: number
+    thesisCount: number
+    archivedAt: number
+    _all: number
+  }
+
+
+  export type ArchivedGradeAvgAggregateInputType = {
+    id?: true
+    archivedByUserId?: true
+    studentCount?: true
+    projectCount?: true
+    thesisCount?: true
+  }
+
+  export type ArchivedGradeSumAggregateInputType = {
+    id?: true
+    archivedByUserId?: true
+    studentCount?: true
+    projectCount?: true
+    thesisCount?: true
+  }
+
+  export type ArchivedGradeMinAggregateInputType = {
+    id?: true
+    grade?: true
+    archivedByUserId?: true
+    studentCount?: true
+    projectCount?: true
+    thesisCount?: true
+    archivedAt?: true
+  }
+
+  export type ArchivedGradeMaxAggregateInputType = {
+    id?: true
+    grade?: true
+    archivedByUserId?: true
+    studentCount?: true
+    projectCount?: true
+    thesisCount?: true
+    archivedAt?: true
+  }
+
+  export type ArchivedGradeCountAggregateInputType = {
+    id?: true
+    grade?: true
+    archivedByUserId?: true
+    studentCount?: true
+    projectCount?: true
+    thesisCount?: true
+    archivedAt?: true
+    _all?: true
+  }
+
+  export type ArchivedGradeAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which ArchivedGrade to aggregate.
+     */
+    where?: ArchivedGradeWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of ArchivedGrades to fetch.
+     */
+    orderBy?: ArchivedGradeOrderByWithRelationInput | ArchivedGradeOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: ArchivedGradeWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` ArchivedGrades from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` ArchivedGrades.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned ArchivedGrades
+    **/
+    _count?: true | ArchivedGradeCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to average
+    **/
+    _avg?: ArchivedGradeAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to sum
+    **/
+    _sum?: ArchivedGradeSumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: ArchivedGradeMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: ArchivedGradeMaxAggregateInputType
+  }
+
+  export type GetArchivedGradeAggregateType<T extends ArchivedGradeAggregateArgs> = {
+        [P in keyof T & keyof AggregateArchivedGrade]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateArchivedGrade[P]>
+      : GetScalarType<T[P], AggregateArchivedGrade[P]>
+  }
+
+
+
+
+  export type ArchivedGradeGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: ArchivedGradeWhereInput
+    orderBy?: ArchivedGradeOrderByWithAggregationInput | ArchivedGradeOrderByWithAggregationInput[]
+    by: ArchivedGradeScalarFieldEnum[] | ArchivedGradeScalarFieldEnum
+    having?: ArchivedGradeScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: ArchivedGradeCountAggregateInputType | true
+    _avg?: ArchivedGradeAvgAggregateInputType
+    _sum?: ArchivedGradeSumAggregateInputType
+    _min?: ArchivedGradeMinAggregateInputType
+    _max?: ArchivedGradeMaxAggregateInputType
+  }
+
+  export type ArchivedGradeGroupByOutputType = {
+    id: number
+    grade: string
+    archivedByUserId: number | null
+    studentCount: number
+    projectCount: number
+    thesisCount: number
+    archivedAt: Date
+    _count: ArchivedGradeCountAggregateOutputType | null
+    _avg: ArchivedGradeAvgAggregateOutputType | null
+    _sum: ArchivedGradeSumAggregateOutputType | null
+    _min: ArchivedGradeMinAggregateOutputType | null
+    _max: ArchivedGradeMaxAggregateOutputType | null
+  }
+
+  type GetArchivedGradeGroupByPayload<T extends ArchivedGradeGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<ArchivedGradeGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof ArchivedGradeGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], ArchivedGradeGroupByOutputType[P]>
+            : GetScalarType<T[P], ArchivedGradeGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type ArchivedGradeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    grade?: boolean
+    archivedByUserId?: boolean
+    studentCount?: boolean
+    projectCount?: boolean
+    thesisCount?: boolean
+    archivedAt?: boolean
+  }, ExtArgs["result"]["archivedGrade"]>
+
+  export type ArchivedGradeSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    grade?: boolean
+    archivedByUserId?: boolean
+    studentCount?: boolean
+    projectCount?: boolean
+    thesisCount?: boolean
+    archivedAt?: boolean
+  }, ExtArgs["result"]["archivedGrade"]>
+
+  export type ArchivedGradeSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    grade?: boolean
+    archivedByUserId?: boolean
+    studentCount?: boolean
+    projectCount?: boolean
+    thesisCount?: boolean
+    archivedAt?: boolean
+  }, ExtArgs["result"]["archivedGrade"]>
+
+  export type ArchivedGradeSelectScalar = {
+    id?: boolean
+    grade?: boolean
+    archivedByUserId?: boolean
+    studentCount?: boolean
+    projectCount?: boolean
+    thesisCount?: boolean
+    archivedAt?: boolean
+  }
+
+  export type ArchivedGradeOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "grade" | "archivedByUserId" | "studentCount" | "projectCount" | "thesisCount" | "archivedAt", ExtArgs["result"]["archivedGrade"]>
+
+  export type $ArchivedGradePayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "ArchivedGrade"
+    objects: {}
+    scalars: $Extensions.GetPayloadResult<{
+      id: number
+      grade: string
+      archivedByUserId: number | null
+      studentCount: number
+      projectCount: number
+      thesisCount: number
+      archivedAt: Date
+    }, ExtArgs["result"]["archivedGrade"]>
+    composites: {}
+  }
+
+  type ArchivedGradeGetPayload<S extends boolean | null | undefined | ArchivedGradeDefaultArgs> = $Result.GetResult<Prisma.$ArchivedGradePayload, S>
+
+  type ArchivedGradeCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+    Omit<ArchivedGradeFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: ArchivedGradeCountAggregateInputType | true
+    }
+
+  export interface ArchivedGradeDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['ArchivedGrade'], meta: { name: 'ArchivedGrade' } }
+    /**
+     * Find zero or one ArchivedGrade that matches the filter.
+     * @param {ArchivedGradeFindUniqueArgs} args - Arguments to find a ArchivedGrade
+     * @example
+     * // Get one ArchivedGrade
+     * const archivedGrade = await prisma.archivedGrade.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends ArchivedGradeFindUniqueArgs>(args: SelectSubset<T, ArchivedGradeFindUniqueArgs<ExtArgs>>): Prisma__ArchivedGradeClient<$Result.GetResult<Prisma.$ArchivedGradePayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find one ArchivedGrade that matches the filter or throw an error with `error.code='P2025'`
+     * if no matches were found.
+     * @param {ArchivedGradeFindUniqueOrThrowArgs} args - Arguments to find a ArchivedGrade
+     * @example
+     * // Get one ArchivedGrade
+     * const archivedGrade = await prisma.archivedGrade.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends ArchivedGradeFindUniqueOrThrowArgs>(args: SelectSubset<T, ArchivedGradeFindUniqueOrThrowArgs<ExtArgs>>): Prisma__ArchivedGradeClient<$Result.GetResult<Prisma.$ArchivedGradePayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first ArchivedGrade that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ArchivedGradeFindFirstArgs} args - Arguments to find a ArchivedGrade
+     * @example
+     * // Get one ArchivedGrade
+     * const archivedGrade = await prisma.archivedGrade.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends ArchivedGradeFindFirstArgs>(args?: SelectSubset<T, ArchivedGradeFindFirstArgs<ExtArgs>>): Prisma__ArchivedGradeClient<$Result.GetResult<Prisma.$ArchivedGradePayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first ArchivedGrade that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ArchivedGradeFindFirstOrThrowArgs} args - Arguments to find a ArchivedGrade
+     * @example
+     * // Get one ArchivedGrade
+     * const archivedGrade = await prisma.archivedGrade.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends ArchivedGradeFindFirstOrThrowArgs>(args?: SelectSubset<T, ArchivedGradeFindFirstOrThrowArgs<ExtArgs>>): Prisma__ArchivedGradeClient<$Result.GetResult<Prisma.$ArchivedGradePayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find zero or more ArchivedGrades that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ArchivedGradeFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all ArchivedGrades
+     * const archivedGrades = await prisma.archivedGrade.findMany()
+     * 
+     * // Get first 10 ArchivedGrades
+     * const archivedGrades = await prisma.archivedGrade.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const archivedGradeWithIdOnly = await prisma.archivedGrade.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends ArchivedGradeFindManyArgs>(args?: SelectSubset<T, ArchivedGradeFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ArchivedGradePayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+
+    /**
+     * Create a ArchivedGrade.
+     * @param {ArchivedGradeCreateArgs} args - Arguments to create a ArchivedGrade.
+     * @example
+     * // Create one ArchivedGrade
+     * const ArchivedGrade = await prisma.archivedGrade.create({
+     *   data: {
+     *     // ... data to create a ArchivedGrade
+     *   }
+     * })
+     * 
+     */
+    create<T extends ArchivedGradeCreateArgs>(args: SelectSubset<T, ArchivedGradeCreateArgs<ExtArgs>>): Prisma__ArchivedGradeClient<$Result.GetResult<Prisma.$ArchivedGradePayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Create many ArchivedGrades.
+     * @param {ArchivedGradeCreateManyArgs} args - Arguments to create many ArchivedGrades.
+     * @example
+     * // Create many ArchivedGrades
+     * const archivedGrade = await prisma.archivedGrade.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends ArchivedGradeCreateManyArgs>(args?: SelectSubset<T, ArchivedGradeCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many ArchivedGrades and returns the data saved in the database.
+     * @param {ArchivedGradeCreateManyAndReturnArgs} args - Arguments to create many ArchivedGrades.
+     * @example
+     * // Create many ArchivedGrades
+     * const archivedGrade = await prisma.archivedGrade.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many ArchivedGrades and only return the `id`
+     * const archivedGradeWithIdOnly = await prisma.archivedGrade.createManyAndReturn({
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends ArchivedGradeCreateManyAndReturnArgs>(args?: SelectSubset<T, ArchivedGradeCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ArchivedGradePayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Delete a ArchivedGrade.
+     * @param {ArchivedGradeDeleteArgs} args - Arguments to delete one ArchivedGrade.
+     * @example
+     * // Delete one ArchivedGrade
+     * const ArchivedGrade = await prisma.archivedGrade.delete({
+     *   where: {
+     *     // ... filter to delete one ArchivedGrade
+     *   }
+     * })
+     * 
+     */
+    delete<T extends ArchivedGradeDeleteArgs>(args: SelectSubset<T, ArchivedGradeDeleteArgs<ExtArgs>>): Prisma__ArchivedGradeClient<$Result.GetResult<Prisma.$ArchivedGradePayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Update one ArchivedGrade.
+     * @param {ArchivedGradeUpdateArgs} args - Arguments to update one ArchivedGrade.
+     * @example
+     * // Update one ArchivedGrade
+     * const archivedGrade = await prisma.archivedGrade.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends ArchivedGradeUpdateArgs>(args: SelectSubset<T, ArchivedGradeUpdateArgs<ExtArgs>>): Prisma__ArchivedGradeClient<$Result.GetResult<Prisma.$ArchivedGradePayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Delete zero or more ArchivedGrades.
+     * @param {ArchivedGradeDeleteManyArgs} args - Arguments to filter ArchivedGrades to delete.
+     * @example
+     * // Delete a few ArchivedGrades
+     * const { count } = await prisma.archivedGrade.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends ArchivedGradeDeleteManyArgs>(args?: SelectSubset<T, ArchivedGradeDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more ArchivedGrades.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ArchivedGradeUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many ArchivedGrades
+     * const archivedGrade = await prisma.archivedGrade.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends ArchivedGradeUpdateManyArgs>(args: SelectSubset<T, ArchivedGradeUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more ArchivedGrades and returns the data updated in the database.
+     * @param {ArchivedGradeUpdateManyAndReturnArgs} args - Arguments to update many ArchivedGrades.
+     * @example
+     * // Update many ArchivedGrades
+     * const archivedGrade = await prisma.archivedGrade.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Update zero or more ArchivedGrades and only return the `id`
+     * const archivedGradeWithIdOnly = await prisma.archivedGrade.updateManyAndReturn({
+     *   select: { id: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    updateManyAndReturn<T extends ArchivedGradeUpdateManyAndReturnArgs>(args: SelectSubset<T, ArchivedGradeUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ArchivedGradePayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Create or update one ArchivedGrade.
+     * @param {ArchivedGradeUpsertArgs} args - Arguments to update or create a ArchivedGrade.
+     * @example
+     * // Update or create a ArchivedGrade
+     * const archivedGrade = await prisma.archivedGrade.upsert({
+     *   create: {
+     *     // ... data to create a ArchivedGrade
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the ArchivedGrade we want to update
+     *   }
+     * })
+     */
+    upsert<T extends ArchivedGradeUpsertArgs>(args: SelectSubset<T, ArchivedGradeUpsertArgs<ExtArgs>>): Prisma__ArchivedGradeClient<$Result.GetResult<Prisma.$ArchivedGradePayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+
+    /**
+     * Count the number of ArchivedGrades.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ArchivedGradeCountArgs} args - Arguments to filter ArchivedGrades to count.
+     * @example
+     * // Count the number of ArchivedGrades
+     * const count = await prisma.archivedGrade.count({
+     *   where: {
+     *     // ... the filter for the ArchivedGrades we want to count
+     *   }
+     * })
+    **/
+    count<T extends ArchivedGradeCountArgs>(
+      args?: Subset<T, ArchivedGradeCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], ArchivedGradeCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a ArchivedGrade.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ArchivedGradeAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends ArchivedGradeAggregateArgs>(args: Subset<T, ArchivedGradeAggregateArgs>): Prisma.PrismaPromise<GetArchivedGradeAggregateType<T>>
+
+    /**
+     * Group by ArchivedGrade.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ArchivedGradeGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends ArchivedGradeGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: ArchivedGradeGroupByArgs['orderBy'] }
+        : { orderBy?: ArchivedGradeGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, ArchivedGradeGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetArchivedGradeGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the ArchivedGrade model
+   */
+  readonly fields: ArchivedGradeFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for ArchivedGrade.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__ArchivedGradeClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the ArchivedGrade model
+   */
+  interface ArchivedGradeFieldRefs {
+    readonly id: FieldRef<"ArchivedGrade", 'Int'>
+    readonly grade: FieldRef<"ArchivedGrade", 'String'>
+    readonly archivedByUserId: FieldRef<"ArchivedGrade", 'Int'>
+    readonly studentCount: FieldRef<"ArchivedGrade", 'Int'>
+    readonly projectCount: FieldRef<"ArchivedGrade", 'Int'>
+    readonly thesisCount: FieldRef<"ArchivedGrade", 'Int'>
+    readonly archivedAt: FieldRef<"ArchivedGrade", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * ArchivedGrade findUnique
+   */
+  export type ArchivedGradeFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ArchivedGrade
+     */
+    select?: ArchivedGradeSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ArchivedGrade
+     */
+    omit?: ArchivedGradeOmit<ExtArgs> | null
+    /**
+     * Filter, which ArchivedGrade to fetch.
+     */
+    where: ArchivedGradeWhereUniqueInput
+  }
+
+  /**
+   * ArchivedGrade findUniqueOrThrow
+   */
+  export type ArchivedGradeFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ArchivedGrade
+     */
+    select?: ArchivedGradeSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ArchivedGrade
+     */
+    omit?: ArchivedGradeOmit<ExtArgs> | null
+    /**
+     * Filter, which ArchivedGrade to fetch.
+     */
+    where: ArchivedGradeWhereUniqueInput
+  }
+
+  /**
+   * ArchivedGrade findFirst
+   */
+  export type ArchivedGradeFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ArchivedGrade
+     */
+    select?: ArchivedGradeSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ArchivedGrade
+     */
+    omit?: ArchivedGradeOmit<ExtArgs> | null
+    /**
+     * Filter, which ArchivedGrade to fetch.
+     */
+    where?: ArchivedGradeWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of ArchivedGrades to fetch.
+     */
+    orderBy?: ArchivedGradeOrderByWithRelationInput | ArchivedGradeOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for ArchivedGrades.
+     */
+    cursor?: ArchivedGradeWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` ArchivedGrades from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` ArchivedGrades.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of ArchivedGrades.
+     */
+    distinct?: ArchivedGradeScalarFieldEnum | ArchivedGradeScalarFieldEnum[]
+  }
+
+  /**
+   * ArchivedGrade findFirstOrThrow
+   */
+  export type ArchivedGradeFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ArchivedGrade
+     */
+    select?: ArchivedGradeSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ArchivedGrade
+     */
+    omit?: ArchivedGradeOmit<ExtArgs> | null
+    /**
+     * Filter, which ArchivedGrade to fetch.
+     */
+    where?: ArchivedGradeWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of ArchivedGrades to fetch.
+     */
+    orderBy?: ArchivedGradeOrderByWithRelationInput | ArchivedGradeOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for ArchivedGrades.
+     */
+    cursor?: ArchivedGradeWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` ArchivedGrades from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` ArchivedGrades.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of ArchivedGrades.
+     */
+    distinct?: ArchivedGradeScalarFieldEnum | ArchivedGradeScalarFieldEnum[]
+  }
+
+  /**
+   * ArchivedGrade findMany
+   */
+  export type ArchivedGradeFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ArchivedGrade
+     */
+    select?: ArchivedGradeSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ArchivedGrade
+     */
+    omit?: ArchivedGradeOmit<ExtArgs> | null
+    /**
+     * Filter, which ArchivedGrades to fetch.
+     */
+    where?: ArchivedGradeWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of ArchivedGrades to fetch.
+     */
+    orderBy?: ArchivedGradeOrderByWithRelationInput | ArchivedGradeOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing ArchivedGrades.
+     */
+    cursor?: ArchivedGradeWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` ArchivedGrades from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` ArchivedGrades.
+     */
+    skip?: number
+    distinct?: ArchivedGradeScalarFieldEnum | ArchivedGradeScalarFieldEnum[]
+  }
+
+  /**
+   * ArchivedGrade create
+   */
+  export type ArchivedGradeCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ArchivedGrade
+     */
+    select?: ArchivedGradeSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ArchivedGrade
+     */
+    omit?: ArchivedGradeOmit<ExtArgs> | null
+    /**
+     * The data needed to create a ArchivedGrade.
+     */
+    data: XOR<ArchivedGradeCreateInput, ArchivedGradeUncheckedCreateInput>
+  }
+
+  /**
+   * ArchivedGrade createMany
+   */
+  export type ArchivedGradeCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many ArchivedGrades.
+     */
+    data: ArchivedGradeCreateManyInput | ArchivedGradeCreateManyInput[]
+  }
+
+  /**
+   * ArchivedGrade createManyAndReturn
+   */
+  export type ArchivedGradeCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ArchivedGrade
+     */
+    select?: ArchivedGradeSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the ArchivedGrade
+     */
+    omit?: ArchivedGradeOmit<ExtArgs> | null
+    /**
+     * The data used to create many ArchivedGrades.
+     */
+    data: ArchivedGradeCreateManyInput | ArchivedGradeCreateManyInput[]
+  }
+
+  /**
+   * ArchivedGrade update
+   */
+  export type ArchivedGradeUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ArchivedGrade
+     */
+    select?: ArchivedGradeSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ArchivedGrade
+     */
+    omit?: ArchivedGradeOmit<ExtArgs> | null
+    /**
+     * The data needed to update a ArchivedGrade.
+     */
+    data: XOR<ArchivedGradeUpdateInput, ArchivedGradeUncheckedUpdateInput>
+    /**
+     * Choose, which ArchivedGrade to update.
+     */
+    where: ArchivedGradeWhereUniqueInput
+  }
+
+  /**
+   * ArchivedGrade updateMany
+   */
+  export type ArchivedGradeUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update ArchivedGrades.
+     */
+    data: XOR<ArchivedGradeUpdateManyMutationInput, ArchivedGradeUncheckedUpdateManyInput>
+    /**
+     * Filter which ArchivedGrades to update
+     */
+    where?: ArchivedGradeWhereInput
+    /**
+     * Limit how many ArchivedGrades to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * ArchivedGrade updateManyAndReturn
+   */
+  export type ArchivedGradeUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ArchivedGrade
+     */
+    select?: ArchivedGradeSelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the ArchivedGrade
+     */
+    omit?: ArchivedGradeOmit<ExtArgs> | null
+    /**
+     * The data used to update ArchivedGrades.
+     */
+    data: XOR<ArchivedGradeUpdateManyMutationInput, ArchivedGradeUncheckedUpdateManyInput>
+    /**
+     * Filter which ArchivedGrades to update
+     */
+    where?: ArchivedGradeWhereInput
+    /**
+     * Limit how many ArchivedGrades to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * ArchivedGrade upsert
+   */
+  export type ArchivedGradeUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ArchivedGrade
+     */
+    select?: ArchivedGradeSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ArchivedGrade
+     */
+    omit?: ArchivedGradeOmit<ExtArgs> | null
+    /**
+     * The filter to search for the ArchivedGrade to update in case it exists.
+     */
+    where: ArchivedGradeWhereUniqueInput
+    /**
+     * In case the ArchivedGrade found by the `where` argument doesn't exist, create a new ArchivedGrade with this data.
+     */
+    create: XOR<ArchivedGradeCreateInput, ArchivedGradeUncheckedCreateInput>
+    /**
+     * In case the ArchivedGrade was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<ArchivedGradeUpdateInput, ArchivedGradeUncheckedUpdateInput>
+  }
+
+  /**
+   * ArchivedGrade delete
+   */
+  export type ArchivedGradeDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ArchivedGrade
+     */
+    select?: ArchivedGradeSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ArchivedGrade
+     */
+    omit?: ArchivedGradeOmit<ExtArgs> | null
+    /**
+     * Filter which ArchivedGrade to delete.
+     */
+    where: ArchivedGradeWhereUniqueInput
+  }
+
+  /**
+   * ArchivedGrade deleteMany
+   */
+  export type ArchivedGradeDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which ArchivedGrades to delete
+     */
+    where?: ArchivedGradeWhereInput
+    /**
+     * Limit how many ArchivedGrades to delete.
+     */
+    limit?: number
+  }
+
+  /**
+   * ArchivedGrade without action
+   */
+  export type ArchivedGradeDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ArchivedGrade
+     */
+    select?: ArchivedGradeSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ArchivedGrade
+     */
+    omit?: ArchivedGradeOmit<ExtArgs> | null
+  }
+
+
+  /**
+   * Model ArchivedThesisProject
+   */
+
+  export type AggregateArchivedThesisProject = {
+    _count: ArchivedThesisProjectCountAggregateOutputType | null
+    _avg: ArchivedThesisProjectAvgAggregateOutputType | null
+    _sum: ArchivedThesisProjectSumAggregateOutputType | null
+    _min: ArchivedThesisProjectMinAggregateOutputType | null
+    _max: ArchivedThesisProjectMaxAggregateOutputType | null
+  }
+
+  export type ArchivedThesisProjectAvgAggregateOutputType = {
+    id: number | null
+    originalThesisProjectId: number | null
+    userId: number | null
+    topicId: number | null
+    linkedProjectId: number | null
+  }
+
+  export type ArchivedThesisProjectSumAggregateOutputType = {
+    id: number | null
+    originalThesisProjectId: number | null
+    userId: number | null
+    topicId: number | null
+    linkedProjectId: number | null
+  }
+
+  export type ArchivedThesisProjectMinAggregateOutputType = {
+    id: number | null
+    grade: string | null
+    originalThesisProjectId: number | null
+    userId: number | null
+    studentId: string | null
+    studentName: string | null
+    className: string | null
+    topicId: number | null
+    topicTitle: string | null
+    topicCategory: string | null
+    datasetName: string | null
+    linkedProjectId: number | null
+    repoUrl: string | null
+    deployUrl: string | null
+    originalCreatedAt: Date | null
+    archivedAt: Date | null
+  }
+
+  export type ArchivedThesisProjectMaxAggregateOutputType = {
+    id: number | null
+    grade: string | null
+    originalThesisProjectId: number | null
+    userId: number | null
+    studentId: string | null
+    studentName: string | null
+    className: string | null
+    topicId: number | null
+    topicTitle: string | null
+    topicCategory: string | null
+    datasetName: string | null
+    linkedProjectId: number | null
+    repoUrl: string | null
+    deployUrl: string | null
+    originalCreatedAt: Date | null
+    archivedAt: Date | null
+  }
+
+  export type ArchivedThesisProjectCountAggregateOutputType = {
+    id: number
+    grade: number
+    originalThesisProjectId: number
+    userId: number
+    studentId: number
+    studentName: number
+    className: number
+    topicId: number
+    topicTitle: number
+    topicCategory: number
+    datasetName: number
+    linkedProjectId: number
+    repoUrl: number
+    deployUrl: number
+    originalCreatedAt: number
+    archivedAt: number
+    _all: number
+  }
+
+
+  export type ArchivedThesisProjectAvgAggregateInputType = {
+    id?: true
+    originalThesisProjectId?: true
+    userId?: true
+    topicId?: true
+    linkedProjectId?: true
+  }
+
+  export type ArchivedThesisProjectSumAggregateInputType = {
+    id?: true
+    originalThesisProjectId?: true
+    userId?: true
+    topicId?: true
+    linkedProjectId?: true
+  }
+
+  export type ArchivedThesisProjectMinAggregateInputType = {
+    id?: true
+    grade?: true
+    originalThesisProjectId?: true
+    userId?: true
+    studentId?: true
+    studentName?: true
+    className?: true
+    topicId?: true
+    topicTitle?: true
+    topicCategory?: true
+    datasetName?: true
+    linkedProjectId?: true
+    repoUrl?: true
+    deployUrl?: true
+    originalCreatedAt?: true
+    archivedAt?: true
+  }
+
+  export type ArchivedThesisProjectMaxAggregateInputType = {
+    id?: true
+    grade?: true
+    originalThesisProjectId?: true
+    userId?: true
+    studentId?: true
+    studentName?: true
+    className?: true
+    topicId?: true
+    topicTitle?: true
+    topicCategory?: true
+    datasetName?: true
+    linkedProjectId?: true
+    repoUrl?: true
+    deployUrl?: true
+    originalCreatedAt?: true
+    archivedAt?: true
+  }
+
+  export type ArchivedThesisProjectCountAggregateInputType = {
+    id?: true
+    grade?: true
+    originalThesisProjectId?: true
+    userId?: true
+    studentId?: true
+    studentName?: true
+    className?: true
+    topicId?: true
+    topicTitle?: true
+    topicCategory?: true
+    datasetName?: true
+    linkedProjectId?: true
+    repoUrl?: true
+    deployUrl?: true
+    originalCreatedAt?: true
+    archivedAt?: true
+    _all?: true
+  }
+
+  export type ArchivedThesisProjectAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which ArchivedThesisProject to aggregate.
+     */
+    where?: ArchivedThesisProjectWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of ArchivedThesisProjects to fetch.
+     */
+    orderBy?: ArchivedThesisProjectOrderByWithRelationInput | ArchivedThesisProjectOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: ArchivedThesisProjectWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` ArchivedThesisProjects from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` ArchivedThesisProjects.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned ArchivedThesisProjects
+    **/
+    _count?: true | ArchivedThesisProjectCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to average
+    **/
+    _avg?: ArchivedThesisProjectAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to sum
+    **/
+    _sum?: ArchivedThesisProjectSumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: ArchivedThesisProjectMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: ArchivedThesisProjectMaxAggregateInputType
+  }
+
+  export type GetArchivedThesisProjectAggregateType<T extends ArchivedThesisProjectAggregateArgs> = {
+        [P in keyof T & keyof AggregateArchivedThesisProject]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateArchivedThesisProject[P]>
+      : GetScalarType<T[P], AggregateArchivedThesisProject[P]>
+  }
+
+
+
+
+  export type ArchivedThesisProjectGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: ArchivedThesisProjectWhereInput
+    orderBy?: ArchivedThesisProjectOrderByWithAggregationInput | ArchivedThesisProjectOrderByWithAggregationInput[]
+    by: ArchivedThesisProjectScalarFieldEnum[] | ArchivedThesisProjectScalarFieldEnum
+    having?: ArchivedThesisProjectScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: ArchivedThesisProjectCountAggregateInputType | true
+    _avg?: ArchivedThesisProjectAvgAggregateInputType
+    _sum?: ArchivedThesisProjectSumAggregateInputType
+    _min?: ArchivedThesisProjectMinAggregateInputType
+    _max?: ArchivedThesisProjectMaxAggregateInputType
+  }
+
+  export type ArchivedThesisProjectGroupByOutputType = {
+    id: number
+    grade: string
+    originalThesisProjectId: number
+    userId: number
+    studentId: string
+    studentName: string
+    className: string
+    topicId: number
+    topicTitle: string
+    topicCategory: string
+    datasetName: string
+    linkedProjectId: number | null
+    repoUrl: string | null
+    deployUrl: string | null
+    originalCreatedAt: Date
+    archivedAt: Date
+    _count: ArchivedThesisProjectCountAggregateOutputType | null
+    _avg: ArchivedThesisProjectAvgAggregateOutputType | null
+    _sum: ArchivedThesisProjectSumAggregateOutputType | null
+    _min: ArchivedThesisProjectMinAggregateOutputType | null
+    _max: ArchivedThesisProjectMaxAggregateOutputType | null
+  }
+
+  type GetArchivedThesisProjectGroupByPayload<T extends ArchivedThesisProjectGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<ArchivedThesisProjectGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof ArchivedThesisProjectGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], ArchivedThesisProjectGroupByOutputType[P]>
+            : GetScalarType<T[P], ArchivedThesisProjectGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type ArchivedThesisProjectSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    grade?: boolean
+    originalThesisProjectId?: boolean
+    userId?: boolean
+    studentId?: boolean
+    studentName?: boolean
+    className?: boolean
+    topicId?: boolean
+    topicTitle?: boolean
+    topicCategory?: boolean
+    datasetName?: boolean
+    linkedProjectId?: boolean
+    repoUrl?: boolean
+    deployUrl?: boolean
+    originalCreatedAt?: boolean
+    archivedAt?: boolean
+  }, ExtArgs["result"]["archivedThesisProject"]>
+
+  export type ArchivedThesisProjectSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    grade?: boolean
+    originalThesisProjectId?: boolean
+    userId?: boolean
+    studentId?: boolean
+    studentName?: boolean
+    className?: boolean
+    topicId?: boolean
+    topicTitle?: boolean
+    topicCategory?: boolean
+    datasetName?: boolean
+    linkedProjectId?: boolean
+    repoUrl?: boolean
+    deployUrl?: boolean
+    originalCreatedAt?: boolean
+    archivedAt?: boolean
+  }, ExtArgs["result"]["archivedThesisProject"]>
+
+  export type ArchivedThesisProjectSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    grade?: boolean
+    originalThesisProjectId?: boolean
+    userId?: boolean
+    studentId?: boolean
+    studentName?: boolean
+    className?: boolean
+    topicId?: boolean
+    topicTitle?: boolean
+    topicCategory?: boolean
+    datasetName?: boolean
+    linkedProjectId?: boolean
+    repoUrl?: boolean
+    deployUrl?: boolean
+    originalCreatedAt?: boolean
+    archivedAt?: boolean
+  }, ExtArgs["result"]["archivedThesisProject"]>
+
+  export type ArchivedThesisProjectSelectScalar = {
+    id?: boolean
+    grade?: boolean
+    originalThesisProjectId?: boolean
+    userId?: boolean
+    studentId?: boolean
+    studentName?: boolean
+    className?: boolean
+    topicId?: boolean
+    topicTitle?: boolean
+    topicCategory?: boolean
+    datasetName?: boolean
+    linkedProjectId?: boolean
+    repoUrl?: boolean
+    deployUrl?: boolean
+    originalCreatedAt?: boolean
+    archivedAt?: boolean
+  }
+
+  export type ArchivedThesisProjectOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "grade" | "originalThesisProjectId" | "userId" | "studentId" | "studentName" | "className" | "topicId" | "topicTitle" | "topicCategory" | "datasetName" | "linkedProjectId" | "repoUrl" | "deployUrl" | "originalCreatedAt" | "archivedAt", ExtArgs["result"]["archivedThesisProject"]>
+
+  export type $ArchivedThesisProjectPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "ArchivedThesisProject"
+    objects: {}
+    scalars: $Extensions.GetPayloadResult<{
+      id: number
+      grade: string
+      originalThesisProjectId: number
+      userId: number
+      studentId: string
+      studentName: string
+      className: string
+      topicId: number
+      topicTitle: string
+      topicCategory: string
+      datasetName: string
+      linkedProjectId: number | null
+      repoUrl: string | null
+      deployUrl: string | null
+      originalCreatedAt: Date
+      archivedAt: Date
+    }, ExtArgs["result"]["archivedThesisProject"]>
+    composites: {}
+  }
+
+  type ArchivedThesisProjectGetPayload<S extends boolean | null | undefined | ArchivedThesisProjectDefaultArgs> = $Result.GetResult<Prisma.$ArchivedThesisProjectPayload, S>
+
+  type ArchivedThesisProjectCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+    Omit<ArchivedThesisProjectFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: ArchivedThesisProjectCountAggregateInputType | true
+    }
+
+  export interface ArchivedThesisProjectDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['ArchivedThesisProject'], meta: { name: 'ArchivedThesisProject' } }
+    /**
+     * Find zero or one ArchivedThesisProject that matches the filter.
+     * @param {ArchivedThesisProjectFindUniqueArgs} args - Arguments to find a ArchivedThesisProject
+     * @example
+     * // Get one ArchivedThesisProject
+     * const archivedThesisProject = await prisma.archivedThesisProject.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends ArchivedThesisProjectFindUniqueArgs>(args: SelectSubset<T, ArchivedThesisProjectFindUniqueArgs<ExtArgs>>): Prisma__ArchivedThesisProjectClient<$Result.GetResult<Prisma.$ArchivedThesisProjectPayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find one ArchivedThesisProject that matches the filter or throw an error with `error.code='P2025'`
+     * if no matches were found.
+     * @param {ArchivedThesisProjectFindUniqueOrThrowArgs} args - Arguments to find a ArchivedThesisProject
+     * @example
+     * // Get one ArchivedThesisProject
+     * const archivedThesisProject = await prisma.archivedThesisProject.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends ArchivedThesisProjectFindUniqueOrThrowArgs>(args: SelectSubset<T, ArchivedThesisProjectFindUniqueOrThrowArgs<ExtArgs>>): Prisma__ArchivedThesisProjectClient<$Result.GetResult<Prisma.$ArchivedThesisProjectPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first ArchivedThesisProject that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ArchivedThesisProjectFindFirstArgs} args - Arguments to find a ArchivedThesisProject
+     * @example
+     * // Get one ArchivedThesisProject
+     * const archivedThesisProject = await prisma.archivedThesisProject.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends ArchivedThesisProjectFindFirstArgs>(args?: SelectSubset<T, ArchivedThesisProjectFindFirstArgs<ExtArgs>>): Prisma__ArchivedThesisProjectClient<$Result.GetResult<Prisma.$ArchivedThesisProjectPayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first ArchivedThesisProject that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ArchivedThesisProjectFindFirstOrThrowArgs} args - Arguments to find a ArchivedThesisProject
+     * @example
+     * // Get one ArchivedThesisProject
+     * const archivedThesisProject = await prisma.archivedThesisProject.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends ArchivedThesisProjectFindFirstOrThrowArgs>(args?: SelectSubset<T, ArchivedThesisProjectFindFirstOrThrowArgs<ExtArgs>>): Prisma__ArchivedThesisProjectClient<$Result.GetResult<Prisma.$ArchivedThesisProjectPayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find zero or more ArchivedThesisProjects that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ArchivedThesisProjectFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all ArchivedThesisProjects
+     * const archivedThesisProjects = await prisma.archivedThesisProject.findMany()
+     * 
+     * // Get first 10 ArchivedThesisProjects
+     * const archivedThesisProjects = await prisma.archivedThesisProject.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const archivedThesisProjectWithIdOnly = await prisma.archivedThesisProject.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends ArchivedThesisProjectFindManyArgs>(args?: SelectSubset<T, ArchivedThesisProjectFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ArchivedThesisProjectPayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+
+    /**
+     * Create a ArchivedThesisProject.
+     * @param {ArchivedThesisProjectCreateArgs} args - Arguments to create a ArchivedThesisProject.
+     * @example
+     * // Create one ArchivedThesisProject
+     * const ArchivedThesisProject = await prisma.archivedThesisProject.create({
+     *   data: {
+     *     // ... data to create a ArchivedThesisProject
+     *   }
+     * })
+     * 
+     */
+    create<T extends ArchivedThesisProjectCreateArgs>(args: SelectSubset<T, ArchivedThesisProjectCreateArgs<ExtArgs>>): Prisma__ArchivedThesisProjectClient<$Result.GetResult<Prisma.$ArchivedThesisProjectPayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Create many ArchivedThesisProjects.
+     * @param {ArchivedThesisProjectCreateManyArgs} args - Arguments to create many ArchivedThesisProjects.
+     * @example
+     * // Create many ArchivedThesisProjects
+     * const archivedThesisProject = await prisma.archivedThesisProject.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends ArchivedThesisProjectCreateManyArgs>(args?: SelectSubset<T, ArchivedThesisProjectCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many ArchivedThesisProjects and returns the data saved in the database.
+     * @param {ArchivedThesisProjectCreateManyAndReturnArgs} args - Arguments to create many ArchivedThesisProjects.
+     * @example
+     * // Create many ArchivedThesisProjects
+     * const archivedThesisProject = await prisma.archivedThesisProject.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many ArchivedThesisProjects and only return the `id`
+     * const archivedThesisProjectWithIdOnly = await prisma.archivedThesisProject.createManyAndReturn({
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends ArchivedThesisProjectCreateManyAndReturnArgs>(args?: SelectSubset<T, ArchivedThesisProjectCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ArchivedThesisProjectPayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Delete a ArchivedThesisProject.
+     * @param {ArchivedThesisProjectDeleteArgs} args - Arguments to delete one ArchivedThesisProject.
+     * @example
+     * // Delete one ArchivedThesisProject
+     * const ArchivedThesisProject = await prisma.archivedThesisProject.delete({
+     *   where: {
+     *     // ... filter to delete one ArchivedThesisProject
+     *   }
+     * })
+     * 
+     */
+    delete<T extends ArchivedThesisProjectDeleteArgs>(args: SelectSubset<T, ArchivedThesisProjectDeleteArgs<ExtArgs>>): Prisma__ArchivedThesisProjectClient<$Result.GetResult<Prisma.$ArchivedThesisProjectPayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Update one ArchivedThesisProject.
+     * @param {ArchivedThesisProjectUpdateArgs} args - Arguments to update one ArchivedThesisProject.
+     * @example
+     * // Update one ArchivedThesisProject
+     * const archivedThesisProject = await prisma.archivedThesisProject.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends ArchivedThesisProjectUpdateArgs>(args: SelectSubset<T, ArchivedThesisProjectUpdateArgs<ExtArgs>>): Prisma__ArchivedThesisProjectClient<$Result.GetResult<Prisma.$ArchivedThesisProjectPayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Delete zero or more ArchivedThesisProjects.
+     * @param {ArchivedThesisProjectDeleteManyArgs} args - Arguments to filter ArchivedThesisProjects to delete.
+     * @example
+     * // Delete a few ArchivedThesisProjects
+     * const { count } = await prisma.archivedThesisProject.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends ArchivedThesisProjectDeleteManyArgs>(args?: SelectSubset<T, ArchivedThesisProjectDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more ArchivedThesisProjects.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ArchivedThesisProjectUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many ArchivedThesisProjects
+     * const archivedThesisProject = await prisma.archivedThesisProject.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends ArchivedThesisProjectUpdateManyArgs>(args: SelectSubset<T, ArchivedThesisProjectUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more ArchivedThesisProjects and returns the data updated in the database.
+     * @param {ArchivedThesisProjectUpdateManyAndReturnArgs} args - Arguments to update many ArchivedThesisProjects.
+     * @example
+     * // Update many ArchivedThesisProjects
+     * const archivedThesisProject = await prisma.archivedThesisProject.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Update zero or more ArchivedThesisProjects and only return the `id`
+     * const archivedThesisProjectWithIdOnly = await prisma.archivedThesisProject.updateManyAndReturn({
+     *   select: { id: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    updateManyAndReturn<T extends ArchivedThesisProjectUpdateManyAndReturnArgs>(args: SelectSubset<T, ArchivedThesisProjectUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ArchivedThesisProjectPayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Create or update one ArchivedThesisProject.
+     * @param {ArchivedThesisProjectUpsertArgs} args - Arguments to update or create a ArchivedThesisProject.
+     * @example
+     * // Update or create a ArchivedThesisProject
+     * const archivedThesisProject = await prisma.archivedThesisProject.upsert({
+     *   create: {
+     *     // ... data to create a ArchivedThesisProject
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the ArchivedThesisProject we want to update
+     *   }
+     * })
+     */
+    upsert<T extends ArchivedThesisProjectUpsertArgs>(args: SelectSubset<T, ArchivedThesisProjectUpsertArgs<ExtArgs>>): Prisma__ArchivedThesisProjectClient<$Result.GetResult<Prisma.$ArchivedThesisProjectPayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+
+    /**
+     * Count the number of ArchivedThesisProjects.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ArchivedThesisProjectCountArgs} args - Arguments to filter ArchivedThesisProjects to count.
+     * @example
+     * // Count the number of ArchivedThesisProjects
+     * const count = await prisma.archivedThesisProject.count({
+     *   where: {
+     *     // ... the filter for the ArchivedThesisProjects we want to count
+     *   }
+     * })
+    **/
+    count<T extends ArchivedThesisProjectCountArgs>(
+      args?: Subset<T, ArchivedThesisProjectCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], ArchivedThesisProjectCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a ArchivedThesisProject.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ArchivedThesisProjectAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends ArchivedThesisProjectAggregateArgs>(args: Subset<T, ArchivedThesisProjectAggregateArgs>): Prisma.PrismaPromise<GetArchivedThesisProjectAggregateType<T>>
+
+    /**
+     * Group by ArchivedThesisProject.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ArchivedThesisProjectGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends ArchivedThesisProjectGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: ArchivedThesisProjectGroupByArgs['orderBy'] }
+        : { orderBy?: ArchivedThesisProjectGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, ArchivedThesisProjectGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetArchivedThesisProjectGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the ArchivedThesisProject model
+   */
+  readonly fields: ArchivedThesisProjectFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for ArchivedThesisProject.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__ArchivedThesisProjectClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the ArchivedThesisProject model
+   */
+  interface ArchivedThesisProjectFieldRefs {
+    readonly id: FieldRef<"ArchivedThesisProject", 'Int'>
+    readonly grade: FieldRef<"ArchivedThesisProject", 'String'>
+    readonly originalThesisProjectId: FieldRef<"ArchivedThesisProject", 'Int'>
+    readonly userId: FieldRef<"ArchivedThesisProject", 'Int'>
+    readonly studentId: FieldRef<"ArchivedThesisProject", 'String'>
+    readonly studentName: FieldRef<"ArchivedThesisProject", 'String'>
+    readonly className: FieldRef<"ArchivedThesisProject", 'String'>
+    readonly topicId: FieldRef<"ArchivedThesisProject", 'Int'>
+    readonly topicTitle: FieldRef<"ArchivedThesisProject", 'String'>
+    readonly topicCategory: FieldRef<"ArchivedThesisProject", 'String'>
+    readonly datasetName: FieldRef<"ArchivedThesisProject", 'String'>
+    readonly linkedProjectId: FieldRef<"ArchivedThesisProject", 'Int'>
+    readonly repoUrl: FieldRef<"ArchivedThesisProject", 'String'>
+    readonly deployUrl: FieldRef<"ArchivedThesisProject", 'String'>
+    readonly originalCreatedAt: FieldRef<"ArchivedThesisProject", 'DateTime'>
+    readonly archivedAt: FieldRef<"ArchivedThesisProject", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * ArchivedThesisProject findUnique
+   */
+  export type ArchivedThesisProjectFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ArchivedThesisProject
+     */
+    select?: ArchivedThesisProjectSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ArchivedThesisProject
+     */
+    omit?: ArchivedThesisProjectOmit<ExtArgs> | null
+    /**
+     * Filter, which ArchivedThesisProject to fetch.
+     */
+    where: ArchivedThesisProjectWhereUniqueInput
+  }
+
+  /**
+   * ArchivedThesisProject findUniqueOrThrow
+   */
+  export type ArchivedThesisProjectFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ArchivedThesisProject
+     */
+    select?: ArchivedThesisProjectSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ArchivedThesisProject
+     */
+    omit?: ArchivedThesisProjectOmit<ExtArgs> | null
+    /**
+     * Filter, which ArchivedThesisProject to fetch.
+     */
+    where: ArchivedThesisProjectWhereUniqueInput
+  }
+
+  /**
+   * ArchivedThesisProject findFirst
+   */
+  export type ArchivedThesisProjectFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ArchivedThesisProject
+     */
+    select?: ArchivedThesisProjectSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ArchivedThesisProject
+     */
+    omit?: ArchivedThesisProjectOmit<ExtArgs> | null
+    /**
+     * Filter, which ArchivedThesisProject to fetch.
+     */
+    where?: ArchivedThesisProjectWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of ArchivedThesisProjects to fetch.
+     */
+    orderBy?: ArchivedThesisProjectOrderByWithRelationInput | ArchivedThesisProjectOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for ArchivedThesisProjects.
+     */
+    cursor?: ArchivedThesisProjectWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` ArchivedThesisProjects from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` ArchivedThesisProjects.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of ArchivedThesisProjects.
+     */
+    distinct?: ArchivedThesisProjectScalarFieldEnum | ArchivedThesisProjectScalarFieldEnum[]
+  }
+
+  /**
+   * ArchivedThesisProject findFirstOrThrow
+   */
+  export type ArchivedThesisProjectFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ArchivedThesisProject
+     */
+    select?: ArchivedThesisProjectSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ArchivedThesisProject
+     */
+    omit?: ArchivedThesisProjectOmit<ExtArgs> | null
+    /**
+     * Filter, which ArchivedThesisProject to fetch.
+     */
+    where?: ArchivedThesisProjectWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of ArchivedThesisProjects to fetch.
+     */
+    orderBy?: ArchivedThesisProjectOrderByWithRelationInput | ArchivedThesisProjectOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for ArchivedThesisProjects.
+     */
+    cursor?: ArchivedThesisProjectWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` ArchivedThesisProjects from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` ArchivedThesisProjects.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of ArchivedThesisProjects.
+     */
+    distinct?: ArchivedThesisProjectScalarFieldEnum | ArchivedThesisProjectScalarFieldEnum[]
+  }
+
+  /**
+   * ArchivedThesisProject findMany
+   */
+  export type ArchivedThesisProjectFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ArchivedThesisProject
+     */
+    select?: ArchivedThesisProjectSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ArchivedThesisProject
+     */
+    omit?: ArchivedThesisProjectOmit<ExtArgs> | null
+    /**
+     * Filter, which ArchivedThesisProjects to fetch.
+     */
+    where?: ArchivedThesisProjectWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of ArchivedThesisProjects to fetch.
+     */
+    orderBy?: ArchivedThesisProjectOrderByWithRelationInput | ArchivedThesisProjectOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing ArchivedThesisProjects.
+     */
+    cursor?: ArchivedThesisProjectWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` ArchivedThesisProjects from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` ArchivedThesisProjects.
+     */
+    skip?: number
+    distinct?: ArchivedThesisProjectScalarFieldEnum | ArchivedThesisProjectScalarFieldEnum[]
+  }
+
+  /**
+   * ArchivedThesisProject create
+   */
+  export type ArchivedThesisProjectCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ArchivedThesisProject
+     */
+    select?: ArchivedThesisProjectSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ArchivedThesisProject
+     */
+    omit?: ArchivedThesisProjectOmit<ExtArgs> | null
+    /**
+     * The data needed to create a ArchivedThesisProject.
+     */
+    data: XOR<ArchivedThesisProjectCreateInput, ArchivedThesisProjectUncheckedCreateInput>
+  }
+
+  /**
+   * ArchivedThesisProject createMany
+   */
+  export type ArchivedThesisProjectCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many ArchivedThesisProjects.
+     */
+    data: ArchivedThesisProjectCreateManyInput | ArchivedThesisProjectCreateManyInput[]
+  }
+
+  /**
+   * ArchivedThesisProject createManyAndReturn
+   */
+  export type ArchivedThesisProjectCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ArchivedThesisProject
+     */
+    select?: ArchivedThesisProjectSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the ArchivedThesisProject
+     */
+    omit?: ArchivedThesisProjectOmit<ExtArgs> | null
+    /**
+     * The data used to create many ArchivedThesisProjects.
+     */
+    data: ArchivedThesisProjectCreateManyInput | ArchivedThesisProjectCreateManyInput[]
+  }
+
+  /**
+   * ArchivedThesisProject update
+   */
+  export type ArchivedThesisProjectUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ArchivedThesisProject
+     */
+    select?: ArchivedThesisProjectSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ArchivedThesisProject
+     */
+    omit?: ArchivedThesisProjectOmit<ExtArgs> | null
+    /**
+     * The data needed to update a ArchivedThesisProject.
+     */
+    data: XOR<ArchivedThesisProjectUpdateInput, ArchivedThesisProjectUncheckedUpdateInput>
+    /**
+     * Choose, which ArchivedThesisProject to update.
+     */
+    where: ArchivedThesisProjectWhereUniqueInput
+  }
+
+  /**
+   * ArchivedThesisProject updateMany
+   */
+  export type ArchivedThesisProjectUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update ArchivedThesisProjects.
+     */
+    data: XOR<ArchivedThesisProjectUpdateManyMutationInput, ArchivedThesisProjectUncheckedUpdateManyInput>
+    /**
+     * Filter which ArchivedThesisProjects to update
+     */
+    where?: ArchivedThesisProjectWhereInput
+    /**
+     * Limit how many ArchivedThesisProjects to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * ArchivedThesisProject updateManyAndReturn
+   */
+  export type ArchivedThesisProjectUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ArchivedThesisProject
+     */
+    select?: ArchivedThesisProjectSelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the ArchivedThesisProject
+     */
+    omit?: ArchivedThesisProjectOmit<ExtArgs> | null
+    /**
+     * The data used to update ArchivedThesisProjects.
+     */
+    data: XOR<ArchivedThesisProjectUpdateManyMutationInput, ArchivedThesisProjectUncheckedUpdateManyInput>
+    /**
+     * Filter which ArchivedThesisProjects to update
+     */
+    where?: ArchivedThesisProjectWhereInput
+    /**
+     * Limit how many ArchivedThesisProjects to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * ArchivedThesisProject upsert
+   */
+  export type ArchivedThesisProjectUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ArchivedThesisProject
+     */
+    select?: ArchivedThesisProjectSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ArchivedThesisProject
+     */
+    omit?: ArchivedThesisProjectOmit<ExtArgs> | null
+    /**
+     * The filter to search for the ArchivedThesisProject to update in case it exists.
+     */
+    where: ArchivedThesisProjectWhereUniqueInput
+    /**
+     * In case the ArchivedThesisProject found by the `where` argument doesn't exist, create a new ArchivedThesisProject with this data.
+     */
+    create: XOR<ArchivedThesisProjectCreateInput, ArchivedThesisProjectUncheckedCreateInput>
+    /**
+     * In case the ArchivedThesisProject was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<ArchivedThesisProjectUpdateInput, ArchivedThesisProjectUncheckedUpdateInput>
+  }
+
+  /**
+   * ArchivedThesisProject delete
+   */
+  export type ArchivedThesisProjectDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ArchivedThesisProject
+     */
+    select?: ArchivedThesisProjectSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ArchivedThesisProject
+     */
+    omit?: ArchivedThesisProjectOmit<ExtArgs> | null
+    /**
+     * Filter which ArchivedThesisProject to delete.
+     */
+    where: ArchivedThesisProjectWhereUniqueInput
+  }
+
+  /**
+   * ArchivedThesisProject deleteMany
+   */
+  export type ArchivedThesisProjectDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which ArchivedThesisProjects to delete
+     */
+    where?: ArchivedThesisProjectWhereInput
+    /**
+     * Limit how many ArchivedThesisProjects to delete.
+     */
+    limit?: number
+  }
+
+  /**
+   * ArchivedThesisProject without action
+   */
+  export type ArchivedThesisProjectDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ArchivedThesisProject
+     */
+    select?: ArchivedThesisProjectSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ArchivedThesisProject
+     */
+    omit?: ArchivedThesisProjectOmit<ExtArgs> | null
+  }
+
+
+  /**
    * Enums
    */
 
@@ -14886,6 +17323,41 @@ export namespace Prisma {
   };
 
   export type ThesisProjectScalarFieldEnum = (typeof ThesisProjectScalarFieldEnum)[keyof typeof ThesisProjectScalarFieldEnum]
+
+
+  export const ArchivedGradeScalarFieldEnum: {
+    id: 'id',
+    grade: 'grade',
+    archivedByUserId: 'archivedByUserId',
+    studentCount: 'studentCount',
+    projectCount: 'projectCount',
+    thesisCount: 'thesisCount',
+    archivedAt: 'archivedAt'
+  };
+
+  export type ArchivedGradeScalarFieldEnum = (typeof ArchivedGradeScalarFieldEnum)[keyof typeof ArchivedGradeScalarFieldEnum]
+
+
+  export const ArchivedThesisProjectScalarFieldEnum: {
+    id: 'id',
+    grade: 'grade',
+    originalThesisProjectId: 'originalThesisProjectId',
+    userId: 'userId',
+    studentId: 'studentId',
+    studentName: 'studentName',
+    className: 'className',
+    topicId: 'topicId',
+    topicTitle: 'topicTitle',
+    topicCategory: 'topicCategory',
+    datasetName: 'datasetName',
+    linkedProjectId: 'linkedProjectId',
+    repoUrl: 'repoUrl',
+    deployUrl: 'deployUrl',
+    originalCreatedAt: 'originalCreatedAt',
+    archivedAt: 'archivedAt'
+  };
+
+  export type ArchivedThesisProjectScalarFieldEnum = (typeof ArchivedThesisProjectScalarFieldEnum)[keyof typeof ArchivedThesisProjectScalarFieldEnum]
 
 
   export const SortOrder: {
@@ -15936,6 +18408,179 @@ export namespace Prisma {
     updatedAt?: DateTimeWithAggregatesFilter<"ThesisProject"> | Date | string
   }
 
+  export type ArchivedGradeWhereInput = {
+    AND?: ArchivedGradeWhereInput | ArchivedGradeWhereInput[]
+    OR?: ArchivedGradeWhereInput[]
+    NOT?: ArchivedGradeWhereInput | ArchivedGradeWhereInput[]
+    id?: IntFilter<"ArchivedGrade"> | number
+    grade?: StringFilter<"ArchivedGrade"> | string
+    archivedByUserId?: IntNullableFilter<"ArchivedGrade"> | number | null
+    studentCount?: IntFilter<"ArchivedGrade"> | number
+    projectCount?: IntFilter<"ArchivedGrade"> | number
+    thesisCount?: IntFilter<"ArchivedGrade"> | number
+    archivedAt?: DateTimeFilter<"ArchivedGrade"> | Date | string
+  }
+
+  export type ArchivedGradeOrderByWithRelationInput = {
+    id?: SortOrder
+    grade?: SortOrder
+    archivedByUserId?: SortOrderInput | SortOrder
+    studentCount?: SortOrder
+    projectCount?: SortOrder
+    thesisCount?: SortOrder
+    archivedAt?: SortOrder
+  }
+
+  export type ArchivedGradeWhereUniqueInput = Prisma.AtLeast<{
+    id?: number
+    grade?: string
+    AND?: ArchivedGradeWhereInput | ArchivedGradeWhereInput[]
+    OR?: ArchivedGradeWhereInput[]
+    NOT?: ArchivedGradeWhereInput | ArchivedGradeWhereInput[]
+    archivedByUserId?: IntNullableFilter<"ArchivedGrade"> | number | null
+    studentCount?: IntFilter<"ArchivedGrade"> | number
+    projectCount?: IntFilter<"ArchivedGrade"> | number
+    thesisCount?: IntFilter<"ArchivedGrade"> | number
+    archivedAt?: DateTimeFilter<"ArchivedGrade"> | Date | string
+  }, "id" | "grade">
+
+  export type ArchivedGradeOrderByWithAggregationInput = {
+    id?: SortOrder
+    grade?: SortOrder
+    archivedByUserId?: SortOrderInput | SortOrder
+    studentCount?: SortOrder
+    projectCount?: SortOrder
+    thesisCount?: SortOrder
+    archivedAt?: SortOrder
+    _count?: ArchivedGradeCountOrderByAggregateInput
+    _avg?: ArchivedGradeAvgOrderByAggregateInput
+    _max?: ArchivedGradeMaxOrderByAggregateInput
+    _min?: ArchivedGradeMinOrderByAggregateInput
+    _sum?: ArchivedGradeSumOrderByAggregateInput
+  }
+
+  export type ArchivedGradeScalarWhereWithAggregatesInput = {
+    AND?: ArchivedGradeScalarWhereWithAggregatesInput | ArchivedGradeScalarWhereWithAggregatesInput[]
+    OR?: ArchivedGradeScalarWhereWithAggregatesInput[]
+    NOT?: ArchivedGradeScalarWhereWithAggregatesInput | ArchivedGradeScalarWhereWithAggregatesInput[]
+    id?: IntWithAggregatesFilter<"ArchivedGrade"> | number
+    grade?: StringWithAggregatesFilter<"ArchivedGrade"> | string
+    archivedByUserId?: IntNullableWithAggregatesFilter<"ArchivedGrade"> | number | null
+    studentCount?: IntWithAggregatesFilter<"ArchivedGrade"> | number
+    projectCount?: IntWithAggregatesFilter<"ArchivedGrade"> | number
+    thesisCount?: IntWithAggregatesFilter<"ArchivedGrade"> | number
+    archivedAt?: DateTimeWithAggregatesFilter<"ArchivedGrade"> | Date | string
+  }
+
+  export type ArchivedThesisProjectWhereInput = {
+    AND?: ArchivedThesisProjectWhereInput | ArchivedThesisProjectWhereInput[]
+    OR?: ArchivedThesisProjectWhereInput[]
+    NOT?: ArchivedThesisProjectWhereInput | ArchivedThesisProjectWhereInput[]
+    id?: IntFilter<"ArchivedThesisProject"> | number
+    grade?: StringFilter<"ArchivedThesisProject"> | string
+    originalThesisProjectId?: IntFilter<"ArchivedThesisProject"> | number
+    userId?: IntFilter<"ArchivedThesisProject"> | number
+    studentId?: StringFilter<"ArchivedThesisProject"> | string
+    studentName?: StringFilter<"ArchivedThesisProject"> | string
+    className?: StringFilter<"ArchivedThesisProject"> | string
+    topicId?: IntFilter<"ArchivedThesisProject"> | number
+    topicTitle?: StringFilter<"ArchivedThesisProject"> | string
+    topicCategory?: StringFilter<"ArchivedThesisProject"> | string
+    datasetName?: StringFilter<"ArchivedThesisProject"> | string
+    linkedProjectId?: IntNullableFilter<"ArchivedThesisProject"> | number | null
+    repoUrl?: StringNullableFilter<"ArchivedThesisProject"> | string | null
+    deployUrl?: StringNullableFilter<"ArchivedThesisProject"> | string | null
+    originalCreatedAt?: DateTimeFilter<"ArchivedThesisProject"> | Date | string
+    archivedAt?: DateTimeFilter<"ArchivedThesisProject"> | Date | string
+  }
+
+  export type ArchivedThesisProjectOrderByWithRelationInput = {
+    id?: SortOrder
+    grade?: SortOrder
+    originalThesisProjectId?: SortOrder
+    userId?: SortOrder
+    studentId?: SortOrder
+    studentName?: SortOrder
+    className?: SortOrder
+    topicId?: SortOrder
+    topicTitle?: SortOrder
+    topicCategory?: SortOrder
+    datasetName?: SortOrder
+    linkedProjectId?: SortOrderInput | SortOrder
+    repoUrl?: SortOrderInput | SortOrder
+    deployUrl?: SortOrderInput | SortOrder
+    originalCreatedAt?: SortOrder
+    archivedAt?: SortOrder
+  }
+
+  export type ArchivedThesisProjectWhereUniqueInput = Prisma.AtLeast<{
+    id?: number
+    AND?: ArchivedThesisProjectWhereInput | ArchivedThesisProjectWhereInput[]
+    OR?: ArchivedThesisProjectWhereInput[]
+    NOT?: ArchivedThesisProjectWhereInput | ArchivedThesisProjectWhereInput[]
+    grade?: StringFilter<"ArchivedThesisProject"> | string
+    originalThesisProjectId?: IntFilter<"ArchivedThesisProject"> | number
+    userId?: IntFilter<"ArchivedThesisProject"> | number
+    studentId?: StringFilter<"ArchivedThesisProject"> | string
+    studentName?: StringFilter<"ArchivedThesisProject"> | string
+    className?: StringFilter<"ArchivedThesisProject"> | string
+    topicId?: IntFilter<"ArchivedThesisProject"> | number
+    topicTitle?: StringFilter<"ArchivedThesisProject"> | string
+    topicCategory?: StringFilter<"ArchivedThesisProject"> | string
+    datasetName?: StringFilter<"ArchivedThesisProject"> | string
+    linkedProjectId?: IntNullableFilter<"ArchivedThesisProject"> | number | null
+    repoUrl?: StringNullableFilter<"ArchivedThesisProject"> | string | null
+    deployUrl?: StringNullableFilter<"ArchivedThesisProject"> | string | null
+    originalCreatedAt?: DateTimeFilter<"ArchivedThesisProject"> | Date | string
+    archivedAt?: DateTimeFilter<"ArchivedThesisProject"> | Date | string
+  }, "id">
+
+  export type ArchivedThesisProjectOrderByWithAggregationInput = {
+    id?: SortOrder
+    grade?: SortOrder
+    originalThesisProjectId?: SortOrder
+    userId?: SortOrder
+    studentId?: SortOrder
+    studentName?: SortOrder
+    className?: SortOrder
+    topicId?: SortOrder
+    topicTitle?: SortOrder
+    topicCategory?: SortOrder
+    datasetName?: SortOrder
+    linkedProjectId?: SortOrderInput | SortOrder
+    repoUrl?: SortOrderInput | SortOrder
+    deployUrl?: SortOrderInput | SortOrder
+    originalCreatedAt?: SortOrder
+    archivedAt?: SortOrder
+    _count?: ArchivedThesisProjectCountOrderByAggregateInput
+    _avg?: ArchivedThesisProjectAvgOrderByAggregateInput
+    _max?: ArchivedThesisProjectMaxOrderByAggregateInput
+    _min?: ArchivedThesisProjectMinOrderByAggregateInput
+    _sum?: ArchivedThesisProjectSumOrderByAggregateInput
+  }
+
+  export type ArchivedThesisProjectScalarWhereWithAggregatesInput = {
+    AND?: ArchivedThesisProjectScalarWhereWithAggregatesInput | ArchivedThesisProjectScalarWhereWithAggregatesInput[]
+    OR?: ArchivedThesisProjectScalarWhereWithAggregatesInput[]
+    NOT?: ArchivedThesisProjectScalarWhereWithAggregatesInput | ArchivedThesisProjectScalarWhereWithAggregatesInput[]
+    id?: IntWithAggregatesFilter<"ArchivedThesisProject"> | number
+    grade?: StringWithAggregatesFilter<"ArchivedThesisProject"> | string
+    originalThesisProjectId?: IntWithAggregatesFilter<"ArchivedThesisProject"> | number
+    userId?: IntWithAggregatesFilter<"ArchivedThesisProject"> | number
+    studentId?: StringWithAggregatesFilter<"ArchivedThesisProject"> | string
+    studentName?: StringWithAggregatesFilter<"ArchivedThesisProject"> | string
+    className?: StringWithAggregatesFilter<"ArchivedThesisProject"> | string
+    topicId?: IntWithAggregatesFilter<"ArchivedThesisProject"> | number
+    topicTitle?: StringWithAggregatesFilter<"ArchivedThesisProject"> | string
+    topicCategory?: StringWithAggregatesFilter<"ArchivedThesisProject"> | string
+    datasetName?: StringWithAggregatesFilter<"ArchivedThesisProject"> | string
+    linkedProjectId?: IntNullableWithAggregatesFilter<"ArchivedThesisProject"> | number | null
+    repoUrl?: StringNullableWithAggregatesFilter<"ArchivedThesisProject"> | string | null
+    deployUrl?: StringNullableWithAggregatesFilter<"ArchivedThesisProject"> | string | null
+    originalCreatedAt?: DateTimeWithAggregatesFilter<"ArchivedThesisProject"> | Date | string
+    archivedAt?: DateTimeWithAggregatesFilter<"ArchivedThesisProject"> | Date | string
+  }
+
   export type UserCreateInput = {
     studentId: string
     name: string
@@ -16866,6 +19511,203 @@ export namespace Prisma {
     deployUrl?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ArchivedGradeCreateInput = {
+    grade: string
+    archivedByUserId?: number | null
+    studentCount?: number
+    projectCount?: number
+    thesisCount?: number
+    archivedAt?: Date | string
+  }
+
+  export type ArchivedGradeUncheckedCreateInput = {
+    id?: number
+    grade: string
+    archivedByUserId?: number | null
+    studentCount?: number
+    projectCount?: number
+    thesisCount?: number
+    archivedAt?: Date | string
+  }
+
+  export type ArchivedGradeUpdateInput = {
+    grade?: StringFieldUpdateOperationsInput | string
+    archivedByUserId?: NullableIntFieldUpdateOperationsInput | number | null
+    studentCount?: IntFieldUpdateOperationsInput | number
+    projectCount?: IntFieldUpdateOperationsInput | number
+    thesisCount?: IntFieldUpdateOperationsInput | number
+    archivedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ArchivedGradeUncheckedUpdateInput = {
+    id?: IntFieldUpdateOperationsInput | number
+    grade?: StringFieldUpdateOperationsInput | string
+    archivedByUserId?: NullableIntFieldUpdateOperationsInput | number | null
+    studentCount?: IntFieldUpdateOperationsInput | number
+    projectCount?: IntFieldUpdateOperationsInput | number
+    thesisCount?: IntFieldUpdateOperationsInput | number
+    archivedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ArchivedGradeCreateManyInput = {
+    id?: number
+    grade: string
+    archivedByUserId?: number | null
+    studentCount?: number
+    projectCount?: number
+    thesisCount?: number
+    archivedAt?: Date | string
+  }
+
+  export type ArchivedGradeUpdateManyMutationInput = {
+    grade?: StringFieldUpdateOperationsInput | string
+    archivedByUserId?: NullableIntFieldUpdateOperationsInput | number | null
+    studentCount?: IntFieldUpdateOperationsInput | number
+    projectCount?: IntFieldUpdateOperationsInput | number
+    thesisCount?: IntFieldUpdateOperationsInput | number
+    archivedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ArchivedGradeUncheckedUpdateManyInput = {
+    id?: IntFieldUpdateOperationsInput | number
+    grade?: StringFieldUpdateOperationsInput | string
+    archivedByUserId?: NullableIntFieldUpdateOperationsInput | number | null
+    studentCount?: IntFieldUpdateOperationsInput | number
+    projectCount?: IntFieldUpdateOperationsInput | number
+    thesisCount?: IntFieldUpdateOperationsInput | number
+    archivedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ArchivedThesisProjectCreateInput = {
+    grade: string
+    originalThesisProjectId: number
+    userId: number
+    studentId: string
+    studentName: string
+    className: string
+    topicId: number
+    topicTitle: string
+    topicCategory: string
+    datasetName: string
+    linkedProjectId?: number | null
+    repoUrl?: string | null
+    deployUrl?: string | null
+    originalCreatedAt: Date | string
+    archivedAt?: Date | string
+  }
+
+  export type ArchivedThesisProjectUncheckedCreateInput = {
+    id?: number
+    grade: string
+    originalThesisProjectId: number
+    userId: number
+    studentId: string
+    studentName: string
+    className: string
+    topicId: number
+    topicTitle: string
+    topicCategory: string
+    datasetName: string
+    linkedProjectId?: number | null
+    repoUrl?: string | null
+    deployUrl?: string | null
+    originalCreatedAt: Date | string
+    archivedAt?: Date | string
+  }
+
+  export type ArchivedThesisProjectUpdateInput = {
+    grade?: StringFieldUpdateOperationsInput | string
+    originalThesisProjectId?: IntFieldUpdateOperationsInput | number
+    userId?: IntFieldUpdateOperationsInput | number
+    studentId?: StringFieldUpdateOperationsInput | string
+    studentName?: StringFieldUpdateOperationsInput | string
+    className?: StringFieldUpdateOperationsInput | string
+    topicId?: IntFieldUpdateOperationsInput | number
+    topicTitle?: StringFieldUpdateOperationsInput | string
+    topicCategory?: StringFieldUpdateOperationsInput | string
+    datasetName?: StringFieldUpdateOperationsInput | string
+    linkedProjectId?: NullableIntFieldUpdateOperationsInput | number | null
+    repoUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    deployUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    originalCreatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    archivedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ArchivedThesisProjectUncheckedUpdateInput = {
+    id?: IntFieldUpdateOperationsInput | number
+    grade?: StringFieldUpdateOperationsInput | string
+    originalThesisProjectId?: IntFieldUpdateOperationsInput | number
+    userId?: IntFieldUpdateOperationsInput | number
+    studentId?: StringFieldUpdateOperationsInput | string
+    studentName?: StringFieldUpdateOperationsInput | string
+    className?: StringFieldUpdateOperationsInput | string
+    topicId?: IntFieldUpdateOperationsInput | number
+    topicTitle?: StringFieldUpdateOperationsInput | string
+    topicCategory?: StringFieldUpdateOperationsInput | string
+    datasetName?: StringFieldUpdateOperationsInput | string
+    linkedProjectId?: NullableIntFieldUpdateOperationsInput | number | null
+    repoUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    deployUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    originalCreatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    archivedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ArchivedThesisProjectCreateManyInput = {
+    id?: number
+    grade: string
+    originalThesisProjectId: number
+    userId: number
+    studentId: string
+    studentName: string
+    className: string
+    topicId: number
+    topicTitle: string
+    topicCategory: string
+    datasetName: string
+    linkedProjectId?: number | null
+    repoUrl?: string | null
+    deployUrl?: string | null
+    originalCreatedAt: Date | string
+    archivedAt?: Date | string
+  }
+
+  export type ArchivedThesisProjectUpdateManyMutationInput = {
+    grade?: StringFieldUpdateOperationsInput | string
+    originalThesisProjectId?: IntFieldUpdateOperationsInput | number
+    userId?: IntFieldUpdateOperationsInput | number
+    studentId?: StringFieldUpdateOperationsInput | string
+    studentName?: StringFieldUpdateOperationsInput | string
+    className?: StringFieldUpdateOperationsInput | string
+    topicId?: IntFieldUpdateOperationsInput | number
+    topicTitle?: StringFieldUpdateOperationsInput | string
+    topicCategory?: StringFieldUpdateOperationsInput | string
+    datasetName?: StringFieldUpdateOperationsInput | string
+    linkedProjectId?: NullableIntFieldUpdateOperationsInput | number | null
+    repoUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    deployUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    originalCreatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    archivedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ArchivedThesisProjectUncheckedUpdateManyInput = {
+    id?: IntFieldUpdateOperationsInput | number
+    grade?: StringFieldUpdateOperationsInput | string
+    originalThesisProjectId?: IntFieldUpdateOperationsInput | number
+    userId?: IntFieldUpdateOperationsInput | number
+    studentId?: StringFieldUpdateOperationsInput | string
+    studentName?: StringFieldUpdateOperationsInput | string
+    className?: StringFieldUpdateOperationsInput | string
+    topicId?: IntFieldUpdateOperationsInput | number
+    topicTitle?: StringFieldUpdateOperationsInput | string
+    topicCategory?: StringFieldUpdateOperationsInput | string
+    datasetName?: StringFieldUpdateOperationsInput | string
+    linkedProjectId?: NullableIntFieldUpdateOperationsInput | number | null
+    repoUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    deployUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    originalCreatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    archivedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
   export type IntFilter<$PrismaModel = never> = {
@@ -17890,6 +20732,125 @@ export namespace Prisma {
     userId?: SortOrder
     topicId?: SortOrder
     projectId?: SortOrder
+  }
+
+  export type ArchivedGradeCountOrderByAggregateInput = {
+    id?: SortOrder
+    grade?: SortOrder
+    archivedByUserId?: SortOrder
+    studentCount?: SortOrder
+    projectCount?: SortOrder
+    thesisCount?: SortOrder
+    archivedAt?: SortOrder
+  }
+
+  export type ArchivedGradeAvgOrderByAggregateInput = {
+    id?: SortOrder
+    archivedByUserId?: SortOrder
+    studentCount?: SortOrder
+    projectCount?: SortOrder
+    thesisCount?: SortOrder
+  }
+
+  export type ArchivedGradeMaxOrderByAggregateInput = {
+    id?: SortOrder
+    grade?: SortOrder
+    archivedByUserId?: SortOrder
+    studentCount?: SortOrder
+    projectCount?: SortOrder
+    thesisCount?: SortOrder
+    archivedAt?: SortOrder
+  }
+
+  export type ArchivedGradeMinOrderByAggregateInput = {
+    id?: SortOrder
+    grade?: SortOrder
+    archivedByUserId?: SortOrder
+    studentCount?: SortOrder
+    projectCount?: SortOrder
+    thesisCount?: SortOrder
+    archivedAt?: SortOrder
+  }
+
+  export type ArchivedGradeSumOrderByAggregateInput = {
+    id?: SortOrder
+    archivedByUserId?: SortOrder
+    studentCount?: SortOrder
+    projectCount?: SortOrder
+    thesisCount?: SortOrder
+  }
+
+  export type ArchivedThesisProjectCountOrderByAggregateInput = {
+    id?: SortOrder
+    grade?: SortOrder
+    originalThesisProjectId?: SortOrder
+    userId?: SortOrder
+    studentId?: SortOrder
+    studentName?: SortOrder
+    className?: SortOrder
+    topicId?: SortOrder
+    topicTitle?: SortOrder
+    topicCategory?: SortOrder
+    datasetName?: SortOrder
+    linkedProjectId?: SortOrder
+    repoUrl?: SortOrder
+    deployUrl?: SortOrder
+    originalCreatedAt?: SortOrder
+    archivedAt?: SortOrder
+  }
+
+  export type ArchivedThesisProjectAvgOrderByAggregateInput = {
+    id?: SortOrder
+    originalThesisProjectId?: SortOrder
+    userId?: SortOrder
+    topicId?: SortOrder
+    linkedProjectId?: SortOrder
+  }
+
+  export type ArchivedThesisProjectMaxOrderByAggregateInput = {
+    id?: SortOrder
+    grade?: SortOrder
+    originalThesisProjectId?: SortOrder
+    userId?: SortOrder
+    studentId?: SortOrder
+    studentName?: SortOrder
+    className?: SortOrder
+    topicId?: SortOrder
+    topicTitle?: SortOrder
+    topicCategory?: SortOrder
+    datasetName?: SortOrder
+    linkedProjectId?: SortOrder
+    repoUrl?: SortOrder
+    deployUrl?: SortOrder
+    originalCreatedAt?: SortOrder
+    archivedAt?: SortOrder
+  }
+
+  export type ArchivedThesisProjectMinOrderByAggregateInput = {
+    id?: SortOrder
+    grade?: SortOrder
+    originalThesisProjectId?: SortOrder
+    userId?: SortOrder
+    studentId?: SortOrder
+    studentName?: SortOrder
+    className?: SortOrder
+    topicId?: SortOrder
+    topicTitle?: SortOrder
+    topicCategory?: SortOrder
+    datasetName?: SortOrder
+    linkedProjectId?: SortOrder
+    repoUrl?: SortOrder
+    deployUrl?: SortOrder
+    originalCreatedAt?: SortOrder
+    archivedAt?: SortOrder
+  }
+
+  export type ArchivedThesisProjectSumOrderByAggregateInput = {
+    id?: SortOrder
+    originalThesisProjectId?: SortOrder
+    userId?: SortOrder
+    topicId?: SortOrder
+    linkedProjectId?: SortOrder
   }
 
   export type ProjectCreateNestedManyWithoutUserInput = {

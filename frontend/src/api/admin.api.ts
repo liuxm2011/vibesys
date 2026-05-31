@@ -34,6 +34,7 @@ export async function fetchAdminUsersApi(params: {
   status?: string;
   sortBy?: string;
   sortOrder?: 'asc' | 'desc';
+  grade?: string;
 }): Promise<UserListResponse> {
   const query = new URLSearchParams();
   if (params.page) query.append('page', String(params.page));
@@ -44,6 +45,7 @@ export async function fetchAdminUsersApi(params: {
   if (params.status) query.append('status', params.status);
   if (params.sortBy) query.append('sortBy', params.sortBy);
   if (params.sortOrder) query.append('sortOrder', params.sortOrder);
+  if (params.grade) query.append('grade', params.grade);
 
   return api.get<UserListResponse>(`/api/admin/users?${query.toString()}`);
 }
@@ -304,6 +306,7 @@ export interface ProjectRepoFilters {
   major?: string;
   class?: string;
   featured?: boolean;
+  grade?: string;
 }
 
 function buildRepoFilterQuery(filters: ProjectRepoFilters = {}): string {
@@ -312,6 +315,7 @@ function buildRepoFilterQuery(filters: ProjectRepoFilters = {}): string {
   if (filters.major) params.set('major', filters.major);
   if (filters.class) params.set('class', filters.class);
   if (filters.featured) params.set('featured', 'true');
+  if (filters.grade) params.set('grade', filters.grade);
   const qs = params.toString();
   return qs ? `?${qs}` : '';
 }
@@ -365,4 +369,65 @@ export async function adminGetThesisProjects(params: { page?: number; pageSize?:
   if (params.pageSize) q.set('pageSize', String(params.pageSize));
   if (params.search) q.set('search', params.search);
   return api.get<{ projects: any[]; total: number; page: number; pageSize: number }>(`/api/admin/thesis/projects?${q}`);
+}
+
+// ============================================================
+// GRADE ARCHIVING（按年级归档）
+// ============================================================
+
+export interface ArchivedGrade {
+  id: number;
+  grade: string;
+  archivedByUserId: number | null;
+  studentCount: number;
+  projectCount: number;
+  thesisCount: number;
+  archivedAt: string;
+}
+
+export interface ActiveGradeOption {
+  grade: string;
+  studentCount: number;
+}
+
+export interface ArchivedThesis {
+  id: number;
+  grade: string;
+  studentId: string;
+  studentName: string;
+  className: string;
+  topicTitle: string;
+  topicCategory: string;
+  datasetName: string;
+  repoUrl: string | null;
+  deployUrl: string | null;
+  originalCreatedAt: string;
+  archivedAt: string;
+}
+
+export async function fetchArchivedGradesApi(): Promise<{ grades: ArchivedGrade[] }> {
+  return api.get('/api/admin/archive');
+}
+
+export async function fetchActiveGradesApi(): Promise<{ grades: ActiveGradeOption[] }> {
+  return api.get('/api/admin/archive/active-grades');
+}
+
+export async function archiveGradeApi(grade: string): Promise<{
+  message: string; grade: string; studentCount: number; projectCount: number; thesisCount: number;
+}> {
+  return api.post('/api/admin/archive', { grade });
+}
+
+export async function unarchiveGradeApi(grade: string): Promise<{ message: string }> {
+  return api.delete(`/api/admin/archive/${encodeURIComponent(grade)}`);
+}
+
+export async function fetchArchivedThesisApi(
+  grade: string,
+  search = ''
+): Promise<{ projects: ArchivedThesis[]; total: number }> {
+  const q = new URLSearchParams();
+  if (search) q.set('search', search);
+  return api.get(`/api/admin/archive/${encodeURIComponent(grade)}/thesis?${q}`);
 }

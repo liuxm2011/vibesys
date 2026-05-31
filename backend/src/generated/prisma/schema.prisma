@@ -279,3 +279,39 @@ model ThesisProject {
   topic   ThesisTopic @relation(fields: [topicId], references: [id], onDelete: Restrict)
   project Project?    @relation("ThesisLinkedProject", fields: [projectId], references: [id], onDelete: SetNull)
 }
+
+// 已归档年级（按年级整届归档；隐藏于管理后台所有模块，学生端不受影响）
+model ArchivedGrade {
+  id               Int      @id @default(autoincrement())
+  grade            String   @unique // 如 "2023级"
+  archivedByUserId Int? // 操作管理员
+  studentCount     Int      @default(0) // 归档时学生数快照
+  projectCount     Int      @default(0) // 归档时项目设计 Project 数快照
+  thesisCount      Int      @default(0) // 归档时毕设选题数快照
+  archivedAt       DateTime @default(now())
+
+  @@index([grade])
+}
+
+// 毕业设计选题归档快照（去规范化，归档后从活表 ThesisProject 删除，仅在此保留可查看）
+model ArchivedThesisProject {
+  id                      Int      @id @default(autoincrement())
+  grade                   String // 冗余年级，便于按年级检索
+  originalThesisProjectId Int // 原 ThesisProject.id
+  userId                  Int // 原学生 id
+  studentId               String // 学号快照
+  studentName             String // 姓名快照
+  className               String // 班级快照
+  topicId                 Int // 原 ThesisTopic.id
+  topicTitle              String // 题目名快照
+  topicCategory           String // 分类快照
+  datasetName             String // 数据集名快照
+  linkedProjectId         Int? // 原 ThesisProject.projectId（懒创建 Project）
+  repoUrl                 String?
+  deployUrl               String?
+  originalCreatedAt       DateTime // 原选题时间
+  archivedAt              DateTime @default(now())
+
+  @@index([grade])
+  @@index([userId])
+}

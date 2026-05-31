@@ -1,6 +1,6 @@
 import { Hono } from 'hono';
 import { Role, Status, Domain, Platform, TopicType, ProjectStatus } from '../generated/prisma';
-import { authMiddleware, adminOnlyMiddleware } from '../middleware/auth.middleware.js';
+import { authMiddleware, adminOnlyMiddleware, viewerBlockMiddleware } from '../middleware/auth.middleware.js';
 import { parseExcelTopics, validateTopicRow, generateTemplateBuffer, parseExcelStudents, validateStudentRow, generateStudentTemplateBuffer, deriveMajorFromStudentId, deriveGradeFromStudentId, validateStudentId } from '../utils/excel-import.utils.js';
 import {
   ADMIN_DEFAULT_PASSWORD,
@@ -10,6 +10,7 @@ import {
 } from '../utils/password.utils.js';
 import { apiProviderService } from '../services/apiProvider.service.js';
 import { getAllProjectRepos, adminUpdateDeployUrl, adminUpdateFeatured } from '../services/repo.service.js';
+import { getArchivedGrades } from '../services/archive.service.js';
 import { asyncHandler } from '../lib/handler.js';
 import { logger } from '../lib/logger.js';
 import type { AppEnv } from '../types.js';
@@ -64,6 +65,15 @@ router.get('/users', asyncHandler('获取用户列表失败', async (c) => {
 
   if (status) {
     whereClause.status = status;
+  }
+
+  // 归档过滤：传 grade 参数时浏览指定年级（绕过排除）；否则默认排除已归档年级
+  const gradeParam = q.grade || '';
+  const archivedGrades = await getArchivedGrades(prisma);
+  if (gradeParam) {
+    whereClause.grade = gradeParam;
+  } else if (archivedGrades.length > 0) {
+    whereClause.grade = { notIn: archivedGrades };
   }
 
   const orderBy = sortBy === 'projectCount'
@@ -656,6 +666,11 @@ router.get('/topics/template', asyncHandler('生成模板失败', async (c) => {
 
 router.get('/stats/overview', asyncHandler('获取概览统计失败', async (c) => {
   const prisma = c.get('prisma');
+  // 统计默认仅反映活跃年级，排除已归档年级
+  const archivedGrades = await getArchivedGrades(prisma);
+  const gradeFilter = archivedGrades.length ? { notIn: archivedGrades } : undefined;
+  const userArchiveWhere: any = gradeFilter ? { grade: gradeFilter } : {};
+  const projectArchiveWhere: any = gradeFilter ? { user: { grade: gradeFilter } } : {};
   const [
     totalUsers,
     activeUsers,
@@ -667,14 +682,14 @@ router.get('/stats/overview', asyncHandler('获取概览统计失败', async (c)
     notStartedProjects,
     totalDocuments
   ] = await Promise.all([
-    prisma.user.count(),
-    prisma.user.count({ where: { status: Status.ACTIVE } }),
-    prisma.user.count({ where: { status: Status.BANNED } }),
+    prisma.user.count({ where: { ...userArchiveWhere } }),
+    prisma.user.count({ where: { status: Status.ACTIVE, ...userArchiveWhere } }),
+    prisma.user.count({ where: { status: Status.BANNED, ...userArchiveWhere } }),
     prisma.topic.count({ where: { type: TopicType.SYSTEM } }),
-    prisma.project.count(),
-    prisma.project.count({ where: { status: ProjectStatus.COMPLETED } }),
-    prisma.project.count({ where: { status: ProjectStatus.IN_PROGRESS } }),
-    prisma.project.count({ where: { status: ProjectStatus.NOT_STARTED } }),
+    prisma.project.count({ where: { ...projectArchiveWhere } }),
+    prisma.project.count({ where: { status: ProjectStatus.COMPLETED, ...projectArchiveWhere } }),
+    prisma.project.count({ where: { status: ProjectStatus.IN_PROGRESS, ...projectArchiveWhere } }),
+    prisma.project.count({ where: { status: ProjectStatus.NOT_STARTED, ...projectArchiveWhere } }),
     prisma.document.count()
   ]);
 
@@ -695,14 +710,19 @@ router.get('/stats/overview', asyncHandler('获取概览统计失败', async (c)
 
 router.get('/stats/users', asyncHandler('获取用户统计失败', async (c) => {
   const prisma = c.get('prisma');
+  const archivedGrades = await getArchivedGrades(prisma);
+  const gradeFilter = archivedGrades.length ? { grade: { notIn: archivedGrades } } : {};
+
   const byMajor = await prisma.user.groupBy({
     by: ['major'],
+    where: { ...gradeFilter },
     _count: true,
     orderBy: { _count: { major: 'desc' } }
   });
 
   const byGrade = await prisma.user.groupBy({
     by: ['grade'],
+    where: { ...gradeFilter },
     _count: true,
     orderBy: { _count: { grade: 'desc' } }
   });
@@ -712,7 +732,7 @@ router.get('/stats/users', asyncHandler('获取用户统计失败', async (c) =>
 
   const recentRegistrations = await prisma.user.groupBy({
     by: ['createdAt'],
-    where: { createdAt: { gte: thirtyDaysAgo } },
+    where: { createdAt: { gte: thirtyDaysAgo }, ...gradeFilter },
     _count: true
   });
 
@@ -735,7 +755,12 @@ router.get('/stats/users', asyncHandler('获取用户统计失败', async (c) =>
 
 router.get('/stats/projects', asyncHandler('获取项目统计失败', async (c) => {
   const prisma = c.get('prisma');
+  const archivedGrades = await getArchivedGrades(prisma);
+  const projectArchiveWhere: any = archivedGrades.length ? { user: { grade: { notIn: archivedGrades } } } : {};
+  const userGradeWhere: any = archivedGrades.length ? { grade: { notIn: archivedGrades } } : {};
+
   const projects = await prisma.project.findMany({
+    where: { ...projectArchiveWhere },
     include: { topic: { select: { domain: true } } }
   });
 
@@ -750,10 +775,11 @@ router.get('/stats/projects', asyncHandler('获取项目统计失败', async (c)
 
   const byStatus = await prisma.project.groupBy({
     by: ['status'],
+    where: { ...projectArchiveWhere },
     _count: true
   });
 
-  const totalUsers = await prisma.user.count({ where: { role: Role.STUDENT } });
+  const totalUsers = await prisma.user.count({ where: { role: Role.STUDENT, ...userGradeWhere } });
   const avgProjectsPerUser = totalUsers > 0 ? projects.length / totalUsers : 0;
 
   return c.json({
@@ -1172,6 +1198,8 @@ router.get('/projects/repos', asyncHandler('获取项目仓库信息失败', asy
     major: q.major || undefined,
     className: q.class || undefined,
     featured: q.featured === 'true' ? true : undefined,
+    grade: q.grade || undefined,
+    archivedGrades: await getArchivedGrades(prisma),
   });
   return c.json({ repos });
 }));
@@ -1187,6 +1215,8 @@ router.get('/projects/repos/export', asyncHandler('导出失败', async (c) => {
     major: q.major || undefined,
     className: q.class || undefined,
     featured: q.featured === 'true' ? true : undefined,
+    grade: q.grade || undefined,
+    archivedGrades: await getArchivedGrades(prisma),
   });
   const XLSX = await import('xlsx');
   const rows = repos.map((r: any) => ({
@@ -1296,6 +1326,12 @@ router.get('/thesis/projects', asyncHandler('获取毕业设计项目失败', as
     ];
   }
 
+  // 归档年级的活毕设行已在归档时删除；此处再排除一层，防止归档学生重新选题后回流后台
+  const archivedGrades = await getArchivedGrades(prisma);
+  if (archivedGrades.length > 0) {
+    whereClause.user = { grade: { notIn: archivedGrades } };
+  }
+
   const [projects, total] = await Promise.all([
     prisma.thesisProject.findMany({
       where: whereClause,
@@ -1311,6 +1347,160 @@ router.get('/thesis/projects', asyncHandler('获取毕业设计项目失败', as
   ]);
 
   return c.json({ projects, total, page, pageSize });
+}));
+
+// ============================================================
+// GRADE ARCHIVING（按年级归档）
+// ============================================================
+
+// GET /api/admin/archive — 已归档年级列表（计数为归档时快照）
+router.get('/archive', asyncHandler('获取归档年级失败', async (c) => {
+  const prisma = c.get('prisma');
+  const grades = await prisma.archivedGrade.findMany({ orderBy: { archivedAt: 'desc' } });
+  return c.json({ grades });
+}));
+
+// GET /api/admin/archive/active-grades — 可归档的活跃年级（未归档、且有学生）
+router.get('/archive/active-grades', asyncHandler('获取年级列表失败', async (c) => {
+  const prisma = c.get('prisma');
+  const archived = await getArchivedGrades(prisma);
+  const grouped = await prisma.user.groupBy({
+    by: ['grade'],
+    where: { role: Role.STUDENT, grade: { not: '' } },
+    _count: true,
+  });
+  const grades = grouped
+    .filter((g: any) => !archived.includes(g.grade))
+    .map((g: any) => ({ grade: g.grade, studentCount: g._count }))
+    .sort((a: any, b: any) => b.grade.localeCompare(a.grade));
+  return c.json({ grades });
+}));
+
+// GET /api/admin/archive/:grade/thesis — 浏览某归档年级的毕设选题快照
+router.get('/archive/:grade/thesis', asyncHandler('获取归档毕设失败', async (c) => {
+  const prisma = c.get('prisma');
+  const grade = decodeURIComponent(c.req.param('grade')!);
+  const search = c.req.query().search || '';
+
+  const whereClause: any = { grade };
+  if (search) {
+    whereClause.OR = [
+      { studentName: { contains: search } },
+      { studentId: { contains: search } },
+      { topicTitle: { contains: search } },
+    ];
+  }
+
+  const projects = await prisma.archivedThesisProject.findMany({
+    where: whereClause,
+    orderBy: { originalCreatedAt: 'desc' },
+  });
+  return c.json({ projects, total: projects.length });
+}));
+
+// POST /api/admin/archive — 归档一个年级（D1 batch 原子操作）
+router.post('/archive', viewerBlockMiddleware, asyncHandler('归档失败', async (c) => {
+  const prisma = c.get('prisma');
+  const db = c.env.DB;
+  const admin = c.get('user');
+  const body = await c.req.json().catch(() => ({}));
+  const grade = typeof body?.grade === 'string' ? body.grade.trim() : '';
+
+  if (!grade) {
+    return c.json({ error: '请提供年级' }, 400);
+  }
+
+  const existing = await prisma.archivedGrade.findUnique({ where: { grade } });
+  if (existing) {
+    return c.json({ error: '该年级已归档' }, 409);
+  }
+
+  // 读阶段：收集该年级学生、其活毕设选题、项目计数
+  const users = await prisma.user.findMany({
+    where: { grade },
+    select: { id: true, studentId: true, name: true, class: true },
+  });
+  if (users.length === 0) {
+    return c.json({ error: '该年级没有学生' }, 404);
+  }
+  const userIds = users.map((u: any) => u.id);
+  const userMap = new Map<number, any>(users.map((u: any) => [u.id, u]));
+
+  const thesisProjects = await prisma.thesisProject.findMany({
+    where: { userId: { in: userIds } },
+    include: { topic: { select: { id: true, title: true, category: true, datasetName: true } } },
+  });
+
+  const projectCount = await prisma.project.count({ where: { userId: { in: userIds } } });
+
+  // 批次阶段（原子）：快照插入 → 删活毕设 → 释放题目锁 → 插 ArchivedGrade
+  const now = new Date().toISOString();
+  const ops: any[] = [];
+
+  for (const tp of thesisProjects) {
+    const u = userMap.get(tp.userId)!;
+    ops.push(
+      db.prepare(
+        `INSERT INTO "ArchivedThesisProject"
+         ("grade","originalThesisProjectId","userId","studentId","studentName","className",
+          "topicId","topicTitle","topicCategory","datasetName","linkedProjectId",
+          "repoUrl","deployUrl","originalCreatedAt","archivedAt")
+         VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`
+      ).bind(
+        grade, tp.id, tp.userId, u.studentId, u.name, u.class,
+        tp.topicId, tp.topic.title, tp.topic.category, tp.topic.datasetName, tp.projectId,
+        tp.repoUrl, tp.deployUrl, new Date(tp.createdAt).toISOString(), now
+      )
+    );
+  }
+
+  if (thesisProjects.length > 0) {
+    const tpIds = thesisProjects.map((t: any) => t.id);
+    ops.push(
+      db.prepare(
+        `DELETE FROM "ThesisProject" WHERE "id" IN (${tpIds.map(() => '?').join(',')})`
+      ).bind(...tpIds)
+    );
+    const topicIds = thesisProjects.map((t: any) => t.topicId);
+    ops.push(
+      db.prepare(
+        `UPDATE "ThesisTopic" SET "isLocked"=0, "lockedAt"=NULL, "lockedByUserId"=NULL
+         WHERE "id" IN (${topicIds.map(() => '?').join(',')})`
+      ).bind(...topicIds)
+    );
+  }
+
+  ops.push(
+    db.prepare(
+      `INSERT INTO "ArchivedGrade"
+       ("grade","archivedByUserId","studentCount","projectCount","thesisCount","archivedAt")
+       VALUES (?,?,?,?,?,?)`
+    ).bind(grade, admin.userId, users.length, projectCount, thesisProjects.length, now)
+  );
+
+  await db.batch(ops);
+
+  return c.json({
+    message: `已归档 ${grade}`,
+    grade,
+    studentCount: users.length,
+    projectCount,
+    thesisCount: thesisProjects.length,
+  });
+}));
+
+// DELETE /api/admin/archive/:grade — 恢复（取消归档）
+// 仅移除归档标记，使该年级用户/项目重新显示；毕设选题不自动恢复（题目可能已被下届重锁），
+// 其快照在 ArchivedThesisProject 中永久保留可查。
+router.delete('/archive/:grade', viewerBlockMiddleware, asyncHandler('恢复失败', async (c) => {
+  const prisma = c.get('prisma');
+  const grade = decodeURIComponent(c.req.param('grade')!);
+  const archived = await prisma.archivedGrade.findUnique({ where: { grade } });
+  if (!archived) {
+    return c.json({ error: '该年级未归档' }, 404);
+  }
+  await prisma.archivedGrade.delete({ where: { grade } });
+  return c.json({ message: `已恢复 ${grade}，该年级用户与项目重新显示` });
 }));
 
 export default router;

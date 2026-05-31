@@ -62,7 +62,8 @@ const routes: RouteRecordRaw[] = [
       { path: 'config', name: 'AdminConfig', component: () => import('@/views/admin/SystemConfig.vue') },
       { path: 'api-providers', name: 'AdminApiProviders', component: () => import('@/views/admin/ApiProviderManagement.vue') },
       { path: 'repos', name: 'AdminRepos', component: () => import('@/views/admin/RepoManagement.vue') },
-      { path: 'graduation', name: 'AdminGraduation', component: () => import('@/views/admin/GraduationManagement.vue') }
+      { path: 'graduation', name: 'AdminGraduation', component: () => import('@/views/admin/GraduationManagement.vue') },
+      { path: 'archive', name: 'AdminArchive', component: () => import('@/views/admin/ArchiveManagement.vue') }
     ]
   },
   {

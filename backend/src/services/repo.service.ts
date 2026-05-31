@@ -166,9 +166,16 @@ export async function adminUpdateFeatured(
 
 export async function getAllProjectRepos(
   prisma: PrismaClient,
-  filters: { hasDeployUrl?: boolean; major?: string; className?: string; featured?: boolean } = {}
+  filters: {
+    hasDeployUrl?: boolean;
+    major?: string;
+    className?: string;
+    featured?: boolean;
+    grade?: string;
+    archivedGrades?: string[];
+  } = {}
 ) {
-  const { hasDeployUrl, major, className, featured } = filters;
+  const { hasDeployUrl, major, className, featured, grade, archivedGrades } = filters;
   // 注意：hasDeployUrl 不在 SQL 层过滤。一个学生可选多个题目，去重规则需要看到该学生
   // 的全部选题才能判断是否「至少有一个填了地址」，因此先取全量（仅按 major/class 过滤，
   // 这两个是按用户维度的、不会拆分同一学生的选题），去重后再在内存里应用 hasDeployUrl。
@@ -176,6 +183,12 @@ export async function getAllProjectRepos(
   const userWhere: any = {};
   if (major) userWhere.major = major;
   if (className) userWhere.class = className;
+  // 归档过滤：传 grade 时浏览指定年级（绕过排除）；否则排除已归档年级
+  if (grade) {
+    userWhere.grade = grade;
+  } else if (archivedGrades && archivedGrades.length > 0) {
+    userWhere.grade = { notIn: archivedGrades };
+  }
   if (Object.keys(userWhere).length > 0) where.user = userWhere;
 
   const allProjects = await prisma.project.findMany({
