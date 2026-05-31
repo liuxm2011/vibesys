@@ -85,3 +85,34 @@ export async function getPasswordDisplayInfo(
         passwordHint: '学生已修改密码，系统不保存明文'
       };
 }
+
+/**
+ * 与 getPasswordDisplayInfo 等价，但**不做 bcrypt**——直接依据 User.passwordIsDefault
+ * 标记返回展示信息。用于用户列表等需要批量计算的场景，避免在 Workers 上对每个用户
+ * 逐个 bcrypt 导致 CPU 超限。默认密码（学号/管理员默认）可明文展示。
+ */
+export function buildPasswordDisplayInfo(
+  studentId: string,
+  role: Role,
+  passwordIsDefault: boolean
+): {
+  canReveal: boolean;
+  revealedPassword: string | null;
+  passwordStatus: 'DEFAULT' | 'CUSTOM';
+  passwordHint: string;
+} {
+  if (!passwordIsDefault) {
+    return {
+      canReveal: false,
+      revealedPassword: null,
+      passwordStatus: 'CUSTOM',
+      passwordHint: role === Role.ADMIN ? '管理员密码已修改，系统不保存明文' : '密码已修改，系统不保存明文'
+    };
+  }
+  return {
+    canReveal: true,
+    revealedPassword: role === Role.ADMIN ? ADMIN_DEFAULT_PASSWORD : studentId,
+    passwordStatus: 'DEFAULT',
+    passwordHint: role === Role.ADMIN ? '当前仍为系统默认管理员密码' : '当前仍为默认密码（学号）'
+  };
+}

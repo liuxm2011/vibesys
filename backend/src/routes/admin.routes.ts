@@ -4,7 +4,7 @@ import { authMiddleware, adminOnlyMiddleware, viewerBlockMiddleware } from '../m
 import { parseExcelTopics, validateTopicRow, generateTemplateBuffer, parseExcelStudents, validateStudentRow, generateStudentTemplateBuffer, deriveMajorFromStudentId, deriveGradeFromStudentId, validateStudentId } from '../utils/excel-import.utils.js';
 import {
   ADMIN_DEFAULT_PASSWORD,
-  getPasswordDisplayInfo,
+  buildPasswordDisplayInfo,
   hashPassword,
   validatePassword
 } from '../utils/password.utils.js';
@@ -93,7 +93,7 @@ router.get('/users', asyncHandler('获取用户列表失败', async (c) => {
         major: true,
         grade: true,
         class: true,
-        password: true,
+        passwordIsDefault: true,
         role: true,
         status: true,
         createdAt: true,
@@ -114,28 +114,27 @@ router.get('/users', asyncHandler('获取用户列表失败', async (c) => {
     })
   ]);
 
-  const formattedUsers = await Promise.all(
-    users.map(async (u: any) => {
-      const passwordInfo = await getPasswordDisplayInfo(u.studentId, u.role, u.password);
+  // 用 passwordIsDefault 标记直接构造展示信息（不做 bcrypt），避免整页逐个 bcrypt 触发 Workers CPU 超限
+  const formattedUsers = users.map((u: any) => {
+    const passwordInfo = buildPasswordDisplayInfo(u.studentId, u.role, u.passwordIsDefault);
 
-      return {
-        id: u.id,
-        studentId: u.studentId,
-        name: u.name,
-        major: u.major,
-        grade: u.grade,
-        class: u.class,
-        role: u.role,
-        status: u.status,
-        projectCount: u._count.projects,
-        createdAt: u.createdAt,
-        passwordStatus: passwordInfo.passwordStatus,
-        passwordHint: passwordInfo.passwordHint,
-        revealedPassword: passwordInfo.revealedPassword,
-        canRevealPassword: passwordInfo.canReveal
-      };
-    })
-  );
+    return {
+      id: u.id,
+      studentId: u.studentId,
+      name: u.name,
+      major: u.major,
+      grade: u.grade,
+      class: u.class,
+      role: u.role,
+      status: u.status,
+      projectCount: u._count.projects,
+      createdAt: u.createdAt,
+      passwordStatus: passwordInfo.passwordStatus,
+      passwordHint: passwordInfo.passwordHint,
+      revealedPassword: passwordInfo.revealedPassword,
+      canRevealPassword: passwordInfo.canReveal
+    };
+  });
 
   return c.json({
     users: formattedUsers,
@@ -198,7 +197,7 @@ router.get('/users/:id/password', asyncHandler('获取密码信息失败', async
       studentId: true,
       name: true,
       role: true,
-      password: true
+      passwordIsDefault: true
     }
   });
 
@@ -206,7 +205,7 @@ router.get('/users/:id/password', asyncHandler('获取密码信息失败', async
     return c.json({ error: '用户不存在' }, 404);
   }
 
-  const passwordInfo = await getPasswordDisplayInfo(user.studentId, user.role, user.password);
+  const passwordInfo = buildPasswordDisplayInfo(user.studentId, user.role, user.passwordIsDefault);
 
   return c.json({
     userId: user.id,
@@ -263,7 +262,7 @@ router.put('/users/:id/password', asyncHandler('更新密码失败', async (c) =
 
   await prisma.user.update({
     where: { id: user.id },
-    data: { password: hashedPassword }
+    data: { password: hashedPassword, passwordIsDefault: action === 'RESET_TO_DEFAULT' }
   });
 
   return c.json({
@@ -314,6 +313,7 @@ router.post('/users', asyncHandler('创建学生失败', async (c) => {
       grade,
       class: classField || '',
       password: hashedPassword,
+      passwordIsDefault: true,
       role: Role.STUDENT,
       status: Status.ACTIVE
     },
@@ -381,7 +381,8 @@ router.post('/users/import', asyncHandler('导入学生失败', async (c) => {
     const usersWithPassword = await Promise.all(
       validRows.map(async (row) => ({
         ...row,
-        password: await hashPassword(row.studentId)
+        password: await hashPassword(row.studentId),
+        passwordIsDefault: true
       }))
     );
 

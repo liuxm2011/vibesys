@@ -30,6 +30,7 @@ async function initAdmin() {
         grade: '系统',
         class: '系统',
         password: hashedPassword,
+        passwordIsDefault: true,
         role: 'ADMIN',
         status: 'ACTIVE'
       }
@@ -64,6 +65,7 @@ async function initAdmin() {
         grade: '测试',
         class: '测试',
         password: hashedTestPassword,
+        passwordIsDefault: false,
         role: 'VIEWER',
         status: 'ACTIVE'
       }

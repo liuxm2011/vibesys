@@ -17,6 +17,7 @@ model User {
   grade     String                              // D-04: 年级
   class     String                              // D-04: 班级
   password  String                              // D-09: bcrypt hash
+  passwordIsDefault Boolean @default(true)       // 是否仍为默认密码（学号/管理员默认），避免列表逐个 bcrypt
   role      Role     @default(STUDENT)          // D-05: student/admin
   status    Status   @default(ACTIVE)           // D-06: active/banned
   createdAt DateTime @default(now())

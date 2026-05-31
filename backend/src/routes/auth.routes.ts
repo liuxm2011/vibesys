@@ -149,7 +149,7 @@ router.put('/password', authMiddleware, viewerBlockMiddleware, asyncHandler('修
 
   await prisma.user.update({
     where: { id: dbUser.id },
-    data: { password: hashedPassword }
+    data: { password: hashedPassword, passwordIsDefault: false }
   });
 
   return c.json({ message: '密码修改成功' });

@@ -2230,6 +2230,7 @@ export namespace Prisma {
     grade: string | null
     class: string | null
     password: string | null
+    passwordIsDefault: boolean | null
     role: $Enums.Role | null
     status: $Enums.Status | null
     createdAt: Date | null
@@ -2244,6 +2245,7 @@ export namespace Prisma {
     grade: string | null
     class: string | null
     password: string | null
+    passwordIsDefault: boolean | null
     role: $Enums.Role | null
     status: $Enums.Status | null
     createdAt: Date | null
@@ -2258,6 +2260,7 @@ export namespace Prisma {
     grade: number
     class: number
     password: number
+    passwordIsDefault: number
     role: number
     status: number
     createdAt: number
@@ -2282,6 +2285,7 @@ export namespace Prisma {
     grade?: true
     class?: true
     password?: true
+    passwordIsDefault?: true
     role?: true
     status?: true
     createdAt?: true
@@ -2296,6 +2300,7 @@ export namespace Prisma {
     grade?: true
     class?: true
     password?: true
+    passwordIsDefault?: true
     role?: true
     status?: true
     createdAt?: true
@@ -2310,6 +2315,7 @@ export namespace Prisma {
     grade?: true
     class?: true
     password?: true
+    passwordIsDefault?: true
     role?: true
     status?: true
     createdAt?: true
@@ -2411,6 +2417,7 @@ export namespace Prisma {
     grade: string
     class: string
     password: string
+    passwordIsDefault: boolean
     role: $Enums.Role
     status: $Enums.Status
     createdAt: Date
@@ -2444,6 +2451,7 @@ export namespace Prisma {
     grade?: boolean
     class?: boolean
     password?: boolean
+    passwordIsDefault?: boolean
     role?: boolean
     status?: boolean
     createdAt?: boolean
@@ -2463,6 +2471,7 @@ export namespace Prisma {
     grade?: boolean
     class?: boolean
     password?: boolean
+    passwordIsDefault?: boolean
     role?: boolean
     status?: boolean
     createdAt?: boolean
@@ -2477,6 +2486,7 @@ export namespace Prisma {
     grade?: boolean
     class?: boolean
     password?: boolean
+    passwordIsDefault?: boolean
     role?: boolean
     status?: boolean
     createdAt?: boolean
@@ -2491,13 +2501,14 @@ export namespace Prisma {
     grade?: boolean
     class?: boolean
     password?: boolean
+    passwordIsDefault?: boolean
     role?: boolean
     status?: boolean
     createdAt?: boolean
     updatedAt?: boolean
   }
 
-  export type UserOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "studentId" | "name" | "major" | "grade" | "class" | "password" | "role" | "status" | "createdAt" | "updatedAt", ExtArgs["result"]["user"]>
+  export type UserOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "studentId" | "name" | "major" | "grade" | "class" | "password" | "passwordIsDefault" | "role" | "status" | "createdAt" | "updatedAt", ExtArgs["result"]["user"]>
   export type UserInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     projects?: boolean | User$projectsArgs<ExtArgs>
     customTopics?: boolean | User$customTopicsArgs<ExtArgs>
@@ -2524,6 +2535,7 @@ export namespace Prisma {
       grade: string
       class: string
       password: string
+      passwordIsDefault: boolean
       role: $Enums.Role
       status: $Enums.Status
       createdAt: Date
@@ -2962,6 +2974,7 @@ export namespace Prisma {
     readonly grade: FieldRef<"User", 'String'>
     readonly class: FieldRef<"User", 'String'>
     readonly password: FieldRef<"User", 'String'>
+    readonly passwordIsDefault: FieldRef<"User", 'Boolean'>
     readonly role: FieldRef<"User", 'Role'>
     readonly status: FieldRef<"User", 'Status'>
     readonly createdAt: FieldRef<"User", 'DateTime'>
@@ -17166,6 +17179,7 @@ export namespace Prisma {
     grade: 'grade',
     class: 'class',
     password: 'password',
+    passwordIsDefault: 'passwordIsDefault',
     role: 'role',
     status: 'status',
     createdAt: 'createdAt',
@@ -17428,6 +17442,13 @@ export namespace Prisma {
 
 
   /**
+   * Reference to a field of type 'Boolean'
+   */
+  export type BooleanFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Boolean'>
+    
+
+
+  /**
    * Reference to a field of type 'Role'
    */
   export type EnumRoleFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Role'>
@@ -17498,13 +17519,6 @@ export namespace Prisma {
 
 
   /**
-   * Reference to a field of type 'Boolean'
-   */
-  export type BooleanFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Boolean'>
-    
-
-
-  /**
    * Reference to a field of type 'DocType'
    */
   export type EnumDocTypeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'DocType'>
@@ -17539,6 +17553,7 @@ export namespace Prisma {
     grade?: StringFilter<"User"> | string
     class?: StringFilter<"User"> | string
     password?: StringFilter<"User"> | string
+    passwordIsDefault?: BoolFilter<"User"> | boolean
     role?: EnumRoleFilter<"User"> | $Enums.Role
     status?: EnumStatusFilter<"User"> | $Enums.Status
     createdAt?: DateTimeFilter<"User"> | Date | string
@@ -17557,6 +17572,7 @@ export namespace Prisma {
     grade?: SortOrder
     class?: SortOrder
     password?: SortOrder
+    passwordIsDefault?: SortOrder
     role?: SortOrder
     status?: SortOrder
     createdAt?: SortOrder
@@ -17578,6 +17594,7 @@ export namespace Prisma {
     grade?: StringFilter<"User"> | string
     class?: StringFilter<"User"> | string
     password?: StringFilter<"User"> | string
+    passwordIsDefault?: BoolFilter<"User"> | boolean
     role?: EnumRoleFilter<"User"> | $Enums.Role
     status?: EnumStatusFilter<"User"> | $Enums.Status
     createdAt?: DateTimeFilter<"User"> | Date | string
@@ -17596,6 +17613,7 @@ export namespace Prisma {
     grade?: SortOrder
     class?: SortOrder
     password?: SortOrder
+    passwordIsDefault?: SortOrder
     role?: SortOrder
     status?: SortOrder
     createdAt?: SortOrder
@@ -17618,6 +17636,7 @@ export namespace Prisma {
     grade?: StringWithAggregatesFilter<"User"> | string
     class?: StringWithAggregatesFilter<"User"> | string
     password?: StringWithAggregatesFilter<"User"> | string
+    passwordIsDefault?: BoolWithAggregatesFilter<"User"> | boolean
     role?: EnumRoleWithAggregatesFilter<"User"> | $Enums.Role
     status?: EnumStatusWithAggregatesFilter<"User"> | $Enums.Status
     createdAt?: DateTimeWithAggregatesFilter<"User"> | Date | string
@@ -18588,6 +18607,7 @@ export namespace Prisma {
     grade: string
     class: string
     password: string
+    passwordIsDefault?: boolean
     role?: $Enums.Role
     status?: $Enums.Status
     createdAt?: Date | string
@@ -18606,6 +18626,7 @@ export namespace Prisma {
     grade: string
     class: string
     password: string
+    passwordIsDefault?: boolean
     role?: $Enums.Role
     status?: $Enums.Status
     createdAt?: Date | string
@@ -18623,6 +18644,7 @@ export namespace Prisma {
     grade?: StringFieldUpdateOperationsInput | string
     class?: StringFieldUpdateOperationsInput | string
     password?: StringFieldUpdateOperationsInput | string
+    passwordIsDefault?: BoolFieldUpdateOperationsInput | boolean
     role?: EnumRoleFieldUpdateOperationsInput | $Enums.Role
     status?: EnumStatusFieldUpdateOperationsInput | $Enums.Status
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -18641,6 +18663,7 @@ export namespace Prisma {
     grade?: StringFieldUpdateOperationsInput | string
     class?: StringFieldUpdateOperationsInput | string
     password?: StringFieldUpdateOperationsInput | string
+    passwordIsDefault?: BoolFieldUpdateOperationsInput | boolean
     role?: EnumRoleFieldUpdateOperationsInput | $Enums.Role
     status?: EnumStatusFieldUpdateOperationsInput | $Enums.Status
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -18659,6 +18682,7 @@ export namespace Prisma {
     grade: string
     class: string
     password: string
+    passwordIsDefault?: boolean
     role?: $Enums.Role
     status?: $Enums.Status
     createdAt?: Date | string
@@ -18672,6 +18696,7 @@ export namespace Prisma {
     grade?: StringFieldUpdateOperationsInput | string
     class?: StringFieldUpdateOperationsInput | string
     password?: StringFieldUpdateOperationsInput | string
+    passwordIsDefault?: BoolFieldUpdateOperationsInput | boolean
     role?: EnumRoleFieldUpdateOperationsInput | $Enums.Role
     status?: EnumStatusFieldUpdateOperationsInput | $Enums.Status
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -18686,6 +18711,7 @@ export namespace Prisma {
     grade?: StringFieldUpdateOperationsInput | string
     class?: StringFieldUpdateOperationsInput | string
     password?: StringFieldUpdateOperationsInput | string
+    passwordIsDefault?: BoolFieldUpdateOperationsInput | boolean
     role?: EnumRoleFieldUpdateOperationsInput | $Enums.Role
     status?: EnumStatusFieldUpdateOperationsInput | $Enums.Status
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -19735,6 +19761,11 @@ export namespace Prisma {
     not?: NestedStringFilter<$PrismaModel> | string
   }
 
+  export type BoolFilter<$PrismaModel = never> = {
+    equals?: boolean | BooleanFieldRefInput<$PrismaModel>
+    not?: NestedBoolFilter<$PrismaModel> | boolean
+  }
+
   export type EnumRoleFilter<$PrismaModel = never> = {
     equals?: $Enums.Role | EnumRoleFieldRefInput<$PrismaModel>
     in?: $Enums.Role[]
@@ -19803,6 +19834,7 @@ export namespace Prisma {
     grade?: SortOrder
     class?: SortOrder
     password?: SortOrder
+    passwordIsDefault?: SortOrder
     role?: SortOrder
     status?: SortOrder
     createdAt?: SortOrder
@@ -19821,6 +19853,7 @@ export namespace Prisma {
     grade?: SortOrder
     class?: SortOrder
     password?: SortOrder
+    passwordIsDefault?: SortOrder
     role?: SortOrder
     status?: SortOrder
     createdAt?: SortOrder
@@ -19835,6 +19868,7 @@ export namespace Prisma {
     grade?: SortOrder
     class?: SortOrder
     password?: SortOrder
+    passwordIsDefault?: SortOrder
     role?: SortOrder
     status?: SortOrder
     createdAt?: SortOrder
@@ -19876,6 +19910,14 @@ export namespace Prisma {
     _count?: NestedIntFilter<$PrismaModel>
     _min?: NestedStringFilter<$PrismaModel>
     _max?: NestedStringFilter<$PrismaModel>
+  }
+
+  export type BoolWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: boolean | BooleanFieldRefInput<$PrismaModel>
+    not?: NestedBoolWithAggregatesFilter<$PrismaModel> | boolean
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedBoolFilter<$PrismaModel>
+    _max?: NestedBoolFilter<$PrismaModel>
   }
 
   export type EnumRoleWithAggregatesFilter<$PrismaModel = never> = {
@@ -20155,11 +20197,6 @@ export namespace Prisma {
     not?: NestedEnumReviewStatusFilter<$PrismaModel> | $Enums.ReviewStatus
   }
 
-  export type BoolFilter<$PrismaModel = never> = {
-    equals?: boolean | BooleanFieldRefInput<$PrismaModel>
-    not?: NestedBoolFilter<$PrismaModel> | boolean
-  }
-
   export type UserScalarRelationFilter = {
     is?: UserWhereInput
     isNot?: UserWhereInput
@@ -20286,14 +20323,6 @@ export namespace Prisma {
     _count?: NestedIntFilter<$PrismaModel>
     _min?: NestedEnumReviewStatusFilter<$PrismaModel>
     _max?: NestedEnumReviewStatusFilter<$PrismaModel>
-  }
-
-  export type BoolWithAggregatesFilter<$PrismaModel = never> = {
-    equals?: boolean | BooleanFieldRefInput<$PrismaModel>
-    not?: NestedBoolWithAggregatesFilter<$PrismaModel> | boolean
-    _count?: NestedIntFilter<$PrismaModel>
-    _min?: NestedBoolFilter<$PrismaModel>
-    _max?: NestedBoolFilter<$PrismaModel>
   }
 
   export type EnumDocTypeFilter<$PrismaModel = never> = {
@@ -20911,6 +20940,10 @@ export namespace Prisma {
     set?: string
   }
 
+  export type BoolFieldUpdateOperationsInput = {
+    set?: boolean
+  }
+
   export type EnumRoleFieldUpdateOperationsInput = {
     set?: $Enums.Role
   }
@@ -21177,10 +21210,6 @@ export namespace Prisma {
     set?: $Enums.ReviewStatus
   }
 
-  export type BoolFieldUpdateOperationsInput = {
-    set?: boolean
-  }
-
   export type UserUpdateOneRequiredWithoutProjectsNestedInput = {
     create?: XOR<UserCreateWithoutProjectsInput, UserUncheckedCreateWithoutProjectsInput>
     connectOrCreate?: UserCreateOrConnectWithoutProjectsInput
@@ -21430,6 +21459,11 @@ export namespace Prisma {
     not?: NestedStringFilter<$PrismaModel> | string
   }
 
+  export type NestedBoolFilter<$PrismaModel = never> = {
+    equals?: boolean | BooleanFieldRefInput<$PrismaModel>
+    not?: NestedBoolFilter<$PrismaModel> | boolean
+  }
+
   export type NestedEnumRoleFilter<$PrismaModel = never> = {
     equals?: $Enums.Role | EnumRoleFieldRefInput<$PrismaModel>
     in?: $Enums.Role[]
@@ -21497,6 +21531,14 @@ export namespace Prisma {
     _count?: NestedIntFilter<$PrismaModel>
     _min?: NestedStringFilter<$PrismaModel>
     _max?: NestedStringFilter<$PrismaModel>
+  }
+
+  export type NestedBoolWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: boolean | BooleanFieldRefInput<$PrismaModel>
+    not?: NestedBoolWithAggregatesFilter<$PrismaModel> | boolean
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedBoolFilter<$PrismaModel>
+    _max?: NestedBoolFilter<$PrismaModel>
   }
 
   export type NestedEnumRoleWithAggregatesFilter<$PrismaModel = never> = {
@@ -21685,11 +21727,6 @@ export namespace Prisma {
     not?: NestedEnumReviewStatusFilter<$PrismaModel> | $Enums.ReviewStatus
   }
 
-  export type NestedBoolFilter<$PrismaModel = never> = {
-    equals?: boolean | BooleanFieldRefInput<$PrismaModel>
-    not?: NestedBoolFilter<$PrismaModel> | boolean
-  }
-
   export type NestedEnumProjectStatusWithAggregatesFilter<$PrismaModel = never> = {
     equals?: $Enums.ProjectStatus | EnumProjectStatusFieldRefInput<$PrismaModel>
     in?: $Enums.ProjectStatus[]
@@ -21726,14 +21763,6 @@ export namespace Prisma {
     _count?: NestedIntFilter<$PrismaModel>
     _min?: NestedEnumReviewStatusFilter<$PrismaModel>
     _max?: NestedEnumReviewStatusFilter<$PrismaModel>
-  }
-
-  export type NestedBoolWithAggregatesFilter<$PrismaModel = never> = {
-    equals?: boolean | BooleanFieldRefInput<$PrismaModel>
-    not?: NestedBoolWithAggregatesFilter<$PrismaModel> | boolean
-    _count?: NestedIntFilter<$PrismaModel>
-    _min?: NestedBoolFilter<$PrismaModel>
-    _max?: NestedBoolFilter<$PrismaModel>
   }
 
   export type NestedEnumDocTypeFilter<$PrismaModel = never> = {
@@ -22076,6 +22105,7 @@ export namespace Prisma {
     grade: string
     class: string
     password: string
+    passwordIsDefault?: boolean
     role?: $Enums.Role
     status?: $Enums.Status
     createdAt?: Date | string
@@ -22093,6 +22123,7 @@ export namespace Prisma {
     grade: string
     class: string
     password: string
+    passwordIsDefault?: boolean
     role?: $Enums.Role
     status?: $Enums.Status
     createdAt?: Date | string
@@ -22171,6 +22202,7 @@ export namespace Prisma {
     grade?: StringFieldUpdateOperationsInput | string
     class?: StringFieldUpdateOperationsInput | string
     password?: StringFieldUpdateOperationsInput | string
+    passwordIsDefault?: BoolFieldUpdateOperationsInput | boolean
     role?: EnumRoleFieldUpdateOperationsInput | $Enums.Role
     status?: EnumStatusFieldUpdateOperationsInput | $Enums.Status
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -22188,6 +22220,7 @@ export namespace Prisma {
     grade?: StringFieldUpdateOperationsInput | string
     class?: StringFieldUpdateOperationsInput | string
     password?: StringFieldUpdateOperationsInput | string
+    passwordIsDefault?: BoolFieldUpdateOperationsInput | boolean
     role?: EnumRoleFieldUpdateOperationsInput | $Enums.Role
     status?: EnumStatusFieldUpdateOperationsInput | $Enums.Status
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -22220,6 +22253,7 @@ export namespace Prisma {
     grade: string
     class: string
     password: string
+    passwordIsDefault?: boolean
     role?: $Enums.Role
     status?: $Enums.Status
     createdAt?: Date | string
@@ -22237,6 +22271,7 @@ export namespace Prisma {
     grade: string
     class: string
     password: string
+    passwordIsDefault?: boolean
     role?: $Enums.Role
     status?: $Enums.Status
     createdAt?: Date | string
@@ -22375,6 +22410,7 @@ export namespace Prisma {
     grade?: StringFieldUpdateOperationsInput | string
     class?: StringFieldUpdateOperationsInput | string
     password?: StringFieldUpdateOperationsInput | string
+    passwordIsDefault?: BoolFieldUpdateOperationsInput | boolean
     role?: EnumRoleFieldUpdateOperationsInput | $Enums.Role
     status?: EnumStatusFieldUpdateOperationsInput | $Enums.Status
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -22392,6 +22428,7 @@ export namespace Prisma {
     grade?: StringFieldUpdateOperationsInput | string
     class?: StringFieldUpdateOperationsInput | string
     password?: StringFieldUpdateOperationsInput | string
+    passwordIsDefault?: BoolFieldUpdateOperationsInput | boolean
     role?: EnumRoleFieldUpdateOperationsInput | $Enums.Role
     status?: EnumStatusFieldUpdateOperationsInput | $Enums.Status
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -22714,6 +22751,7 @@ export namespace Prisma {
     grade: string
     class: string
     password: string
+    passwordIsDefault?: boolean
     role?: $Enums.Role
     status?: $Enums.Status
     createdAt?: Date | string
@@ -22731,6 +22769,7 @@ export namespace Prisma {
     grade: string
     class: string
     password: string
+    passwordIsDefault?: boolean
     role?: $Enums.Role
     status?: $Enums.Status
     createdAt?: Date | string
@@ -22787,6 +22826,7 @@ export namespace Prisma {
     grade?: StringFieldUpdateOperationsInput | string
     class?: StringFieldUpdateOperationsInput | string
     password?: StringFieldUpdateOperationsInput | string
+    passwordIsDefault?: BoolFieldUpdateOperationsInput | boolean
     role?: EnumRoleFieldUpdateOperationsInput | $Enums.Role
     status?: EnumStatusFieldUpdateOperationsInput | $Enums.Status
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -22804,6 +22844,7 @@ export namespace Prisma {
     grade?: StringFieldUpdateOperationsInput | string
     class?: StringFieldUpdateOperationsInput | string
     password?: StringFieldUpdateOperationsInput | string
+    passwordIsDefault?: BoolFieldUpdateOperationsInput | boolean
     role?: EnumRoleFieldUpdateOperationsInput | $Enums.Role
     status?: EnumStatusFieldUpdateOperationsInput | $Enums.Status
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -22850,6 +22891,7 @@ export namespace Prisma {
     grade: string
     class: string
     password: string
+    passwordIsDefault?: boolean
     role?: $Enums.Role
     status?: $Enums.Status
     createdAt?: Date | string
@@ -22867,6 +22909,7 @@ export namespace Prisma {
     grade: string
     class: string
     password: string
+    passwordIsDefault?: boolean
     role?: $Enums.Role
     status?: $Enums.Status
     createdAt?: Date | string
@@ -22971,6 +23014,7 @@ export namespace Prisma {
     grade?: StringFieldUpdateOperationsInput | string
     class?: StringFieldUpdateOperationsInput | string
     password?: StringFieldUpdateOperationsInput | string
+    passwordIsDefault?: BoolFieldUpdateOperationsInput | boolean
     role?: EnumRoleFieldUpdateOperationsInput | $Enums.Role
     status?: EnumStatusFieldUpdateOperationsInput | $Enums.Status
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -22988,6 +23032,7 @@ export namespace Prisma {
     grade?: StringFieldUpdateOperationsInput | string
     class?: StringFieldUpdateOperationsInput | string
     password?: StringFieldUpdateOperationsInput | string
+    passwordIsDefault?: BoolFieldUpdateOperationsInput | boolean
     role?: EnumRoleFieldUpdateOperationsInput | $Enums.Role
     status?: EnumStatusFieldUpdateOperationsInput | $Enums.Status
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
