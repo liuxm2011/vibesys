@@ -303,6 +303,7 @@ export interface ProjectRepoFilters {
   hasDeployUrl?: boolean;
   major?: string;
   class?: string;
+  featured?: boolean;
 }
 
 function buildRepoFilterQuery(filters: ProjectRepoFilters = {}): string {
@@ -310,6 +311,7 @@ function buildRepoFilterQuery(filters: ProjectRepoFilters = {}): string {
   if (filters.hasDeployUrl !== undefined) params.set('hasDeployUrl', String(filters.hasDeployUrl));
   if (filters.major) params.set('major', filters.major);
   if (filters.class) params.set('class', filters.class);
+  if (filters.featured) params.set('featured', 'true');
   const qs = params.toString();
   return qs ? `?${qs}` : '';
 }
@@ -325,6 +327,13 @@ export async function adminUpdateDeployUrlApi(
   deployUrl: string | null
 ): Promise<{ message: string }> {
   return api.put(`/api/admin/projects/${projectId}/deployUrl`, { deployUrl });
+}
+
+export async function adminUpdateFeaturedApi(
+  projectId: number,
+  featured: boolean
+): Promise<{ message: string }> {
+  return api.put(`/api/admin/projects/${projectId}/featured`, { featured });
 }
 
 export async function exportProjectReposApi(filters: ProjectRepoFilters = {}): Promise<void> {

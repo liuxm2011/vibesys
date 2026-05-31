@@ -9,7 +9,7 @@ import {
   validatePassword
 } from '../utils/password.utils.js';
 import { apiProviderService } from '../services/apiProvider.service.js';
-import { getAllProjectRepos, adminUpdateDeployUrl } from '../services/repo.service.js';
+import { getAllProjectRepos, adminUpdateDeployUrl, adminUpdateFeatured } from '../services/repo.service.js';
 import { asyncHandler } from '../lib/handler.js';
 import { logger } from '../lib/logger.js';
 import type { AppEnv } from '../types.js';
@@ -1171,6 +1171,7 @@ router.get('/projects/repos', asyncHandler('获取项目仓库信息失败', asy
     hasDeployUrl,
     major: q.major || undefined,
     className: q.class || undefined,
+    featured: q.featured === 'true' ? true : undefined,
   });
   return c.json({ repos });
 }));
@@ -1185,6 +1186,7 @@ router.get('/projects/repos/export', asyncHandler('导出失败', async (c) => {
     hasDeployUrl,
     major: q.major || undefined,
     className: q.class || undefined,
+    featured: q.featured === 'true' ? true : undefined,
   });
   const XLSX = await import('xlsx');
   const rows = repos.map((r: any) => ({
@@ -1194,6 +1196,7 @@ router.get('/projects/repos/export', asyncHandler('导出失败', async (c) => {
     '年级': r.grade,
     '班级': r.className,
     '选题名称': r.topicTitle,
+    '优秀': r.isFeatured ? '是' : '',
     '仓库地址': r.repoUrl || '',
     '访问地址': r.deployUrl || '',
     '最近同步时间': r.syncedAt ? new Date(r.syncedAt).toLocaleString('zh-CN') : '',
@@ -1229,6 +1232,30 @@ router.put('/projects/:id/deployUrl', async (c) => {
     }
     logger.error('Admin deploy URL update error:', error);
     return c.json({ error: '更新访问地址失败' }, 500);
+  }
+});
+
+router.put('/projects/:id/featured', async (c) => {
+  try {
+    const prisma = c.get('prisma');
+    const projectId = parseInt(c.req.param('id')!);
+    const { featured } = await c.req.json();
+
+    if (isNaN(projectId)) {
+      return c.json({ error: '无效的项目ID' }, 400);
+    }
+    if (typeof featured !== 'boolean') {
+      return c.json({ error: 'featured 必须为布尔值' }, 400);
+    }
+
+    await adminUpdateFeatured(prisma, projectId, featured);
+    return c.json({ message: featured ? '已标记为优秀' : '已取消优秀标记' });
+  } catch (error: any) {
+    if (error.message === 'PROJECT_NOT_FOUND') {
+      return c.json({ error: '项目不存在' }, 404);
+    }
+    logger.error('Admin featured update error:', error);
+    return c.json({ error: '更新优秀标记失败' }, 500);
   }
 });
 

@@ -24,11 +24,19 @@
         <el-radio-button value="true">已填写访问地址</el-radio-button>
         <el-radio-button value="false">未填写访问地址</el-radio-button>
       </el-radio-group>
+      <el-button
+        :type="featuredOnly ? 'warning' : 'default'"
+        :plain="!featuredOnly"
+        class="featured-filter-btn"
+        @click="featuredOnly = !featuredOnly"
+      >
+        <el-icon><StarFilled /></el-icon>仅看优秀
+      </el-button>
       <span class="result-count">共 {{ filteredRepos.length }} 条</span>
     </div>
 
     <el-card shadow="never" v-loading="loading">
-      <el-table :data="filteredRepos" stripe style="width: 100%" empty-text="暂无数据">
+      <el-table :data="filteredRepos" stripe style="width: 100%" empty-text="暂无数据" :row-class-name="rowClassName">
         <el-table-column prop="studentId" label="学号" width="120" />
         <el-table-column prop="studentName" label="姓名" width="100" />
         <el-table-column prop="major" label="专业" width="140" />
@@ -64,6 +72,23 @@
           </template>
         </el-table-column>
         <el-table-column prop="commitCount" label="提交数" width="75" align="center" />
+        <el-table-column label="优秀" width="70" align="center" fixed="right">
+          <template #default="{ row }">
+            <el-button
+              text
+              circle
+              class="star-btn"
+              :class="{ 'is-featured': row.isFeatured }"
+              :title="row.isFeatured ? '取消优秀标记' : '标记为优秀'"
+              @click="toggleFeatured(row)"
+            >
+              <el-icon :size="18">
+                <StarFilled v-if="row.isFeatured" />
+                <Star v-else />
+              </el-icon>
+            </el-button>
+          </template>
+        </el-table-column>
       </el-table>
     </el-card>
 
@@ -89,8 +114,8 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue';
 import { ElMessage } from 'element-plus';
-import { Refresh, Download } from '@element-plus/icons-vue';
-import { fetchProjectReposApi, exportProjectReposApi, adminUpdateDeployUrlApi } from '@/api/admin.api';
+import { Refresh, Download, Star, StarFilled } from '@element-plus/icons-vue';
+import { fetchProjectReposApi, exportProjectReposApi, adminUpdateDeployUrlApi, adminUpdateFeaturedApi } from '@/api/admin.api';
 import type { ProjectRepoInfo } from '@/types/project';
 
 const repos = ref<ProjectRepoInfo[]>([]);
@@ -99,6 +124,7 @@ const exporting = ref(false);
 const deployFilter = ref('');
 const majorFilter = ref('');
 const classFilter = ref('');
+const featuredOnly = ref(false);
 
 const editDialogVisible = ref(false);
 const editingRow = ref<ProjectRepoInfo | null>(null);
@@ -131,9 +157,26 @@ const filteredRepos = computed(() =>
     if (classFilter.value && r.className !== classFilter.value) return false;
     if (deployFilter.value === 'true' && !r.deployUrl) return false;
     if (deployFilter.value === 'false' && r.deployUrl) return false;
+    if (featuredOnly.value && !r.isFeatured) return false;
     return true;
   })
 );
+
+function rowClassName({ row }: { row: ProjectRepoInfo }): string {
+  return row.isFeatured ? 'featured-row' : '';
+}
+
+async function toggleFeatured(row: ProjectRepoInfo): Promise<void> {
+  const next = !row.isFeatured;
+  row.isFeatured = next; // 乐观更新
+  try {
+    await adminUpdateFeaturedApi(row.projectId, next);
+    ElMessage.success(next ? '已标记为优秀' : '已取消优秀标记');
+  } catch (e: any) {
+    row.isFeatured = !next; // 失败回滚
+    ElMessage.error(e.message || '操作失败');
+  }
+}
 
 async function loadRepos(): Promise<void> {
   loading.value = true;
@@ -157,6 +200,7 @@ async function handleExport(): Promise<void> {
         undefined,
       major: majorFilter.value || undefined,
       class: classFilter.value || undefined,
+      featured: featuredOnly.value || undefined,
     });
     ElMessage.success('导出成功');
   } catch (e: any) {
@@ -274,5 +318,31 @@ onMounted(loadRepos);
 .student-info {
   font-size: 13px;
   color: #64748b;
+}
+
+/* 优秀星标按钮 */
+.star-btn {
+  color: #cbd5e1;
+}
+.star-btn:hover {
+  color: #f59e0b;
+}
+.star-btn.is-featured {
+  color: #f59e0b;
+}
+
+.featured-filter-btn .el-icon {
+  margin-right: 4px;
+}
+
+/* 优秀行高亮：淡金底色 + 左侧金色竖条，覆盖 stripe 斑马纹 */
+.repo-management :deep(.featured-row > td.el-table__cell) {
+  background-color: #fffbeb !important;
+}
+.repo-management :deep(.featured-row:hover > td.el-table__cell) {
+  background-color: #fef3c7 !important;
+}
+.repo-management :deep(.featured-row > td.el-table__cell:first-child) {
+  box-shadow: inset 3px 0 0 #f59e0b;
 }
 </style>

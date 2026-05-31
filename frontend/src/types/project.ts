@@ -115,4 +115,5 @@ export interface ProjectRepoInfo {
   syncedAt: string | null;
   commitCount: number;
   deployUrl: string | null;
+  isFeatured: boolean;
 }

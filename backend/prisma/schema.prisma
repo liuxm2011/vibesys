@@ -134,6 +134,7 @@ model Project {
   repoUrl         String?       // Gitee 仓库地址
   repoSyncData    Json?         // 同步数据: { commits: [...], readme: "...", syncedAt: "..." }
   deployUrl       String?       // 部署访问地址（学生填写）
+  isFeatured      Boolean       @default(false)  // 管理员标记的优秀项目
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
 

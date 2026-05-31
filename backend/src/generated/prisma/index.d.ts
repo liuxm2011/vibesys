@@ -4542,6 +4542,7 @@ export namespace Prisma {
     reviewStatus: $Enums.ReviewStatus | null
     repoUrl: string | null
     deployUrl: string | null
+    isFeatured: boolean | null
     createdAt: Date | null
     updatedAt: Date | null
   }
@@ -4555,6 +4556,7 @@ export namespace Prisma {
     reviewStatus: $Enums.ReviewStatus | null
     repoUrl: string | null
     deployUrl: string | null
+    isFeatured: boolean | null
     createdAt: Date | null
     updatedAt: Date | null
   }
@@ -4571,6 +4573,7 @@ export namespace Prisma {
     repoUrl: number
     repoSyncData: number
     deployUrl: number
+    isFeatured: number
     createdAt: number
     updatedAt: number
     _all: number
@@ -4598,6 +4601,7 @@ export namespace Prisma {
     reviewStatus?: true
     repoUrl?: true
     deployUrl?: true
+    isFeatured?: true
     createdAt?: true
     updatedAt?: true
   }
@@ -4611,6 +4615,7 @@ export namespace Prisma {
     reviewStatus?: true
     repoUrl?: true
     deployUrl?: true
+    isFeatured?: true
     createdAt?: true
     updatedAt?: true
   }
@@ -4627,6 +4632,7 @@ export namespace Prisma {
     repoUrl?: true
     repoSyncData?: true
     deployUrl?: true
+    isFeatured?: true
     createdAt?: true
     updatedAt?: true
     _all?: true
@@ -4730,6 +4736,7 @@ export namespace Prisma {
     repoUrl: string | null
     repoSyncData: JsonValue | null
     deployUrl: string | null
+    isFeatured: boolean
     createdAt: Date
     updatedAt: Date
     _count: ProjectCountAggregateOutputType | null
@@ -4765,6 +4772,7 @@ export namespace Prisma {
     repoUrl?: boolean
     repoSyncData?: boolean
     deployUrl?: boolean
+    isFeatured?: boolean
     createdAt?: boolean
     updatedAt?: boolean
     user?: boolean | UserDefaultArgs<ExtArgs>
@@ -4787,6 +4795,7 @@ export namespace Prisma {
     repoUrl?: boolean
     repoSyncData?: boolean
     deployUrl?: boolean
+    isFeatured?: boolean
     createdAt?: boolean
     updatedAt?: boolean
     user?: boolean | UserDefaultArgs<ExtArgs>
@@ -4805,6 +4814,7 @@ export namespace Prisma {
     repoUrl?: boolean
     repoSyncData?: boolean
     deployUrl?: boolean
+    isFeatured?: boolean
     createdAt?: boolean
     updatedAt?: boolean
     user?: boolean | UserDefaultArgs<ExtArgs>
@@ -4823,11 +4833,12 @@ export namespace Prisma {
     repoUrl?: boolean
     repoSyncData?: boolean
     deployUrl?: boolean
+    isFeatured?: boolean
     createdAt?: boolean
     updatedAt?: boolean
   }
 
-  export type ProjectOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "userId" | "topicId" | "status" | "techStack" | "documentsRef" | "reviewStatus" | "reviewResult" | "repoUrl" | "repoSyncData" | "deployUrl" | "createdAt" | "updatedAt", ExtArgs["result"]["project"]>
+  export type ProjectOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "userId" | "topicId" | "status" | "techStack" | "documentsRef" | "reviewStatus" | "reviewResult" | "repoUrl" | "repoSyncData" | "deployUrl" | "isFeatured" | "createdAt" | "updatedAt", ExtArgs["result"]["project"]>
   export type ProjectInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     user?: boolean | UserDefaultArgs<ExtArgs>
     topic?: boolean | TopicDefaultArgs<ExtArgs>
@@ -4866,6 +4877,7 @@ export namespace Prisma {
       repoUrl: string | null
       repoSyncData: Prisma.JsonValue | null
       deployUrl: string | null
+      isFeatured: boolean
       createdAt: Date
       updatedAt: Date
     }, ExtArgs["result"]["project"]>
@@ -5307,6 +5319,7 @@ export namespace Prisma {
     readonly repoUrl: FieldRef<"Project", 'String'>
     readonly repoSyncData: FieldRef<"Project", 'Json'>
     readonly deployUrl: FieldRef<"Project", 'String'>
+    readonly isFeatured: FieldRef<"Project", 'Boolean'>
     readonly createdAt: FieldRef<"Project", 'DateTime'>
     readonly updatedAt: FieldRef<"Project", 'DateTime'>
   }
@@ -14755,6 +14768,7 @@ export namespace Prisma {
     repoUrl: 'repoUrl',
     repoSyncData: 'repoSyncData',
     deployUrl: 'deployUrl',
+    isFeatured: 'isFeatured',
     createdAt: 'createdAt',
     updatedAt: 'updatedAt'
   };
@@ -15012,6 +15026,13 @@ export namespace Prisma {
 
 
   /**
+   * Reference to a field of type 'Boolean'
+   */
+  export type BooleanFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Boolean'>
+    
+
+
+  /**
    * Reference to a field of type 'DocType'
    */
   export type EnumDocTypeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'DocType'>
@@ -15022,13 +15043,6 @@ export namespace Prisma {
    * Reference to a field of type 'GraduationDocType'
    */
   export type EnumGraduationDocTypeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'GraduationDocType'>
-    
-
-
-  /**
-   * Reference to a field of type 'Boolean'
-   */
-  export type BooleanFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Boolean'>
     
 
 
@@ -15248,6 +15262,7 @@ export namespace Prisma {
     repoUrl?: StringNullableFilter<"Project"> | string | null
     repoSyncData?: JsonNullableFilter<"Project">
     deployUrl?: StringNullableFilter<"Project"> | string | null
+    isFeatured?: BoolFilter<"Project"> | boolean
     createdAt?: DateTimeFilter<"Project"> | Date | string
     updatedAt?: DateTimeFilter<"Project"> | Date | string
     user?: XOR<UserScalarRelationFilter, UserWhereInput>
@@ -15269,6 +15284,7 @@ export namespace Prisma {
     repoUrl?: SortOrderInput | SortOrder
     repoSyncData?: SortOrderInput | SortOrder
     deployUrl?: SortOrderInput | SortOrder
+    isFeatured?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
     user?: UserOrderByWithRelationInput
@@ -15293,6 +15309,7 @@ export namespace Prisma {
     repoUrl?: StringNullableFilter<"Project"> | string | null
     repoSyncData?: JsonNullableFilter<"Project">
     deployUrl?: StringNullableFilter<"Project"> | string | null
+    isFeatured?: BoolFilter<"Project"> | boolean
     createdAt?: DateTimeFilter<"Project"> | Date | string
     updatedAt?: DateTimeFilter<"Project"> | Date | string
     user?: XOR<UserScalarRelationFilter, UserWhereInput>
@@ -15314,6 +15331,7 @@ export namespace Prisma {
     repoUrl?: SortOrderInput | SortOrder
     repoSyncData?: SortOrderInput | SortOrder
     deployUrl?: SortOrderInput | SortOrder
+    isFeatured?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
     _count?: ProjectCountOrderByAggregateInput
@@ -15338,6 +15356,7 @@ export namespace Prisma {
     repoUrl?: StringNullableWithAggregatesFilter<"Project"> | string | null
     repoSyncData?: JsonNullableWithAggregatesFilter<"Project">
     deployUrl?: StringNullableWithAggregatesFilter<"Project"> | string | null
+    isFeatured?: BoolWithAggregatesFilter<"Project"> | boolean
     createdAt?: DateTimeWithAggregatesFilter<"Project"> | Date | string
     updatedAt?: DateTimeWithAggregatesFilter<"Project"> | Date | string
   }
@@ -16142,6 +16161,7 @@ export namespace Prisma {
     repoUrl?: string | null
     repoSyncData?: NullableJsonNullValueInput | InputJsonValue
     deployUrl?: string | null
+    isFeatured?: boolean
     createdAt?: Date | string
     updatedAt?: Date | string
     user: UserCreateNestedOneWithoutProjectsInput
@@ -16163,6 +16183,7 @@ export namespace Prisma {
     repoUrl?: string | null
     repoSyncData?: NullableJsonNullValueInput | InputJsonValue
     deployUrl?: string | null
+    isFeatured?: boolean
     createdAt?: Date | string
     updatedAt?: Date | string
     documents?: DocumentUncheckedCreateNestedManyWithoutProjectInput
@@ -16179,6 +16200,7 @@ export namespace Prisma {
     repoUrl?: NullableStringFieldUpdateOperationsInput | string | null
     repoSyncData?: NullableJsonNullValueInput | InputJsonValue
     deployUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    isFeatured?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     user?: UserUpdateOneRequiredWithoutProjectsNestedInput
@@ -16200,6 +16222,7 @@ export namespace Prisma {
     repoUrl?: NullableStringFieldUpdateOperationsInput | string | null
     repoSyncData?: NullableJsonNullValueInput | InputJsonValue
     deployUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    isFeatured?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     documents?: DocumentUncheckedUpdateManyWithoutProjectNestedInput
@@ -16219,6 +16242,7 @@ export namespace Prisma {
     repoUrl?: string | null
     repoSyncData?: NullableJsonNullValueInput | InputJsonValue
     deployUrl?: string | null
+    isFeatured?: boolean
     createdAt?: Date | string
     updatedAt?: Date | string
   }
@@ -16232,6 +16256,7 @@ export namespace Prisma {
     repoUrl?: NullableStringFieldUpdateOperationsInput | string | null
     repoSyncData?: NullableJsonNullValueInput | InputJsonValue
     deployUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    isFeatured?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -16248,6 +16273,7 @@ export namespace Prisma {
     repoUrl?: NullableStringFieldUpdateOperationsInput | string | null
     repoSyncData?: NullableJsonNullValueInput | InputJsonValue
     deployUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    isFeatured?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -17287,6 +17313,11 @@ export namespace Prisma {
     not?: NestedEnumReviewStatusFilter<$PrismaModel> | $Enums.ReviewStatus
   }
 
+  export type BoolFilter<$PrismaModel = never> = {
+    equals?: boolean | BooleanFieldRefInput<$PrismaModel>
+    not?: NestedBoolFilter<$PrismaModel> | boolean
+  }
+
   export type UserScalarRelationFilter = {
     is?: UserWhereInput
     isNot?: UserWhereInput
@@ -17329,6 +17360,7 @@ export namespace Prisma {
     repoUrl?: SortOrder
     repoSyncData?: SortOrder
     deployUrl?: SortOrder
+    isFeatured?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -17348,6 +17380,7 @@ export namespace Prisma {
     reviewStatus?: SortOrder
     repoUrl?: SortOrder
     deployUrl?: SortOrder
+    isFeatured?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -17361,6 +17394,7 @@ export namespace Prisma {
     reviewStatus?: SortOrder
     repoUrl?: SortOrder
     deployUrl?: SortOrder
+    isFeatured?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -17410,6 +17444,14 @@ export namespace Prisma {
     _count?: NestedIntFilter<$PrismaModel>
     _min?: NestedEnumReviewStatusFilter<$PrismaModel>
     _max?: NestedEnumReviewStatusFilter<$PrismaModel>
+  }
+
+  export type BoolWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: boolean | BooleanFieldRefInput<$PrismaModel>
+    not?: NestedBoolWithAggregatesFilter<$PrismaModel> | boolean
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedBoolFilter<$PrismaModel>
+    _max?: NestedBoolFilter<$PrismaModel>
   }
 
   export type EnumDocTypeFilter<$PrismaModel = never> = {
@@ -17607,11 +17649,6 @@ export namespace Prisma {
     userId?: SortOrder
   }
 
-  export type BoolFilter<$PrismaModel = never> = {
-    equals?: boolean | BooleanFieldRefInput<$PrismaModel>
-    not?: NestedBoolFilter<$PrismaModel> | boolean
-  }
-
   export type ApiProviderCountOrderByAggregateInput = {
     id?: SortOrder
     name?: SortOrder
@@ -17662,14 +17699,6 @@ export namespace Prisma {
   export type ApiProviderSumOrderByAggregateInput = {
     id?: SortOrder
     orderIndex?: SortOrder
-  }
-
-  export type BoolWithAggregatesFilter<$PrismaModel = never> = {
-    equals?: boolean | BooleanFieldRefInput<$PrismaModel>
-    not?: NestedBoolWithAggregatesFilter<$PrismaModel> | boolean
-    _count?: NestedIntFilter<$PrismaModel>
-    _min?: NestedBoolFilter<$PrismaModel>
-    _max?: NestedBoolFilter<$PrismaModel>
   }
 
   export type AiUsageLogCountOrderByAggregateInput = {
@@ -18187,6 +18216,10 @@ export namespace Prisma {
     set?: $Enums.ReviewStatus
   }
 
+  export type BoolFieldUpdateOperationsInput = {
+    set?: boolean
+  }
+
   export type UserUpdateOneRequiredWithoutProjectsNestedInput = {
     create?: XOR<UserCreateWithoutProjectsInput, UserUncheckedCreateWithoutProjectsInput>
     connectOrCreate?: UserCreateOrConnectWithoutProjectsInput
@@ -18313,10 +18346,6 @@ export namespace Prisma {
     upsert?: ProjectUpsertWithoutGraduationDocumentsInput
     connect?: ProjectWhereUniqueInput
     update?: XOR<XOR<ProjectUpdateToOneWithWhereWithoutGraduationDocumentsInput, ProjectUpdateWithoutGraduationDocumentsInput>, ProjectUncheckedUpdateWithoutGraduationDocumentsInput>
-  }
-
-  export type BoolFieldUpdateOperationsInput = {
-    set?: boolean
   }
 
   export type UserCreateNestedOneWithoutLockedThesisTopicsInput = {
@@ -18695,6 +18724,11 @@ export namespace Prisma {
     not?: NestedEnumReviewStatusFilter<$PrismaModel> | $Enums.ReviewStatus
   }
 
+  export type NestedBoolFilter<$PrismaModel = never> = {
+    equals?: boolean | BooleanFieldRefInput<$PrismaModel>
+    not?: NestedBoolFilter<$PrismaModel> | boolean
+  }
+
   export type NestedEnumProjectStatusWithAggregatesFilter<$PrismaModel = never> = {
     equals?: $Enums.ProjectStatus | EnumProjectStatusFieldRefInput<$PrismaModel>
     in?: $Enums.ProjectStatus[]
@@ -18733,6 +18767,14 @@ export namespace Prisma {
     _max?: NestedEnumReviewStatusFilter<$PrismaModel>
   }
 
+  export type NestedBoolWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: boolean | BooleanFieldRefInput<$PrismaModel>
+    not?: NestedBoolWithAggregatesFilter<$PrismaModel> | boolean
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedBoolFilter<$PrismaModel>
+    _max?: NestedBoolFilter<$PrismaModel>
+  }
+
   export type NestedEnumDocTypeFilter<$PrismaModel = never> = {
     equals?: $Enums.DocType | EnumDocTypeFieldRefInput<$PrismaModel>
     in?: $Enums.DocType[]
@@ -18765,19 +18807,6 @@ export namespace Prisma {
     _count?: NestedIntFilter<$PrismaModel>
     _min?: NestedEnumGraduationDocTypeFilter<$PrismaModel>
     _max?: NestedEnumGraduationDocTypeFilter<$PrismaModel>
-  }
-
-  export type NestedBoolFilter<$PrismaModel = never> = {
-    equals?: boolean | BooleanFieldRefInput<$PrismaModel>
-    not?: NestedBoolFilter<$PrismaModel> | boolean
-  }
-
-  export type NestedBoolWithAggregatesFilter<$PrismaModel = never> = {
-    equals?: boolean | BooleanFieldRefInput<$PrismaModel>
-    not?: NestedBoolWithAggregatesFilter<$PrismaModel> | boolean
-    _count?: NestedIntFilter<$PrismaModel>
-    _min?: NestedBoolFilter<$PrismaModel>
-    _max?: NestedBoolFilter<$PrismaModel>
   }
 
   export type NestedDateTimeNullableFilter<$PrismaModel = never> = {
@@ -18814,6 +18843,7 @@ export namespace Prisma {
     repoUrl?: string | null
     repoSyncData?: NullableJsonNullValueInput | InputJsonValue
     deployUrl?: string | null
+    isFeatured?: boolean
     createdAt?: Date | string
     updatedAt?: Date | string
     topic: TopicCreateNestedOneWithoutProjectsInput
@@ -18833,6 +18863,7 @@ export namespace Prisma {
     repoUrl?: string | null
     repoSyncData?: NullableJsonNullValueInput | InputJsonValue
     deployUrl?: string | null
+    isFeatured?: boolean
     createdAt?: Date | string
     updatedAt?: Date | string
     documents?: DocumentUncheckedCreateNestedManyWithoutProjectInput
@@ -18976,6 +19007,7 @@ export namespace Prisma {
     repoUrl?: StringNullableFilter<"Project"> | string | null
     repoSyncData?: JsonNullableFilter<"Project">
     deployUrl?: StringNullableFilter<"Project"> | string | null
+    isFeatured?: BoolFilter<"Project"> | boolean
     createdAt?: DateTimeFilter<"Project"> | Date | string
     updatedAt?: DateTimeFilter<"Project"> | Date | string
   }
@@ -19123,6 +19155,7 @@ export namespace Prisma {
     repoUrl?: string | null
     repoSyncData?: NullableJsonNullValueInput | InputJsonValue
     deployUrl?: string | null
+    isFeatured?: boolean
     createdAt?: Date | string
     updatedAt?: Date | string
     user: UserCreateNestedOneWithoutProjectsInput
@@ -19142,6 +19175,7 @@ export namespace Prisma {
     repoUrl?: string | null
     repoSyncData?: NullableJsonNullValueInput | InputJsonValue
     deployUrl?: string | null
+    isFeatured?: boolean
     createdAt?: Date | string
     updatedAt?: Date | string
     documents?: DocumentUncheckedCreateNestedManyWithoutProjectInput
@@ -19541,6 +19575,7 @@ export namespace Prisma {
     repoUrl?: string | null
     repoSyncData?: NullableJsonNullValueInput | InputJsonValue
     deployUrl?: string | null
+    isFeatured?: boolean
     createdAt?: Date | string
     updatedAt?: Date | string
     user: UserCreateNestedOneWithoutProjectsInput
@@ -19561,6 +19596,7 @@ export namespace Prisma {
     repoUrl?: string | null
     repoSyncData?: NullableJsonNullValueInput | InputJsonValue
     deployUrl?: string | null
+    isFeatured?: boolean
     createdAt?: Date | string
     updatedAt?: Date | string
     graduationDocuments?: GraduationDocumentUncheckedCreateNestedManyWithoutProjectInput
@@ -19592,6 +19628,7 @@ export namespace Prisma {
     repoUrl?: NullableStringFieldUpdateOperationsInput | string | null
     repoSyncData?: NullableJsonNullValueInput | InputJsonValue
     deployUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    isFeatured?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     user?: UserUpdateOneRequiredWithoutProjectsNestedInput
@@ -19612,6 +19649,7 @@ export namespace Prisma {
     repoUrl?: NullableStringFieldUpdateOperationsInput | string | null
     repoSyncData?: NullableJsonNullValueInput | InputJsonValue
     deployUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    isFeatured?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     graduationDocuments?: GraduationDocumentUncheckedUpdateManyWithoutProjectNestedInput
@@ -19627,6 +19665,7 @@ export namespace Prisma {
     repoUrl?: string | null
     repoSyncData?: NullableJsonNullValueInput | InputJsonValue
     deployUrl?: string | null
+    isFeatured?: boolean
     createdAt?: Date | string
     updatedAt?: Date | string
     user: UserCreateNestedOneWithoutProjectsInput
@@ -19647,6 +19686,7 @@ export namespace Prisma {
     repoUrl?: string | null
     repoSyncData?: NullableJsonNullValueInput | InputJsonValue
     deployUrl?: string | null
+    isFeatured?: boolean
     createdAt?: Date | string
     updatedAt?: Date | string
     documents?: DocumentUncheckedCreateNestedManyWithoutProjectInput
@@ -19678,6 +19718,7 @@ export namespace Prisma {
     repoUrl?: NullableStringFieldUpdateOperationsInput | string | null
     repoSyncData?: NullableJsonNullValueInput | InputJsonValue
     deployUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    isFeatured?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     user?: UserUpdateOneRequiredWithoutProjectsNestedInput
@@ -19698,6 +19739,7 @@ export namespace Prisma {
     repoUrl?: NullableStringFieldUpdateOperationsInput | string | null
     repoSyncData?: NullableJsonNullValueInput | InputJsonValue
     deployUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    isFeatured?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     documents?: DocumentUncheckedUpdateManyWithoutProjectNestedInput
@@ -19917,6 +19959,7 @@ export namespace Prisma {
     repoUrl?: string | null
     repoSyncData?: NullableJsonNullValueInput | InputJsonValue
     deployUrl?: string | null
+    isFeatured?: boolean
     createdAt?: Date | string
     updatedAt?: Date | string
     user: UserCreateNestedOneWithoutProjectsInput
@@ -19937,6 +19980,7 @@ export namespace Prisma {
     repoUrl?: string | null
     repoSyncData?: NullableJsonNullValueInput | InputJsonValue
     deployUrl?: string | null
+    isFeatured?: boolean
     createdAt?: Date | string
     updatedAt?: Date | string
     documents?: DocumentUncheckedCreateNestedManyWithoutProjectInput
@@ -20048,6 +20092,7 @@ export namespace Prisma {
     repoUrl?: NullableStringFieldUpdateOperationsInput | string | null
     repoSyncData?: NullableJsonNullValueInput | InputJsonValue
     deployUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    isFeatured?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     user?: UserUpdateOneRequiredWithoutProjectsNestedInput
@@ -20068,6 +20113,7 @@ export namespace Prisma {
     repoUrl?: NullableStringFieldUpdateOperationsInput | string | null
     repoSyncData?: NullableJsonNullValueInput | InputJsonValue
     deployUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    isFeatured?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     documents?: DocumentUncheckedUpdateManyWithoutProjectNestedInput
@@ -20085,6 +20131,7 @@ export namespace Prisma {
     repoUrl?: string | null
     repoSyncData?: NullableJsonNullValueInput | InputJsonValue
     deployUrl?: string | null
+    isFeatured?: boolean
     createdAt?: Date | string
     updatedAt?: Date | string
   }
@@ -20124,6 +20171,7 @@ export namespace Prisma {
     repoUrl?: NullableStringFieldUpdateOperationsInput | string | null
     repoSyncData?: NullableJsonNullValueInput | InputJsonValue
     deployUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    isFeatured?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     topic?: TopicUpdateOneRequiredWithoutProjectsNestedInput
@@ -20143,6 +20191,7 @@ export namespace Prisma {
     repoUrl?: NullableStringFieldUpdateOperationsInput | string | null
     repoSyncData?: NullableJsonNullValueInput | InputJsonValue
     deployUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    isFeatured?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     documents?: DocumentUncheckedUpdateManyWithoutProjectNestedInput
@@ -20161,6 +20210,7 @@ export namespace Prisma {
     repoUrl?: NullableStringFieldUpdateOperationsInput | string | null
     repoSyncData?: NullableJsonNullValueInput | InputJsonValue
     deployUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    isFeatured?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -20256,6 +20306,7 @@ export namespace Prisma {
     repoUrl?: string | null
     repoSyncData?: NullableJsonNullValueInput | InputJsonValue
     deployUrl?: string | null
+    isFeatured?: boolean
     createdAt?: Date | string
     updatedAt?: Date | string
   }
@@ -20269,6 +20320,7 @@ export namespace Prisma {
     repoUrl?: NullableStringFieldUpdateOperationsInput | string | null
     repoSyncData?: NullableJsonNullValueInput | InputJsonValue
     deployUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    isFeatured?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     user?: UserUpdateOneRequiredWithoutProjectsNestedInput
@@ -20288,6 +20340,7 @@ export namespace Prisma {
     repoUrl?: NullableStringFieldUpdateOperationsInput | string | null
     repoSyncData?: NullableJsonNullValueInput | InputJsonValue
     deployUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    isFeatured?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     documents?: DocumentUncheckedUpdateManyWithoutProjectNestedInput
@@ -20306,6 +20359,7 @@ export namespace Prisma {
     repoUrl?: NullableStringFieldUpdateOperationsInput | string | null
     repoSyncData?: NullableJsonNullValueInput | InputJsonValue
     deployUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    isFeatured?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }

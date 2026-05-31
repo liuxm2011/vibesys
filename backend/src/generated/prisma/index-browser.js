@@ -159,6 +159,7 @@ exports.Prisma.ProjectScalarFieldEnum = {
   repoUrl: 'repoUrl',
   repoSyncData: 'repoSyncData',
   deployUrl: 'deployUrl',
+  isFeatured: 'isFeatured',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 };

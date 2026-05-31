@@ -151,11 +151,24 @@ export async function adminUpdateDeployUrl(
   });
 }
 
+export async function adminUpdateFeatured(
+  prisma: PrismaClient,
+  projectId: number,
+  isFeatured: boolean
+): Promise<void> {
+  const project = await prisma.project.findFirst({ where: { id: projectId } });
+  if (!project) throw new Error('PROJECT_NOT_FOUND');
+  await prisma.project.update({
+    where: { id: projectId },
+    data: { isFeatured },
+  });
+}
+
 export async function getAllProjectRepos(
   prisma: PrismaClient,
-  filters: { hasDeployUrl?: boolean; major?: string; className?: string } = {}
+  filters: { hasDeployUrl?: boolean; major?: string; className?: string; featured?: boolean } = {}
 ) {
-  const { hasDeployUrl, major, className } = filters;
+  const { hasDeployUrl, major, className, featured } = filters;
   // 注意：hasDeployUrl 不在 SQL 层过滤。一个学生可选多个题目，去重规则需要看到该学生
   // 的全部选题才能判断是否「至少有一个填了地址」，因此先取全量（仅按 major/class 过滤，
   // 这两个是按用户维度的、不会拆分同一学生的选题），去重后再在内存里应用 hasDeployUrl。
@@ -173,6 +186,7 @@ export async function getAllProjectRepos(
       repoUrl: true,
       repoSyncData: true,
       deployUrl: true,
+      isFeatured: true,
       user: { select: { studentId: true, name: true, major: true, grade: true, class: true } },
       topic: { select: { title: true } },
       updatedAt: true,
@@ -185,13 +199,14 @@ export async function getAllProjectRepos(
     !!(p.repoUrl && p.repoUrl.trim()) || !!(p.deployUrl && p.deployUrl.trim());
 
   // 按学生（userId）分组：若该学生名下至少有一个有效项目，则只保留其有效项目，
-  // 隐藏其空白项目；若全部为空白，则原样全部保留。
+  // 隐藏其空白项目；若全部为空白，则原样全部保留。被标记为优秀的项目视为有效，
+  // 永不被去重隐藏（避免手动标记丢失）。
   const userHasAddress = new Set<number>();
   for (const p of allProjects) {
     if (hasAddress(p)) userHasAddress.add(p.userId);
   }
   let projects = allProjects.filter(
-    (p) => !userHasAddress.has(p.userId) || hasAddress(p)
+    (p) => !userHasAddress.has(p.userId) || hasAddress(p) || p.isFeatured
   );
 
   // 去重后再应用 hasDeployUrl 过滤（已填写 / 未填写 访问地址）。
@@ -199,6 +214,11 @@ export async function getAllProjectRepos(
     projects = projects.filter((p) => !!(p.deployUrl && p.deployUrl.trim()));
   } else if (hasDeployUrl === false) {
     projects = projects.filter((p) => !(p.deployUrl && p.deployUrl.trim()));
+  }
+
+  // 仅看优秀（与上面的过滤可叠加）。
+  if (featured === true) {
+    projects = projects.filter((p) => p.isFeatured);
   }
 
   return projects.map((p) => ({
@@ -213,5 +233,6 @@ export async function getAllProjectRepos(
     syncedAt: (p.repoSyncData as any)?.syncedAt ?? null,
     commitCount: (p.repoSyncData as any)?.commitCount ?? 0,
     deployUrl: p.deployUrl,
+    isFeatured: p.isFeatured,
   }));
 }
