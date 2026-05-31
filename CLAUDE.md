@@ -79,6 +79,42 @@
 题目来源：根目录 `毕业设计数据集信息.json`（131条）  
 导入命令：`cd backend && npm run import:thesis`（生成 SQL）→ 手动执行到 D1
 
+## 归档模块（按年级归档）
+
+用于学年交替时**隐藏已结课年级**（如 2023 级）的全部后台数据，但**不删除**——下一届使用系统时后台只看在用年级，需要时仍可查阅归档数据。
+
+### 设计原则
+
+- **归档单位 = 整届年级**（`User.grade` 字符串，如 `"2023级"`），不做单个学生归档。
+- 归档**只影响管理后台可见性**：用户管理、项目设计（项目/仓库）、毕业设计、统计均按年级隐藏。**学生端不受影响**，归档年级学生仍可正常登录。
+- 用户 / 项目设计：实体保留，按 `grade` 排除过滤隐藏，完全可逆。
+- 毕业设计：归档时把该年级 `ThesisProject` **快照进 `ArchivedThesisProject` 后从活表删除**，并释放其锁定的题目（`isLocked=0`）回题库供下届复用。这样既腾空了共享 131 题库（绕开 `ThesisProject.topicId @unique`），又把选题记录移入归档可查。
+
+### 数据模型
+
+- `ArchivedGrade` — 已归档年级登记表（`grade @unique` + 归档时学生/项目/毕设计数快照）。是各列表接口判断"是否隐藏"的依据。
+- `ArchivedThesisProject` — 毕设选题去规范化快照（学生、题目、仓库/部署地址等），归档后毕设数据只能从此表读。
+
+### 关键路由（均在 `/admin`，需 ADMIN）
+
+| 路径 | 说明 |
+|------|------|
+| `GET /api/admin/archive` | 已归档年级列表（含计数） |
+| `GET /api/admin/archive/active-grades` | 可归档的活跃年级（未归档、有学生） |
+| `GET /api/admin/archive/:grade/thesis` | 浏览某归档年级的毕设选题快照（支持 `search`） |
+| `POST /api/admin/archive` | 归档一个年级（`c.env.DB.batch` 原子：快照→删活毕设→释放题目锁→插 ArchivedGrade） |
+| `DELETE /api/admin/archive/:grade` | 恢复（仅取消隐藏；毕设不自动恢复，快照永久保留） |
+
+各现有列表接口（`/users`、`/projects/repos`、`/thesis/projects`、`/stats/*`）默认按 `archivedGrades` 排除已归档年级；传 `grade=2023级` 参数则绕过排除、浏览指定归档年级。共享 helper：`backend/src/services/archive.service.ts` 的 `getArchivedGrades()`。
+
+### 恢复的限制
+
+`DELETE /archive/:grade` 只移除归档标记 → 用户/项目重新显示。**毕设选题不会自动恢复**（题目可能已被下届重锁，恢复会破坏 `isLocked`/`topicId` 不变式），其快照在 `ArchivedThesisProject` 中永久可查。前端恢复弹窗已明示此点。
+
+### 前端
+
+管理后台"数据归档"菜单 → `frontend/src/views/admin/ArchiveManagement.vue`（归档操作 + 已归档列表 + 查看弹窗三页签）。VIEWER 角色禁用归档/恢复写操作。
+
 ## 规划文档
 
 | 文档 | 位置 |
