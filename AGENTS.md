@@ -7,28 +7,28 @@
 ## Tech Stack
 
 - **Frontend:** Vue 3 + TypeScript + Vite + Element Plus + Pinia + Tailwind CSS
-- **Backend:** Node.js + Express + MySQL + Prisma + JWT（ESM: `"type": "module"`）
+- **Backend:** Cloudflare Workers + Hono + Cloudflare D1 (SQLite) + Prisma (@prisma/adapter-d1) + JWT
 - **AI:** 多层优先级：用户个人设置 → 管理员活跃 Provider → 环境变量
-- **Deploy:** 腾讯云 VPS，Nginx 反代，Systemd 托管
+- **Deploy:** Cloudflare Workers (后端) + Cloudflare Pages (前端)，域名 vibesys.7878.cloud
 
 ---
 
 ## Quick Start
 
 ```bash
-# Backend
+# Backend (Cloudflare Workers)
 cd backend && pnpm install
-cp .env.example .env  # fill DATABASE_URL, JWT_SECRET
-pnpm exec prisma generate && pnpm exec prisma db push
+cp .env.example .env  # fill DATABASE_URL (file:./dev.db for local), JWT_SECRET
+DATABASE_URL="file:./dev.db" npx prisma generate && DATABASE_URL="file:./dev.db" npx prisma db push
 pnpm run db:seed       # creates admin/admin123
-pnpm dev               # tsx watch → port 3001
+pnpm dev               # wrangler dev → port 8787
 
 # Frontend (separate terminal)
 cd frontend && pnpm install
-pnpm dev               # vite → port 5173, proxies /api → 3001
+pnpm dev               # vite → port 5173, proxies /api → 8787
 ```
 
-**Ports:** Backend 3001 (not 3000), Frontend 5173, MySQL 3306, Redis 6379.
+**Ports:** Backend 8787 (wrangler dev), Frontend 5173, D1 (SQLite, local file).
 
 ---
 
@@ -37,13 +37,14 @@ pnpm dev               # vite → port 5173, proxies /api → 3001
 ### Route → Service → Prisma
 
 ```
-backend/src/routes/         # Express routers with authMiddleware
+backend/src/routes/         # Hono routers with authMiddleware
   auth.routes.ts            # /api/auth/*
   topics.routes.ts          # /api/topics/*
   projects.routes.ts        # /api/projects/*
   ai.routes.ts              # /api/ai/* (document generation)
   documents.routes.ts       # /api/documents/*
   graduation.routes.ts      # /api/graduation/* (毕设文档)
+  thesis.routes.ts          # /api/thesis/* (毕设选题)
   user.routes.ts            # /api/user/* (personal API settings)
   admin.routes.ts           # /api/admin/* (30+ endpoints)
 
@@ -86,10 +87,11 @@ Each doc type depends on previous docs for context. Generation prompt templates 
 
 ### Database
 
-- Prisma + MySQL (`db push` not `migrate deploy` in production — migration history doesn't match MySQL dialect)
-- Key models: `User`, `Topic`, `Project`, `Document` (7 doc types), `GraduationDocument` (6 types), `UserApiSetting`, `ApiProvider`, `SystemConfig`, `AiUsageLog`
+- Prisma + Cloudflare D1 (SQLite) (`@prisma/adapter-d1`)
+- Key models: `User`, `Topic`, `Project`, `Document` (7 doc types), `GraduationDocument` (6 types), `UserApiSetting`, `ApiProvider`, `SystemConfig`, `AiUsageLog`, `ThesisTopic`, `ThesisProject`, `ArchivedGrade`, `ArchivedThesisProject`
 - `prisma db seed` = `tsx src/scripts/init-admin.ts`
 - `@@unique([projectId, docType])` — one doc per type per project
+- **D1 变更规范：** 修改 schema 后必须先手动 `ALTER TABLE` 到生产 D1，再 push 代码部署 Worker（详见下方 D1 数据库变更规范）
 
 ---
 
@@ -130,80 +132,105 @@ The SSE proxy config must be duplicated for each streaming endpoint — the `/ap
 
 ---
 
-## Production Deployment (腾讯云 VPS)
+## Production Deployment (Cloudflare)
 
 | Item | Value |
 |------|-------|
-| IP | `101.43.175.201` |
-| SSH alias | `vibecoding-vps` (key: `~/.ssh/vibecoding_vps_ed25519`) |
-| Domain | `https://miaofu.work` (Cloudflare proxied) |
-| App dir | `/opt/vibecoding` |
-| Web dir | `/var/www/vibecoding` |
-| Backend service | `vibecoding-backend.service` (systemd, port 3001) |
-| Nginx | `/etc/nginx/sites-available/vibecoding.conf` |
-| Database | MySQL `vibecoding`, user `vibecoding` |
+| Domain | `https://vibesys.7878.cloud` |
+| Backend | Cloudflare Workers (`api.7878.cloud` route) |
+| Frontend | Cloudflare Pages (`vibesys.pages.dev` 或自定义域名) |
+| Database | Cloudflare D1 (`vibesysdb`, ID: `eb62d282-41e8-4e75-af08-5ef3e2b6da59`) |
+| CI/CD | GitHub Actions (`.github/workflows/deploy.yml`) — push `backend/**` to `main` auto deploys Worker |
+| Config | `backend/wrangler.toml` (Worker config), `frontend/` (Pages auto-detects Vite) |
 
-**Deploy flow (tar.gz from local):**
+**Deploy flow:**
 
 ```bash
 # 1. Local verify
-cd backend && pnpm exec tsc --noEmit
+cd backend && npx tsc --noEmit
 cd ../frontend && pnpm run build
 
-# 2. Commit + push
+# 2. If schema changed: D1 migration BEFORE push (CRITICAL!)
+cd backend
+npx wrangler d1 execute vibesysdb --remote --command="ALTER TABLE \"TableName\" ADD COLUMN \"newColumn\" TEXT;"
+
+# 3. Commit + push (triggers CI/CD)
 git add -A && git commit -m '...' && git push origin main
-
-# 3. Archive + upload
-git archive --format=tar.gz -o /tmp/vibecoding-src.tar.gz HEAD
-scp /tmp/vibecoding-src.tar.gz vibecoding-vps:/tmp/
-
-# 4. On VPS: extract, preserve .env, install, db sync, build frontend, restart
-# (See full deploy script in Production section of this file)
+# → GitHub Actions deploys Worker automatically
+# → Frontend deploys via Pages (push to main or PR)
 ```
 
-**Never** commit `.env` files. **Always** back up `/opt/vibecoding/backend/.env` before wiping the app dir.
+**Never** commit `.env` files or secrets. Use `wrangler secret put` for sensitive vars (e.g., `COOLIFY_API_TOKEN`, `JWT_SECRET`).
 
-**Health check:** `curl -fsS http://127.0.0.1:3001/api/health` → `{"status":"ok",...}`
+**Health check:** `curl -fsS https://api.7878.cloud/api/health` → `{"status":"ok",...}`
+
+### D1 数据库变更规范
+
+**重要：每次修改 Prisma schema 后必须手动迁移 D1，CI/CD 不会自动执行。**
+
+**正确流程：**
+1. 修改 `backend/prisma/schema.prisma`
+2. 运行本地迁移生成 SQL：
+   ```bash
+   cd backend && DATABASE_URL="file:./dev.db" npx prisma migrate dev --name <描述>
+   ```
+3. **立即**将 `ALTER TABLE` 应用到生产 D1（**在 push 代码之前**）：
+   ```bash
+   cd backend && npx wrangler d1 execute vibesysdb --remote --command="ALTER TABLE \"Project\" ADD COLUMN \"newField\" TEXT;"
+   ```
+4. 再 push 代码 → CI/CD 部署 Worker
+
+**为什么顺序重要：**
+CI/CD 在 push 后立即部署新 Worker，新 Worker 里的 Prisma client 已包含新字段。若 D1 还没有该列，**所有涉及该表的查询都会 500**，影响所有在线用户。必须先改 D1，再部署 Worker。
+
+**注意事项：**
+- `prisma migrate dev` 生成的迁移 SQL 可能是**完整重建表**（含 DROP TABLE），**不能直接在生产 D1 执行**，会丢失数据。生产只用 `ALTER TABLE ... ADD COLUMN` 方式增量变更。
 
 ---
 
 ## Framework Quirks & Gotchas
 
-1. **Backend ESM:** `"type": "module"` — imports need `.js` extension (e.g., `from './auth.middleware.js'`), run via `tsx` not `ts-node`
-2. **Express v5:** `express` 5.x has different error handling than v4; `app.use((err, req, res, next) => {...})` works
-3. **Menu order in schema:** `@@index([key])` is listed after fields but before closing `}` — Prisma syntax
-4. **Admin routes are monolithic:** `admin.routes.ts` is 1423 lines with all admin CRUD in one file
-5. **`ai.service.ts` is monolithic:** 2778 lines with all generation/review/fix methods
-6. **`claude-mem` block at bottom of old AGENTS.md:** Remove it — it's session context, not repo instruction
-7. **`AGENTS.md` and `CLAUDE.md` are siblings:** Both exist at root; `CLAUDE.md` has a subset of the same info (outdated). The `AGENTS.md` is the canonical one.
-8. **`ban.middleware.ts` is imported but checkBannedMiddleware is not a route-level middleware in most routes** — the service file imports it but routes use it only in specific admin endpoints
-9. **Planning docs are out of date** (`STATE.md`, `ROADMAP.md` say all phases complete, but features like graduation documents, user API settings, AI providers were added after)
+1. **Cloudflare Workers runtime:** Backend runs on Workers, not Node.js. Use `fetch()` not `axios`, no `fs` module, no `process.env` (use `c.env` from Hono context)
+2. **Prisma + D1:** Uses `@prisma/adapter-d1` adapter. Prisma client generated to `backend/src/generated/prisma/` and **committed to git**
+3. **Worker entry point:** `backend/src/worker.ts` exports default Hono app (`export default app`), not `index.ts`
+4. **Local dev:** `pnpm dev` runs `wrangler dev` on port 8787, not `tsx watch`
+5. **D1 migration order:** MUST run `ALTER TABLE` on production D1 **BEFORE** pushing code, otherwise 500 errors for all users
+6. **Admin routes are monolithic:** `admin.routes.ts` is 1507 lines with all admin CRUD in one file
+7. **`ai.service.ts` is monolithic:** 2778 lines with all generation/review/fix methods
+8. **Menu order in schema:** `@@index([key])` is listed after fields but before closing `}` — Prisma syntax
+9. **`ban.middleware.ts` is imported but checkBannedMiddleware is not a route-level middleware in most routes** — the service file imports it but routes use it only in specific admin endpoints
+10. **Planning docs are out of date** (`STATE.md`, `ROADMAP.md` say all phases complete, but features like graduation documents, user API settings, AI providers were added after)
+11. **`AGENTS.md` and `CLAUDE.md` are siblings:** Both exist at root; `CLAUDE.md` has deployment details. The `AGENTS.md` is the canonical one
 
 ---
 
 ## Project Layout
 
 ```
-backend/                  # Express API server
-  prisma/schema.prisma    # 15 models (234 lines)
+backend/                  # Cloudflare Workers API server
+  prisma/schema.prisma    # 16 models (319 lines)
+  wrangler.toml           # Worker config (name, routes, D1 binding, vars)
   src/
-    index.ts              # App entry: middleware → routes → error handler
-    routes/               # 8 route files
-    services/             # ai.service.ts (2778 lines), apiProvider, graduation
+    worker.ts             # Worker entry: exports default Hono app
+    app.factory.ts        # Creates Hono app with routes + middleware
+    routes/               # 9 route files
+    services/             # ai.service.ts (2778 lines), apiProvider, graduation, coolify
     prompts/              # 11 prompt templates
     middleware/           # auth, ban, rate-limit
+    lib/                  # prisma.ts (D1 adapter), logger.ts
     utils/                # jwt, password, excel-import
     scripts/              # init-admin.ts, update-passwords.ts
-  tests/                  # 8 test files (vitest)
-frontend/                 # Vue 3 SPA
+    generated/prisma/     # Generated Prisma client (COMMITTED to git)
+  tests/                  # Test files (node:test)
+frontend/                 # Vue 3 SPA (Cloudflare Pages)
   src/
-    api/                  # 9 API client modules
+    api/                  # 9+ API client modules
     stores/               # 6 Pinia stores
-    views/                # 7 pages + admin/ subfolder
+    views/                # 7 pages + admin/ subfolder + graduation/
     router/               # index.ts + guards.ts
-    components/           # Shared Vue components
+    components/           # Shared Vue components (incl. ArchiveDeployPanel)
     constants/            # tech-options.ts
-    utils/                # Unknown — check contents
+    utils/                # Utilities
     __tests__/            # setup.ts only
 ```
 

@@ -1,5 +1,9 @@
 .omx/
 .omc/
+.codegraph/
+.cursor/
+.reasonix/
+.vscode/
 .DS_Store
 **/.DS_Store
 backend/.env
@@ -20,3 +24,5 @@ dist/
 backend/prisma/d1-import.sql
 backend/prisma/d1-splits/
 .superpowers/
+毕业设计数据集库/
+毕业设计数据集信息.json
