@@ -29,3 +29,5 @@ backend/prisma/d1-splits/
 .superpowers/
 毕业设计数据集库/
 毕业设计数据集信息.json
+.workbuddy/
+deliverables/

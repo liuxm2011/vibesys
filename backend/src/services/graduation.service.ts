@@ -1,5 +1,5 @@
 import { GraduationDocType, Domain, Platform, PrismaClient } from '../generated/prisma';
-import { apiProviderService } from './apiProvider.service.js';
+import { apiProviderService, assertPublicHttpsBaseUrl } from './apiProvider.service.js';
 import { getTaskBookSystemPrompt, buildTaskBookUserPrompt } from '../prompts/task-book.template.js';
 import { getProposalSystemPrompt, buildProposalUserPrompt } from '../prompts/proposal.template.js';
 import { getProgressRecordSystemPrompt, buildProgressRecordUserPrompt } from '../prompts/progress-record.template.js';
@@ -357,6 +357,7 @@ export class GraduationService {
     model: string,
     messages: Array<{ role: 'system' | 'user'; content: string }>
   ): Promise<ChatCompletionResponse> {
+    assertPublicHttpsBaseUrl(baseURL);
     const response = await fetch(`${baseURL}/chat/completions`, {
       method: 'POST',
       headers: {
@@ -389,6 +390,7 @@ export class GraduationService {
     signal?: AbortSignal,
     isContinuation = false
   ): Promise<{ content: string; usage: TokenUsage; finishReason: string | null }> {
+    assertPublicHttpsBaseUrl(baseURL);
     const response = await fetch(`${baseURL}/chat/completions`, {
       method: 'POST',
       headers: {

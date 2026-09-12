@@ -3,6 +3,7 @@ import { streamSSE } from 'hono/streaming';
 import { GraduationDocType, PrismaClient } from '../generated/prisma'
 import { authMiddleware, viewerBlockMiddleware } from '../middleware/auth.middleware.js';
 import { checkBannedMiddleware } from '../middleware/ban.middleware.js';
+import { aiLimiter, documentUpdateLimiter } from '../middleware/rate-limit.middleware.js';
 import { graduationService, type TokenUsage } from '../services/graduation.service.js';
 import { asyncHandler } from '../lib/handler.js';
 import type { AppEnv } from '../types.js';
@@ -84,7 +85,7 @@ router.get('/:projectId', authMiddleware, asyncHandler('获取毕设文档失败
   return c.json({ documents });
 }));
 
-router.put('/:id', authMiddleware, viewerBlockMiddleware, checkBannedMiddleware, asyncHandler('保存文档失败', async (c) => {
+router.put('/:id', authMiddleware, documentUpdateLimiter, viewerBlockMiddleware, checkBannedMiddleware, asyncHandler('保存文档失败', async (c) => {
   const documentId = parseInt(c.req.param('id')!);
   const { content } = await c.req.json();
 
@@ -182,7 +183,7 @@ router.post('/', authMiddleware, viewerBlockMiddleware, asyncHandler('创建文�
   }
 }));
 
-router.post('/generate', authMiddleware, viewerBlockMiddleware, checkBannedMiddleware, async (c) => {
+router.post('/generate', authMiddleware, aiLimiter, viewerBlockMiddleware, checkBannedMiddleware, async (c) => {
   const { projectId, docType, forceRegenerate } = await c.req.json();
 
   if (!projectId) {
@@ -286,7 +287,7 @@ router.post('/generate', authMiddleware, viewerBlockMiddleware, checkBannedMiddl
   }
 });
 
-router.post('/generate/stream', authMiddleware, viewerBlockMiddleware, checkBannedMiddleware, async (c) => {
+router.post('/generate/stream', authMiddleware, aiLimiter, viewerBlockMiddleware, checkBannedMiddleware, async (c) => {
   const { projectId, docType, forceRegenerate } = await c.req.json();
 
   if (!projectId) {

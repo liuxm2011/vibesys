@@ -1,5 +1,5 @@
 import { DocType, Domain, Platform, PrismaClient } from '../generated/prisma';
-import { apiProviderService } from './apiProvider.service.js';
+import { apiProviderService, assertPublicHttpsBaseUrl } from './apiProvider.service.js';
 import { getPRDPromptTemplate } from '../prompts/prd.template.js';
 import { getFrontendPromptTemplate } from '../prompts/frontend.template.js';
 import { getBackendPromptTemplate } from '../prompts/backend.template.js';
@@ -664,6 +664,7 @@ ${baseInfo}${contextSection}${bdConstraint}
     model: string,
     messages: Array<{ role: 'system' | 'user' | 'assistant'; content: string }>
   ): Promise<ChatCompletionResponse> {
+    assertPublicHttpsBaseUrl(baseURL);
     const response = await fetch(`${baseURL}/chat/completions`, {
       method: 'POST',
       headers: {
@@ -696,6 +697,7 @@ ${baseInfo}${contextSection}${bdConstraint}
     signal?: AbortSignal,
     isContinuation = false
   ): Promise<{ reasoningText: string; contentText: string; finishReason: string | null; tokenCount: number; usage: TokenUsage }> {
+    assertPublicHttpsBaseUrl(baseURL);
     const response = await fetch(`${baseURL}/chat/completions`, {
       method: 'POST',
       headers: {
@@ -1464,7 +1466,7 @@ ${getAgentsPromptTemplate(domain)}
     );
 
     const parsedResult = this.parseReviewResult(rawContent);
-    const finalized = await this.ensureReviewPatchHints(topicInfo, allDocs, parsedResult);
+    const finalized = await this.ensureReviewPatchHints(topicInfo, allDocs, parsedResult, userId);
 
     onProgress('\n\n审核完成');
     return finalized;
@@ -1483,6 +1485,7 @@ ${getAgentsPromptTemplate(domain)}
     onRawContent: (rawContent: string) => void,
     signal?: AbortSignal
   ): Promise<string> {
+    assertPublicHttpsBaseUrl(baseURL);
     const response = await fetch(`${baseURL}/chat/completions`, {
       method: 'POST',
       headers: {
@@ -1626,9 +1629,9 @@ ${getAgentsPromptTemplate(domain)}
       { role: 'user' as const, content: userPrompt }
     ];
 
-    const rawContent = await this.executeWithRetry(messages);
+    const rawContent = await this.executeWithRetry(messages, userId);
     const parsedResult = this.parseReviewResult(rawContent.content);
-    return this.ensureReviewPatchHints(topicInfo, allDocs, parsedResult);
+    return this.ensureReviewPatchHints(topicInfo, allDocs, parsedResult, userId);
   }
 
   /**
@@ -1637,7 +1640,8 @@ ${getAgentsPromptTemplate(domain)}
   async fixDocuments(
     topicInfo: TopicInfo,
     affectedDocs: Record<string, string>,
-    findings: ReviewResult
+    findings: ReviewResult,
+    userId?: number
   ): Promise<ReviewFixResult> {
     const relevantDocTypes = new Set(Object.keys(affectedDocs) as DocType[]);
     const scopedFindings: ReviewResult = {
@@ -1647,7 +1651,7 @@ ${getAgentsPromptTemplate(domain)}
         || issue.patchHints.some(hint => relevantDocTypes.has(hint.docType))
       )
     };
-    const hydratedFindings = await this.ensureReviewPatchHints(topicInfo, affectedDocs, scopedFindings);
+    const hydratedFindings = await this.ensureReviewPatchHints(topicInfo, affectedDocs, scopedFindings, userId);
     const results = new Map<string, string>();
     const unresolved: ReviewUnresolvedFix[] = [];
 
@@ -2373,7 +2377,8 @@ ${getAgentsPromptTemplate(domain)}
   private async ensureReviewPatchHints(
     topicInfo: TopicInfo,
     allDocs: Record<string, string>,
-    reviewResult: ReviewResult
+    reviewResult: ReviewResult,
+    userId?: number
   ): Promise<ReviewResult> {
     const issuesNeedingRecovery = reviewResult.issues
       .map(issue => ({
@@ -2408,7 +2413,7 @@ ${getAgentsPromptTemplate(domain)}
       const rawRecovery = await this.executeWithRetry([
         { role: 'system', content: recoverySystemPrompt },
         { role: 'user', content: recoveryUserPrompt }
-      ]);
+      ], userId);
       const recoveredPatchHints = this.parsePatchHintRecoveryResult(rawRecovery.content);
 
       return {

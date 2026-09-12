@@ -9,6 +9,7 @@ import {
   validatePassword
 } from '../utils/password.utils.js';
 import { apiProviderService } from '../services/apiProvider.service.js';
+import { checkPublicHttpsBaseUrl } from '../utils/url-policy.utils.js';
 import { getAllProjectRepos, adminUpdateDeployUrl, adminUpdateFeatured } from '../services/repo.service.js';
 import { getArchivedGrades } from '../services/archive.service.js';
 import { asyncHandler } from '../lib/handler.js';
@@ -1071,10 +1072,15 @@ router.post('/api-providers', asyncHandler('创建API提供商失败', async (c)
     return c.json({ error: '提供商类型必须为 minimax 或 openai_compatible' }, 400);
   }
 
+  const urlCheck = checkPublicHttpsBaseUrl(baseURL);
+  if (!urlCheck.ok) {
+    return c.json({ error: `API 地址必须是公网 HTTPS 地址：${urlCheck.reason}` }, 400);
+  }
+
   const provider = await apiProviderService.createProvider(prisma, {
     name,
     providerType,
-    baseURL,
+    baseURL: urlCheck.url,
     apiKey,
     model,
     description,
@@ -1108,10 +1114,19 @@ router.put('/api-providers/:id', asyncHandler('更新API提供商失败', async 
     return c.json({ error: '提供商类型必须为 minimax 或 openai_compatible' }, 400);
   }
 
+  let validatedBaseURL: string | undefined;
+  if (baseURL !== undefined) {
+    const urlCheck = checkPublicHttpsBaseUrl(baseURL);
+    if (!urlCheck.ok) {
+      return c.json({ error: `API 地址必须是公网 HTTPS 地址：${urlCheck.reason}` }, 400);
+    }
+    validatedBaseURL = urlCheck.url;
+  }
+
   const updateData: any = {};
   if (name !== undefined) updateData.name = name;
   if (providerType !== undefined) updateData.providerType = providerType;
-  if (baseURL !== undefined) updateData.baseURL = baseURL;
+  if (validatedBaseURL !== undefined) updateData.baseURL = validatedBaseURL;
   if (apiKey !== undefined) updateData.apiKey = apiKey;
   if (model !== undefined) updateData.model = model;
   if (description !== undefined) updateData.description = description;

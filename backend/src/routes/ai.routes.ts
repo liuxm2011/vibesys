@@ -3,6 +3,7 @@ import { streamSSE } from 'hono/streaming';
 import { DocType, Prisma, PrismaClient } from '../generated/prisma';
 import { authMiddleware, viewerBlockMiddleware } from '../middleware/auth.middleware.js';
 import { checkBannedMiddleware } from '../middleware/ban.middleware.js';
+import { aiLimiter } from '../middleware/rate-limit.middleware.js';
 import { aiService, type TokenUsage } from '../services/ai.service.js';
 import { DOC_GENERATION_ORDER, getContextDependencies, getGenerationBlockedReason } from '../constants/document-generation.js';
 import type { AppEnv } from '../types.js';
@@ -50,7 +51,7 @@ router.use('*', async (c, next) => {
 
 const validDocTypes: DocType[] = ['PRD', 'FRONTEND', 'BACKEND', 'API', 'TASK', 'CONTEXT_STATE', 'AGENTS'];
 
-router.post('/generate', authMiddleware, viewerBlockMiddleware, checkBannedMiddleware, async (c) => {
+router.post('/generate', authMiddleware, aiLimiter, viewerBlockMiddleware, checkBannedMiddleware, async (c) => {
   const { projectId, docType, forceRegenerate } = await c.req.json();
 
   if (!projectId) {
@@ -201,7 +202,7 @@ router.post('/generate', authMiddleware, viewerBlockMiddleware, checkBannedMiddl
   }
 });
 
-router.post('/generate/stream', authMiddleware, viewerBlockMiddleware, checkBannedMiddleware, async (c) => {
+router.post('/generate/stream', authMiddleware, aiLimiter, viewerBlockMiddleware, checkBannedMiddleware, async (c) => {
   const { projectId, docType, forceRegenerate } = await c.req.json();
 
   if (!projectId) {
@@ -368,7 +369,7 @@ router.post('/generate/stream', authMiddleware, viewerBlockMiddleware, checkBann
   });
 });
 
-router.post('/review', authMiddleware, viewerBlockMiddleware, checkBannedMiddleware, async (c) => {
+router.post('/review', authMiddleware, aiLimiter, viewerBlockMiddleware, checkBannedMiddleware, async (c) => {
   const { projectId, mode } = await c.req.json();
 
   if (!projectId) {
@@ -485,7 +486,7 @@ router.post('/review', authMiddleware, viewerBlockMiddleware, checkBannedMiddlew
       return c.json({ error: '没有需要修复的文档' }, 400);
     }
 
-    const fixedDocs = await aiService.fixDocuments(topicInfo, affectedDocs, reviewResult as any);
+    const fixedDocs = await aiService.fixDocuments(topicInfo, affectedDocs, reviewResult as any, userId);
 
     const updatedDocuments = [];
     for (const [docType, content] of fixedDocs.documents) {
@@ -530,7 +531,7 @@ router.post('/review', authMiddleware, viewerBlockMiddleware, checkBannedMiddlew
   }
 });
 
-router.post('/review/stream', authMiddleware, viewerBlockMiddleware, checkBannedMiddleware, async (c) => {
+router.post('/review/stream', authMiddleware, aiLimiter, viewerBlockMiddleware, checkBannedMiddleware, async (c) => {
   const { projectId, mode } = await c.req.json();
 
   if (!projectId) {

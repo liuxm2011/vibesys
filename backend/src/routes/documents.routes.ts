@@ -2,6 +2,7 @@ import { Hono } from 'hono';
 import { DocType } from '../generated/prisma'
 import { authMiddleware, viewerBlockMiddleware } from '../middleware/auth.middleware.js';
 import { checkBannedMiddleware } from '../middleware/ban.middleware.js';
+import { documentUpdateLimiter } from '../middleware/rate-limit.middleware.js';
 import { getGenerationBlockedReason } from '../constants/document-generation.js';
 import { asyncHandler } from '../lib/handler.js';
 import type { AppEnv } from '../types.js';
@@ -50,7 +51,7 @@ router.get('/:projectId', authMiddleware, asyncHandler('获取文档失败', asy
   return c.json({ documents, techStack });
 }));
 
-router.put('/:id', authMiddleware, viewerBlockMiddleware, checkBannedMiddleware, asyncHandler('保存文档失败', async (c) => {
+router.put('/:id', authMiddleware, documentUpdateLimiter, viewerBlockMiddleware, checkBannedMiddleware, asyncHandler('保存文档失败', async (c) => {
   const documentId = parseInt(c.req.param('id')!);
   const { content } = await c.req.json();
 

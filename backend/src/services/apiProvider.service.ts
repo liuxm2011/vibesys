@@ -1,5 +1,7 @@
 import { PrismaClient } from '../generated/prisma';
 import { logger } from '../lib/logger.js';
+import { AppError } from '../lib/errors.js';
+import { checkPublicHttpsBaseUrl } from '../utils/url-policy.utils.js';
 
 export interface ProviderConfig {
   baseURL: string;
@@ -8,6 +10,28 @@ export interface ProviderConfig {
   providerType: string;
   name: string;
   fromDatabase: boolean;
+}
+
+/**
+ * Outbound-fetch guard for AI provider base URLs (SSRF defence, P0-A).
+ *
+ * Called immediately before every `fetch()` to the model provider so that no
+ * unvalidated baseURL — including historical dirty rows already in the DB or
+ * an admin-written internal URL — can ever reach the network. Delegates all
+ * rules to the shared `checkPublicHttpsBaseUrl` (no duplicated logic).
+ *
+ * Deliberately THROWS (explicit failure) instead of silently falling back to
+ * the system/env key: silent degradation is exactly the anti-pattern P0-A
+ * removes. Valid input is returned trimmed, so call sites stay byte-identical.
+ */
+export function assertPublicHttpsBaseUrl(baseURL: string): string {
+  const result = checkPublicHttpsBaseUrl(baseURL);
+  if (!result.ok) {
+    // AppError (not a plain Error) so asyncHandler surfaces this clear text to
+    // the caller instead of masking it behind a generic domain fallback.
+    throw new AppError(500, `AI Provider 配置的地址不合法，请联系管理员：${result.reason}`);
+  }
+  return result.url;
 }
 
 class ApiProviderService {
@@ -207,9 +231,21 @@ class ApiProviderService {
       return { success: false, latencyMs: 0, message: 'Provider not found' };
     }
 
+    // Guard against SSRF: admin-configured provider baseURL must be a public
+    // HTTPS endpoint (defends against stale/compromised DB rows too).
+    const urlCheck = checkPublicHttpsBaseUrl(provider.baseURL);
+    if (!urlCheck.ok) {
+      return {
+        success: false,
+        latencyMs: 0,
+        message: `Provider baseURL 必须是公网 HTTPS 地址：${urlCheck.reason}`
+      };
+    }
+    const baseURL = urlCheck.url;
+
     const startTime = Date.now();
     try {
-      const response = await fetch(`${provider.baseURL}/chat/completions`, {
+      const response = await fetch(`${baseURL}/chat/completions`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -230,11 +266,11 @@ class ApiProviderService {
       const latencyMs = Date.now() - startTime;
 
       if (!response.ok) {
-        const errorText = await response.text();
+        // Do NOT echo the upstream body (SSRF probing oracle for stale URLs).
         return {
           success: false,
           latencyMs,
-          message: `API returned ${response.status}: ${errorText.slice(0, 200)}`
+          message: `API returned ${response.status}`
         };
       }
 

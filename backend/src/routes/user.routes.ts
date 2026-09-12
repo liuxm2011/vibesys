@@ -1,6 +1,7 @@
 import { Hono } from 'hono';
 import { authMiddleware, viewerBlockMiddleware } from '../middleware/auth.middleware.js';
 import { asyncHandler } from '../lib/handler.js';
+import { checkPublicHttpsBaseUrl } from '../utils/url-policy.utils.js';
 import type { AppEnv } from '../types.js';
 
 const router = new Hono<AppEnv>();
@@ -61,6 +62,12 @@ router.put('/api-setting', viewerBlockMiddleware, asyncHandler('保存API设置�
     return c.json({ error: '请选择模型' }, 400);
   }
 
+  const urlCheck = checkPublicHttpsBaseUrl(baseURL);
+  if (!urlCheck.ok) {
+    return c.json({ error: `API 地址必须是公网 HTTPS 地址：${urlCheck.reason}` }, 400);
+  }
+  const safeBaseURL = urlCheck.url;
+
   let finalApiKey = apiKey;
   if (!finalApiKey) {
     const existing = await prisma.userApiSetting.findUnique({ where: { userId } });
@@ -72,8 +79,8 @@ router.put('/api-setting', viewerBlockMiddleware, asyncHandler('保存API设置�
 
   const setting = await prisma.userApiSetting.upsert({
     where: { userId },
-    update: { baseURL, apiKey: finalApiKey, model },
-    create: { userId, baseURL: baseURL || '', apiKey: finalApiKey, model: model || '' }
+    update: { baseURL: safeBaseURL, apiKey: finalApiKey, model },
+    create: { userId, baseURL: safeBaseURL || '', apiKey: finalApiKey, model: model || '' }
   });
 
   return c.json({
@@ -110,6 +117,17 @@ router.post('/api-setting/test', viewerBlockMiddleware, async (c) => {
       return c.json({ error: '请先填写完整的API配置' }, 400);
     }
 
+    // Guard against SSRF, including historical dirty data already in the DB.
+    const urlCheck = checkPublicHttpsBaseUrl(baseURL);
+    if (!urlCheck.ok) {
+      return c.json({
+        success: false,
+        latencyMs: 0,
+        message: `API 地址必须是公网 HTTPS 地址：${urlCheck.reason}`
+      });
+    }
+    baseURL = urlCheck.url;
+
     const startTime = Date.now();
 
     const response = await fetch(`${baseURL}/chat/completions`, {
@@ -132,11 +150,12 @@ router.post('/api-setting/test', viewerBlockMiddleware, async (c) => {
     const latencyMs = Date.now() - startTime;
 
     if (!response.ok) {
-      const errorText = await response.text();
+      // Do NOT echo the upstream body: for a user-controlled baseURL it is an
+      // internal-network probing / metadata-exfiltration oracle.
       return c.json({
         success: false,
         latencyMs,
-        message: `API返回错误 ${response.status}: ${errorText.slice(0, 200)}`
+        message: `API返回错误 ${response.status}`
       });
     }
 
