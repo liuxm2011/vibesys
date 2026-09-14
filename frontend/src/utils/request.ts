@@ -2,6 +2,7 @@
  * HTTP request utility with credentials for httpOnly cookie (D-12)
  * Uses fetch API with credentials: 'include' to auto-attach cookies
  */
+import { useAuthStore } from '@/stores/auth.store';
 
 interface RequestOptions {
   method?: 'GET' | 'POST' | 'PUT' | 'DELETE';
@@ -64,6 +65,20 @@ export async function request<T>(
     const data = await response.json();
 
     if (!response.ok) {
+      // P1-3：会话过期的统一处理。带会话的 401（cookie 失效）清空本地 user，
+      // guards.ts 对 user 的 watch 会自动跳转登录页。登录接口本身的 401 不触发
+      // （此时 user 为 null，authStore.user 非空作为“会话曾有效”的判据）。
+      if (response.status === 401) {
+        try {
+          const authStore = useAuthStore();
+          if (authStore.user) {
+            authStore.$reset();
+          }
+        } catch {
+          // Pinia 未激活（如单元测试环境）时忽略，按普通错误处理
+        }
+      }
+
       // Throw error with API message for UI display (D-20)
       throw new Error(data.error || '请求失败');
     }
