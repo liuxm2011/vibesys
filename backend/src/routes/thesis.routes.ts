@@ -1,7 +1,7 @@
 import { Hono } from 'hono';
 import { authMiddleware, viewerBlockMiddleware } from '../middleware/auth.middleware.js';
-import { checkBannedMiddleware } from '../middleware/ban.middleware.js';
 import { asyncHandler } from '../lib/handler.js';
+import { isGraduationEnabledForUser } from '../services/graduation-gate.js';
 import type { AppEnv } from '../types.js';
 import { logger } from '../lib/logger.js';
 
@@ -13,28 +13,8 @@ router.get('/status', authMiddleware, async (c) => {
     const prisma = c.get('prisma');
     const user = c.get('user');
 
-    const enabledConfig = await prisma.systemConfig.findUnique({
-      where: { key: 'graduationEnabled' }
-    });
-
-    const isEnabled = enabledConfig?.value === 'true';
-
-    if (isEnabled) {
-      return c.json({ enabled: true });
-    }
-
-    // Check whitelist
-    const whitelistConfig = await prisma.systemConfig.findUnique({
-      where: { key: 'graduationWhitelist' }
-    });
-
-    const whitelist = (whitelistConfig?.value || '').split(',').map(s => s.trim()).filter(Boolean);
-
-    if (whitelist.includes(user.studentId)) {
-      return c.json({ enabled: true });
-    }
-
-    return c.json({ enabled: false });
+    const enabled = await isGraduationEnabledForUser(prisma, user.studentId);
+    return c.json({ enabled });
   } catch (error) {
     logger.error('Graduation status check error:', error);
     return c.json({ enabled: false });
@@ -171,7 +151,7 @@ router.post('/project/init-docs', authMiddleware, viewerBlockMiddleware, asyncHa
 }));
 
 // POST /api/thesis/select — exclusive topic selection (D1 native batch for atomicity)
-router.post('/select', authMiddleware, viewerBlockMiddleware, checkBannedMiddleware, async (c) => {
+router.post('/select', authMiddleware, viewerBlockMiddleware, async (c) => {
   const body = await c.req.json().catch(() => null);
   const topicId = typeof body?.topicId === 'number' && body.topicId > 0 ? body.topicId : null;
   if (!topicId) {
@@ -185,6 +165,12 @@ router.post('/select', authMiddleware, viewerBlockMiddleware, checkBannedMiddlew
   // Only students may select topics
   if (user.role !== 'STUDENT') {
     return c.json({ error: '仅学生可以选择毕业设计题目' }, 403);
+  }
+
+  // Server-side graduation gate (P0-3): same check as GET /status — never trust UI alone
+  const graduationEnabled = await isGraduationEnabledForUser(prisma, user.studentId);
+  if (!graduationEnabled) {
+    return c.json({ error: '毕业设计功能未开放' }, 403);
   }
 
   const now = new Date().toISOString();
@@ -264,7 +250,7 @@ router.delete('/release', authMiddleware, viewerBlockMiddleware, asyncHandler('�
 }));
 
 // PUT /api/thesis/project — update repo/deploy URL
-router.put('/project', authMiddleware, viewerBlockMiddleware, checkBannedMiddleware, asyncHandler('保存失败，请重试', async (c) => {
+router.put('/project', authMiddleware, viewerBlockMiddleware, asyncHandler('保存失败，请重试', async (c) => {
   const body = await c.req.json().catch(() => ({}));
   const { repoUrl, deployUrl } = body;
   const prisma = c.get('prisma');

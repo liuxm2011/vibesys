@@ -2,9 +2,9 @@ import { Hono } from 'hono';
 import { streamSSE } from 'hono/streaming';
 import { GraduationDocType, PrismaClient } from '../generated/prisma'
 import { authMiddleware, viewerBlockMiddleware } from '../middleware/auth.middleware.js';
-import { checkBannedMiddleware } from '../middleware/ban.middleware.js';
 import { aiLimiter, documentUpdateLimiter } from '../middleware/rate-limit.middleware.js';
 import { graduationService, type TokenUsage } from '../services/graduation.service.js';
+import { isGraduationEnabledForUser } from '../services/graduation-gate.js';
 import { asyncHandler } from '../lib/handler.js';
 import type { AppEnv } from '../types.js';
 import { logger } from '../lib/logger.js';
@@ -85,7 +85,7 @@ router.get('/:projectId', authMiddleware, asyncHandler('获取毕设文档失败
   return c.json({ documents });
 }));
 
-router.put('/:id', authMiddleware, documentUpdateLimiter, viewerBlockMiddleware, checkBannedMiddleware, asyncHandler('保存文档失败', async (c) => {
+router.put('/:id', authMiddleware, documentUpdateLimiter, viewerBlockMiddleware, asyncHandler('保存文档失败', async (c) => {
   const documentId = parseInt(c.req.param('id')!);
   const { content } = await c.req.json();
 
@@ -183,7 +183,7 @@ router.post('/', authMiddleware, viewerBlockMiddleware, asyncHandler('创建文�
   }
 }));
 
-router.post('/generate', authMiddleware, aiLimiter, viewerBlockMiddleware, checkBannedMiddleware, async (c) => {
+router.post('/generate', authMiddleware, aiLimiter, viewerBlockMiddleware, async (c) => {
   const { projectId, docType, forceRegenerate } = await c.req.json();
 
   if (!projectId) {
@@ -203,6 +203,12 @@ router.post('/generate', authMiddleware, aiLimiter, viewerBlockMiddleware, check
     const user = c.get('user');
     const prisma = c.get('prisma');
     const userId = user.userId;
+
+    // Server-side graduation gate (P0-3): same check as GET /thesis/status
+    const graduationEnabled = await isGraduationEnabledForUser(prisma, user.studentId);
+    if (!graduationEnabled) {
+      return c.json({ error: '毕业设计功能未开放' }, 403);
+    }
 
     const project = await prisma.project.findFirst({
       where: { id: parsedProjectId, userId },
@@ -287,7 +293,7 @@ router.post('/generate', authMiddleware, aiLimiter, viewerBlockMiddleware, check
   }
 });
 
-router.post('/generate/stream', authMiddleware, aiLimiter, viewerBlockMiddleware, checkBannedMiddleware, async (c) => {
+router.post('/generate/stream', authMiddleware, aiLimiter, viewerBlockMiddleware, async (c) => {
   const { projectId, docType, forceRegenerate } = await c.req.json();
 
   if (!projectId) {
@@ -306,6 +312,12 @@ router.post('/generate/stream', authMiddleware, aiLimiter, viewerBlockMiddleware
   const user = c.get('user');
   const prisma = c.get('prisma');
   const userId = user.userId;
+
+  // Server-side graduation gate (P0-3): same check as GET /thesis/status
+  const graduationEnabled = await isGraduationEnabledForUser(prisma, user.studentId);
+  if (!graduationEnabled) {
+    return c.json({ error: '毕业设计功能未开放' }, 403);
+  }
 
   const project = await prisma.project.findFirst({
     where: { id: parsedProjectId, userId },
