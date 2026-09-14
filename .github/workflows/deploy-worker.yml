@@ -87,15 +87,14 @@ jobs:
           workingDirectory: backend
 
       # P0-4：wrangler-action 只 deploy 不创建 secret。部署后断言 Worker Secrets
-      # 已配置——缺失意味着线上接口 500（登录依赖 JWT_SECRET、AI 依赖 MINIMAX_API_KEY）。
-      # 断言放在 deploy 之后：secrets 配置是一次性人工操作，缺失时让本次 run 失败以示警，
-      # 而非阻断已发生的部署。
+      # 已配置——缺失意味着线上接口 500。断言放在 deploy 之后：secrets 配置是
+      # 一次性人工操作，缺失时让本次 run 失败以示警，而非阻断已发生的部署。
+      # （MINIMAX_API_KEY 不再断言：学校自部署 MiniMax 服务已下线，
+      # AI 生成依赖管理员在系统配置的第三方 Provider，不依赖 Worker secret。）
       - name: Assert required Worker secrets
         run: |
           npx wrangler secret list | tee /tmp/secrets.json
           jq -e 'any(.[]; .name == "JWT_SECRET")' /tmp/secrets.json > /dev/null \
             || { echo "::error::Worker secret JWT_SECRET is not configured (run: npx wrangler secret put JWT_SECRET)"; exit 1; }
-          jq -e 'any(.[]; .name == "MINIMAX_API_KEY")' /tmp/secrets.json > /dev/null \
-            || { echo "::error::Worker secret MINIMAX_API_KEY is not configured (run: npx wrangler secret put MINIMAX_API_KEY)"; exit 1; }
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
