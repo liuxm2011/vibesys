@@ -8,10 +8,12 @@ interface Props {
   repoUrl: string | null;
   repoSyncData: RepoSyncData | null;
   syncing?: boolean;
+  editable?: boolean;
 }
 
 const props = withDefaults(defineProps<Props>(), {
-  syncing: false
+  syncing: false,
+  editable: true
 });
 
 const emit = defineEmits<{
@@ -119,7 +121,7 @@ const syncedAt = computed<string>(() => {
             <el-icon><Refresh /></el-icon>同步
           </el-button>
           <el-button
-            v-if="!isEditing"
+            v-if="!isEditing && editable"
             size="small"
             circle
             @click="startEdit"
@@ -191,7 +193,7 @@ const syncedAt = computed<string>(() => {
 
       <div v-else class="repo-empty">
         <p>暂未设置仓库地址</p>
-        <el-button size="small" type="primary" plain @click="startEdit">
+        <el-button v-if="editable" size="small" type="primary" plain @click="startEdit">
           <el-icon><Link /></el-icon>添加 Gitee 仓库
         </el-button>
       </div>

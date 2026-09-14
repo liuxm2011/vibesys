@@ -701,7 +701,7 @@
         <!-- Tech Stack -->
         <TechStackPanel
           :tech-stack="documentStore.techStack"
-          :editable="true"
+          :editable="!isViewer"
           @update:tech-stack="handleTechStackUpdate"
         />
 
@@ -709,12 +709,14 @@
           :repo-url="repoUrl"
           :repo-sync-data="repoSyncData"
           :syncing="repoSyncing"
+          :editable="!isViewer"
           @update:repo-url="handleRepoUrlUpdate"
           @sync="handleRepoSync"
         />
 
         <DeployUrlPanel
           :deploy-url="deployUrl"
+          :editable="!isViewer"
           @update:deploy-url="handleDeployUrlUpdate"
         />
 

@@ -54,7 +54,7 @@
       <div class="dialog-footer">
         <el-button @click="handleClose" class="cancel-btn">返回列表</el-button>
         <el-button
-          v-if="!projectStore.hasSelectedTopic(topic?.id ?? 0)"
+          v-if="!isViewer && !projectStore.hasSelectedTopic(topic?.id ?? 0)"
           type="primary"
           @click="handleSelect"
           :loading="loading"
@@ -62,7 +62,7 @@
         >
           确认选择此选题
         </el-button>
-        <el-tag v-else type="success" size="large" effect="light" class="confirm-btn selected-tag">
+        <el-tag v-else-if="!isViewer" type="success" size="large" effect="light" class="confirm-btn selected-tag">
           已选此题
         </el-tag>
       </div>
@@ -71,10 +71,11 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch } from 'vue';
+import { ref, watch, computed } from 'vue';
 import { useRouter } from 'vue-router';
 import { ElMessage } from 'element-plus';
 import { useProjectStore } from '@/stores/project.store';
+import { useAuthStore } from '@/stores/auth.store';
 import type { Topic, Platform } from '@/types/topic';
 import { PLATFORM_LABELS } from '@/types/topic';
 
@@ -91,6 +92,8 @@ const emit = defineEmits<{
 
 const router = useRouter();
 const projectStore = useProjectStore();
+const authStore = useAuthStore();
+const isViewer = computed(() => authStore.isViewer);
 const loading = ref(false);
 
 const visible = ref(props.visible);

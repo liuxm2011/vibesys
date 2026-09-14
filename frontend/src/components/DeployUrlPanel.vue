@@ -2,7 +2,7 @@
   <div class="deploy-url-panel">
     <div class="panel-header">
       <span class="panel-title">访问地址</span>
-      <el-button v-if="!isEditing" size="small" text @click="startEdit">
+      <el-button v-if="!isEditing && editable" size="small" text @click="startEdit">
         {{ deployUrl ? '修改' : '填写' }}
       </el-button>
     </div>
@@ -27,7 +27,7 @@
         <a :href="normalizeUrl(deployUrl)" target="_blank" rel="noopener" class="url-link">
           {{ deployUrl }}
         </a>
-        <el-button size="small" text type="danger" @click="handleClear">清除</el-button>
+        <el-button v-if="editable" size="small" text type="danger" @click="handleClear">清除</el-button>
       </div>
       <div v-else class="no-url">未填写</div>
     </template>
@@ -40,6 +40,7 @@ import { ElMessageBox } from 'element-plus';
 
 const props = defineProps<{
   deployUrl: string | null;
+  editable?: boolean;
 }>();
 const emit = defineEmits<{
   (e: 'update:deployUrl', value: string | null): void;
