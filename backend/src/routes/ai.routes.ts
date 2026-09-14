@@ -2,7 +2,6 @@ import { Hono } from 'hono';
 import { streamSSE } from 'hono/streaming';
 import { DocType, Prisma, PrismaClient } from '../generated/prisma';
 import { authMiddleware, viewerBlockMiddleware } from '../middleware/auth.middleware.js';
-import { checkBannedMiddleware } from '../middleware/ban.middleware.js';
 import { aiLimiter } from '../middleware/rate-limit.middleware.js';
 import { aiService, type TokenUsage } from '../services/ai.service.js';
 import { DOC_GENERATION_ORDER, getContextDependencies, getGenerationBlockedReason } from '../constants/document-generation.js';
@@ -51,7 +50,7 @@ router.use('*', async (c, next) => {
 
 const validDocTypes: DocType[] = ['PRD', 'FRONTEND', 'BACKEND', 'API', 'TASK', 'CONTEXT_STATE', 'AGENTS'];
 
-router.post('/generate', authMiddleware, aiLimiter, viewerBlockMiddleware, checkBannedMiddleware, async (c) => {
+router.post('/generate', authMiddleware, aiLimiter, viewerBlockMiddleware, async (c) => {
   const { projectId, docType, forceRegenerate } = await c.req.json();
 
   if (!projectId) {
@@ -202,7 +201,7 @@ router.post('/generate', authMiddleware, aiLimiter, viewerBlockMiddleware, check
   }
 });
 
-router.post('/generate/stream', authMiddleware, aiLimiter, viewerBlockMiddleware, checkBannedMiddleware, async (c) => {
+router.post('/generate/stream', authMiddleware, aiLimiter, viewerBlockMiddleware, async (c) => {
   const { projectId, docType, forceRegenerate } = await c.req.json();
 
   if (!projectId) {
@@ -369,7 +368,7 @@ router.post('/generate/stream', authMiddleware, aiLimiter, viewerBlockMiddleware
   });
 });
 
-router.post('/review', authMiddleware, aiLimiter, viewerBlockMiddleware, checkBannedMiddleware, async (c) => {
+router.post('/review', authMiddleware, aiLimiter, viewerBlockMiddleware, async (c) => {
   const { projectId, mode } = await c.req.json();
 
   if (!projectId) {
@@ -531,7 +530,7 @@ router.post('/review', authMiddleware, aiLimiter, viewerBlockMiddleware, checkBa
   }
 });
 
-router.post('/review/stream', authMiddleware, aiLimiter, viewerBlockMiddleware, checkBannedMiddleware, async (c) => {
+router.post('/review/stream', authMiddleware, aiLimiter, viewerBlockMiddleware, async (c) => {
   const { projectId, mode } = await c.req.json();
 
   if (!projectId) {

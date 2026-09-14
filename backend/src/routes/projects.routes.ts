@@ -2,7 +2,6 @@ import { Hono } from 'hono';
 import { PrismaClient, ProjectStatus } from '../generated/prisma';
 import { authMiddleware } from '../middleware/auth.middleware.js';
 import { viewerBlockMiddleware } from '../middleware/auth.middleware.js';
-import { checkBannedMiddleware } from '../middleware/ban.middleware.js';
 import { updateRepoUrl, syncRepoData, getProjectRepoInfo, updateDeployUrl } from '../services/repo.service.js';
 import { asyncHandler } from '../lib/handler.js';
 import type { AppEnv } from '../types.js';
@@ -10,7 +9,7 @@ import { logger } from '../lib/logger.js';
 
 const router = new Hono<AppEnv>();
 
-router.post('/', authMiddleware, viewerBlockMiddleware, checkBannedMiddleware, asyncHandler('服务器错误，请稍后重试', async (c) => {
+router.post('/', authMiddleware, viewerBlockMiddleware, asyncHandler('服务器错误，请稍后重试', async (c) => {
   const { topicId } = await c.req.json();
 
   if (!topicId) {
@@ -202,7 +201,7 @@ router.put('/:id/techStack', authMiddleware, viewerBlockMiddleware, asyncHandler
 // The following handlers keep their own try/catch: they map service-thrown
 // error messages (PROJECT_NOT_FOUND / INVALID_GITEE_URL / NO_REPO_URL) to
 // specific status codes, which asyncHandler does not do.
-router.put('/:id/repoUrl', authMiddleware, viewerBlockMiddleware, checkBannedMiddleware, async (c) => {
+router.put('/:id/repoUrl', authMiddleware, viewerBlockMiddleware, async (c) => {
   try {
     const user = c.get('user');
     const prisma = c.get('prisma');
@@ -232,7 +231,7 @@ router.put('/:id/repoUrl', authMiddleware, viewerBlockMiddleware, checkBannedMid
   }
 });
 
-router.put('/:id/deployUrl', authMiddleware, viewerBlockMiddleware, checkBannedMiddleware, async (c) => {
+router.put('/:id/deployUrl', authMiddleware, viewerBlockMiddleware, async (c) => {
   try {
     const user = c.get('user');
     const prisma = c.get('prisma');
@@ -259,7 +258,7 @@ router.put('/:id/deployUrl', authMiddleware, viewerBlockMiddleware, checkBannedM
   }
 });
 
-router.post('/:id/syncRepo', authMiddleware, viewerBlockMiddleware, checkBannedMiddleware, async (c) => {
+router.post('/:id/syncRepo', authMiddleware, viewerBlockMiddleware, async (c) => {
   try {
     const user = c.get('user');
     const prisma = c.get('prisma');
