@@ -316,3 +316,10 @@ model ArchivedThesisProject {
   @@index([grade])
   @@index([userId])
 }
+
+// 限流计数（D1 共享存储，跨 isolate 生效；key 维度：login:<ip> / ai:<userId> 等）
+model RateLimitEntry {
+  key     String   @id
+  count   Int      @default(0)
+  resetAt DateTime
+}

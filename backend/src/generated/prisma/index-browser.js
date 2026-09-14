@@ -282,6 +282,12 @@ exports.Prisma.ArchivedThesisProjectScalarFieldEnum = {
   archivedAt: 'archivedAt'
 };
 
+exports.Prisma.RateLimitEntryScalarFieldEnum = {
+  key: 'key',
+  count: 'count',
+  resetAt: 'resetAt'
+};
+
 exports.Prisma.SortOrder = {
   asc: 'asc',
   desc: 'desc'
@@ -386,7 +392,8 @@ exports.Prisma.ModelName = {
   ThesisTopic: 'ThesisTopic',
   ThesisProject: 'ThesisProject',
   ArchivedGrade: 'ArchivedGrade',
-  ArchivedThesisProject: 'ArchivedThesisProject'
+  ArchivedThesisProject: 'ArchivedThesisProject',
+  RateLimitEntry: 'RateLimitEntry'
 };
 
 /**

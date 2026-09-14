@@ -1,11 +1,11 @@
 /**
- * 集成测试：/api/ai/* 的 aiLimiter 限流（P0-C 端到端验证）
- * 目标：连续超限后返回 429，且限流按**用户**维度计数（不同用户互不影响）。
+ * 集成测试：/api/ai/* 的 aiLimiter 接线（P0-C 端到端验证）。
  *
- * 说明：aiLimiter 是模块级进程内 Map（src/middleware/rate-limit.middleware.ts），
- * 在 vitest 默认「每文件独立模块图」下，同文件内计数有效、跨文件不共享。
- * 本文件不 mock 上游 AI——因为限流中间件在路由处理之前就短路，命中 11 次的
- * 请求根本不会触达 AI 调用；前 10 次则以「缺 projectId 的 400」证明请求确实
+ * P0-2 修复后限流计数存 D1（c.env.DB），本地 Node 入口（src/index.ts）shim
+ * DB: undefined → 限流 fail-open 放行。因此本文件验证两点：
+ *  1. aiLimiter 在路由链上且不误伤（超量请求仍到达处理器 → 缺 projectId 的 400）；
+ *  2. 计数与拒绝语义由 tests/rate-limit.test.ts 在 FakeD1 上覆盖。
+ * 本文件不 mock 上游 AI——前 10 次以「缺 projectId 的 400」证明请求确实
  * 穿过了限流并到达处理器。
  */
 import { createServer, type Server } from 'node:http';
@@ -96,27 +96,23 @@ async function hitGenerate(cookie: string): Promise<{ status: number; body: any 
   return { status: response.status, body: text ? JSON.parse(text) : null };
 }
 
-test('aiLimiter：同一用户第 11 次请求返回 429，且计数按用户隔离', async () => {
+test('aiLimiter 在路由链上：本地 Node（无 D1）fail-open，请求仍到达处理器', async () => {
   const userA = await createStudent();
   const cookieA = await authCookie(userA);
   const userB = await createStudent();
   const cookieB = await authCookie(userB);
 
-  // 前 10 次应全部穿过限流（到达处理器 → 缺 projectId → 400），第 11 次被拒。
+  // 本地 Node 入口 DB: undefined → fail-open：超量请求不被限流拒绝，
+  // 仍穿过中间件到达处理器（缺 projectId → 400）。
   const statuses: number[] = [];
   for (let i = 0; i < 11; i += 1) {
     const res = await hitGenerate(cookieA);
     statuses.push(res.status);
-    if (i < 10) {
-      expect(res.status, `第 ${i + 1} 次应为 400`).toBe(400);
-    } else {
-      expect(res.status, '第 11 次应为 429').toBe(429);
-      expect(res.body.error).toContain('AI生成次数已达上限');
-    }
+    expect(res.status, `第 ${i + 1} 次应为 400（到达处理器）`).toBe(400);
   }
-  expect(statuses.slice(0, 10).every((s) => s === 400)).toBe(true);
+  expect(statuses.every((s) => s === 400)).toBe(true);
 
-  // 计数按用户维度隔离：另一个用户不应被 A 的用量影响。
+  // 计数按用户维度隔离：另一个用户不受 A 的用量影响。
   const userBRes = await hitGenerate(cookieB);
   expect(userBRes.status).toBe(400);
 });
