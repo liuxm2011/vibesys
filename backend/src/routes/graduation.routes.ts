@@ -287,9 +287,9 @@ router.post('/generate', authMiddleware, aiLimiter, viewerBlockMiddleware, async
     return c.json({ document });
   } catch (error) {
     logger.error('Graduation document generation error:', error);
-    return c.json({
-      error: error instanceof Error ? error.message : '生成失败'
-    }, 500);
+    // Detailed error (which may include the upstream response body) is logged
+    // only — the client gets a generic message, same as the stream endpoints.
+    return c.json({ error: '生成失败，请稍后重试' }, 500);
   }
 });
 
@@ -414,8 +414,9 @@ router.post('/generate/stream', authMiddleware, aiLimiter, viewerBlockMiddleware
       }
 
       logger.error('Graduation document stream error:', error);
-      const errMsg = error instanceof Error ? error.message : '生成失败';
-      await stream.writeSSE({ event: 'error', data: JSON.stringify({ message: errMsg }) });
+      // Same convention as ai.routes stream endpoints: log the detail, send a
+      // generic message over SSE.
+      await stream.writeSSE({ event: 'error', data: JSON.stringify({ message: '生成失败，请稍后重试' }) });
     }
   });
 });

@@ -22,6 +22,18 @@ function buildAttachmentHeader(asciiFilename: string, utf8Filename: string): str
   return `attachment; filename="${asciiFilename}"; filename*=UTF-8''${encodeURIComponent(utf8Filename)}`;
 }
 
+/**
+ * Neutralize spreadsheet formula injection for student-controlled text.
+ * SheetJS writes strings as text cells, but if the sheet is later saved as
+ * CSV (or copy-pasted) and reopened, a leading = + - @ would be evaluated as
+ * a formula by Excel/WPS. Prefixing a single quote keeps the value visible
+ * while breaking formula evaluation in every downstream tool.
+ */
+function sanitizeSpreadsheetCell(value: unknown): string {
+  if (typeof value !== 'string') return value === null || value === undefined ? '' : String(value);
+  return /^[=+\-@\t\r]/.test(value) ? `'${value}` : value;
+}
+
 function getDefaultPasswordForUser(user: { role: Role; studentId: string }): string {
   return user.role === Role.ADMIN ? ADMIN_DEFAULT_PASSWORD : user.studentId;
 }
@@ -1236,15 +1248,15 @@ router.get('/projects/repos/export', asyncHandler('导出失败', async (c) => {
   });
   const XLSX = await import('xlsx');
   const rows = repos.map((r: any) => ({
-    '学号': r.studentId,
-    '姓名': r.studentName,
-    '专业': r.major,
-    '年级': r.grade,
-    '班级': r.className,
-    '选题名称': r.topicTitle,
+    '学号': sanitizeSpreadsheetCell(r.studentId),
+    '姓名': sanitizeSpreadsheetCell(r.studentName),
+    '专业': sanitizeSpreadsheetCell(r.major),
+    '年级': sanitizeSpreadsheetCell(r.grade),
+    '班级': sanitizeSpreadsheetCell(r.className),
+    '选题名称': sanitizeSpreadsheetCell(r.topicTitle),
     '优秀': r.isFeatured ? '是' : '',
-    '仓库地址': r.repoUrl || '',
-    '访问地址': r.deployUrl || '',
+    '仓库地址': sanitizeSpreadsheetCell(r.repoUrl || ''),
+    '访问地址': sanitizeSpreadsheetCell(r.deployUrl || ''),
     '最近同步时间': r.syncedAt ? new Date(r.syncedAt).toLocaleString('zh-CN') : '',
     '提交数': r.commitCount,
   }));

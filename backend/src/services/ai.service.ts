@@ -245,10 +245,27 @@ These guidelines are working if: fewer unnecessary changes in diffs, fewer rewri
   private readonly REVIEW_TIMEOUT = 360_000; // 360 seconds (6 minutes) timeout for expert panel review
 
   /**
-   * Generate cache key from docType and topic info
+   * Drop expired entries so the in-memory cache cannot grow without bound on a
+   * long-lived isolate. Called lazily before inserting a new cache entry.
    */
-  private async generateCacheKey(docType: DocType, topicInfo: TopicInfo): Promise<string> {
+  private pruneExpiredCache(): void {
+    const now = Date.now();
+    for (const [key, entry] of this.resultCache) {
+      if (now - entry.timestamp >= this.CACHE_TTL) {
+        this.resultCache.delete(key);
+      }
+    }
+  }
+
+  /**
+   * Generate cache key from docType and topic info.
+   * The key MUST include userId: different students may resolve to different
+   * provider configs (personal API key / model), so a shared key would let
+   * student B receive content generated (and billed) with student A's key.
+   */
+  private async generateCacheKey(docType: DocType, topicInfo: TopicInfo, userId?: number): Promise<string> {
     const payload = {
+      userId: userId ?? null,
       docType,
       title: topicInfo.title,
       description: topicInfo.description,
@@ -335,7 +352,7 @@ These guidelines are working if: fewer unnecessary changes in diffs, fewer rewri
       return { content, usage };
     }
 
-    const cacheKey = await this.generateCacheKey(docType, topicInfo);
+    const cacheKey = await this.generateCacheKey(docType, topicInfo, options.userId);
     const bypassCache = options.bypassCache === true;
 
     if (!bypassCache) {
@@ -379,6 +396,7 @@ These guidelines are working if: fewer unnecessary changes in diffs, fewer rewri
       const content = await requestPromise;
 
       // Cache result
+      this.pruneExpiredCache();
       this.resultCache.set(cacheKey, {
         content,
         timestamp: Date.now()
@@ -414,7 +432,7 @@ These guidelines are working if: fewer unnecessary changes in diffs, fewer rewri
       return { content: finalized, usage };
     }
 
-    const cacheKey = await this.generateCacheKey(docType, topicInfo);
+    const cacheKey = await this.generateCacheKey(docType, topicInfo, options.userId);
     const bypassCache = options.bypassCache === true;
 
     if (!bypassCache) {
@@ -449,6 +467,7 @@ These guidelines are working if: fewer unnecessary changes in diffs, fewer rewri
       });
     }
 
+    this.pruneExpiredCache();
     this.resultCache.set(cacheKey, {
       content: finalized,
       timestamp: Date.now()

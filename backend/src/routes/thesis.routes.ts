@@ -253,6 +253,26 @@ router.delete('/release', authMiddleware, viewerBlockMiddleware, asyncHandler('�
 router.put('/project', authMiddleware, viewerBlockMiddleware, asyncHandler('保存失败，请重试', async (c) => {
   const body = await c.req.json().catch(() => ({}));
   const { repoUrl, deployUrl } = body;
+
+  // Same limits as projects.routes.ts (500 chars) + type guard so a
+  // non-string value cannot reach Prisma and turn into a 500.
+  if (repoUrl !== undefined) {
+    if (typeof repoUrl !== 'string') {
+      return c.json({ error: '仓库地址格式无效' }, 400);
+    }
+    if (repoUrl.length > 500) {
+      return c.json({ error: '仓库地址过长' }, 400);
+    }
+  }
+  if (deployUrl !== undefined) {
+    if (typeof deployUrl !== 'string') {
+      return c.json({ error: '访问地址格式无效' }, 400);
+    }
+    if (deployUrl.length > 500) {
+      return c.json({ error: '访问地址过长' }, 400);
+    }
+  }
+
   const prisma = c.get('prisma');
   const user = c.get('user');
 

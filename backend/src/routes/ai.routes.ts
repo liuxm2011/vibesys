@@ -519,11 +519,10 @@ router.post('/review', authMiddleware, aiLimiter, viewerBlockMiddleware, async (
     logger.error('AI review error:', error);
     const actionLabel = mode === 'fix' ? '修复' : '审核';
 
-    if (error instanceof Error) {
-      if (error.message.includes('timeout')) {
-        return c.json({ error: `${actionLabel}超时，请稍后重试` }, 504);
-      }
-      return c.json({ error: `${actionLabel}失败: ${error.message}` }, 500);
+    // Detailed error (which may include the upstream response body) is logged
+    // only — the client gets a generic message, same as the stream endpoints.
+    if (error instanceof Error && error.message.includes('timeout')) {
+      return c.json({ error: `${actionLabel}超时，请稍后重试` }, 504);
     }
 
     return c.json({ error: `${actionLabel}失败，请稍后重试` }, 500);
