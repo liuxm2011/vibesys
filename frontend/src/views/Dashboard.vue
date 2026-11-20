@@ -249,7 +249,7 @@
       <el-form :model="apiForm" label-position="top" ref="apiFormRef">
         <!-- Quota hint -->
         <el-alert
-          v-if="apiForm.baseURL === DEFAULT_BASE_URL"
+          v-if="isModelScopeApi"
           type="info"
           :closable="false"
           show-icon
@@ -262,16 +262,16 @@
         </el-alert>
 
         <el-form-item label="API 地址" prop="baseURL">
-          <el-input v-model="apiForm.baseURL" placeholder="https://api-inference.modelscope.cn/v1">
+          <el-input v-model="apiForm.baseURL" :placeholder="DEFAULT_BASE_URL">
             <template #prepend>URL</template>
           </el-input>
-          <p class="form-hint">默认为 ModelScope 魔搭社区 API</p>
+          <p class="form-hint">填写服务商提供的 OpenAI 兼容 API 基础地址（公网 HTTPS）</p>
         </el-form-item>
 
         <el-form-item label="API Key" prop="apiKey">
           <el-input
             v-model="apiForm.apiKey"
-            :placeholder="savedKeyHint || '请输入你的 ModelScope API Key'"
+            :placeholder="savedKeyHint || '请输入服务商提供的 API Key'"
             show-password
             clearable
           >
@@ -279,7 +279,7 @@
               <el-icon v-if="hasSavedSettings" color="#67c23a"><Lock /></el-icon>
             </template>
           </el-input>
-          <p class="form-hint">
+          <p v-if="hasSavedSettings || isModelScopeApi" class="form-hint">
             <template v-if="hasSavedSettings">
               <el-icon color="#67c23a" style="vertical-align: middle;"><CircleCheckFilled /></el-icon>
               <span style="vertical-align: middle; margin-left: 4px;">Key 已保存，留空则不修改</span>
@@ -292,19 +292,14 @@
           </p>
         </el-form-item>
 
-        <el-form-item label="选择模型" prop="model">
-          <el-select v-model="apiForm.model" placeholder="请选择模型" style="width: 100%">
-            <el-option
-              v-for="m in modelOptions"
-              :key="m.value"
-              :label="m.label"
-              :value="m.value"
-            >
-              <span>{{ m.label }}</span>
-              <span class="model-id-hint">{{ m.value }}</span>
-            </el-option>
-          </el-select>
-          <p class="form-hint">使用选中的模型进行文档生成</p>
+        <el-form-item label="模型 ID" prop="model" required>
+          <el-input
+            v-model="apiForm.model"
+            placeholder="请输入服务商提供的模型 ID"
+            spellcheck="false"
+            clearable
+          />
+          <p class="form-hint">请填写完整 ID，包括服务商要求的前缀和大小写。</p>
         </el-form-item>
 
         <!-- Test result -->
@@ -385,13 +380,6 @@ import type { FormInstance } from 'element-plus';
 
 const DEFAULT_BASE_URL = 'https://api-inference.modelscope.cn/v1';
 
-const MODEL_OPTIONS = [
-  { label: 'DeepSeek V4 Flash', value: 'deepseek-ai/DeepSeek-V4-Flash' },
-  { label: 'Kimi K2.6', value: 'moonshotai/Kimi-K2.6' },
-  { label: 'MiMo V2.5', value: 'XiaomiMiMo/MiMo-V2.5' },
-  { label: 'GLM 5.1', value: 'ZhipuAI/GLM-5.1' },
-] as const;
-
 interface ApiForm {
   baseURL: string;
   apiKey: string;
@@ -419,8 +407,6 @@ const hasSavedSettings = ref(false);
 const savedKeyHint = ref('');
 const apiFormRef = ref<FormInstance>();
 
-const modelOptions = [...MODEL_OPTIONS];
-
 watch(apiDialogVisible, (val) => {
   if (val) {
     testResult.value = null;
@@ -431,8 +417,9 @@ watch(apiDialogVisible, (val) => {
 const apiForm = ref<ApiForm>({
   baseURL: DEFAULT_BASE_URL,
   apiKey: '',
-  model: MODEL_OPTIONS[0].value,
+  model: '',
 });
+const isModelScopeApi = computed(() => apiForm.value.baseURL.trim().replace(/\/+$/, '') === DEFAULT_BASE_URL);
 
 const systemConfig = ref({
   announcement: '',
@@ -484,7 +471,7 @@ async function loadApiSetting() {
       hasSavedSettings.value = true;
       savedKeyHint.value = res.setting.hasRealKey ? '已保存的 Key（留空则不修改）' : '';
       apiForm.value.baseURL = res.setting.baseURL || DEFAULT_BASE_URL;
-      apiForm.value.model = res.setting.model || MODEL_OPTIONS[0].value;
+      apiForm.value.model = res.setting.model;
     }
   } catch {
     // Ignore errors on load
@@ -500,8 +487,9 @@ async function handleSaveApiSettings() {
     ElMessage.warning('请输入 API 地址');
     return;
   }
-  if (!apiForm.value.model) {
-    ElMessage.warning('请选择模型');
+  const model = apiForm.value.model.trim();
+  if (!model) {
+    ElMessage.warning('请输入模型 ID');
     return;
   }
 
@@ -511,8 +499,9 @@ async function handleSaveApiSettings() {
     await saveUserApiSettingApi({
       baseURL: apiForm.value.baseURL.trim(),
       apiKey: keyToSave,
-      model: apiForm.value.model,
+      model,
     });
+    apiForm.value.apiKey = '';
     hasSavedSettings.value = true;
     savedKeyHint.value = '已保存的 Key（留空则不修改）';
     ElMessage.success('API 设置已保存');
@@ -534,8 +523,9 @@ async function handleTestConnection() {
     ElMessage.warning('请输入 API 地址');
     return;
   }
-  if (!apiForm.value.model) {
-    ElMessage.warning('请选择模型');
+  const model = apiForm.value.model.trim();
+  if (!model) {
+    ElMessage.warning('请输入模型 ID');
     return;
   }
 
@@ -545,7 +535,7 @@ async function handleTestConnection() {
     testResult.value = await testUserApiSettingApi({
       baseURL: apiForm.value.baseURL.trim(),
       apiKey: key || '__saved__',
-      model: apiForm.value.model,
+      model,
     });
   } catch (e: any) {
     testResult.value = { success: false, latencyMs: 0, message: e?.message || '测试失败' };
@@ -564,7 +554,7 @@ async function handleClearApiSettings() {
     await deleteUserApiSettingApi();
     apiForm.value.apiKey = '';
     apiForm.value.baseURL = DEFAULT_BASE_URL;
-    apiForm.value.model = MODEL_OPTIONS[0].value;
+    apiForm.value.model = '';
     testResult.value = null;
     hasSavedSettings.value = false;
     savedKeyHint.value = '';
@@ -1076,12 +1066,6 @@ async function handleDeleteProject(projectId: number): Promise<void> {
 .quota-link {
   color: var(--primary-color);
   text-decoration: underline;
-}
-.model-id-hint {
-  float: right;
-  color: var(--text-secondary);
-  font-size: 12px;
-  font-family: monospace;
 }
 .form-hint {
   font-size: 12px;

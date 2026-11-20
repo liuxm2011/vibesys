@@ -53,13 +53,14 @@ router.put('/api-setting', viewerBlockMiddleware, asyncHandler('保存API设置�
   const user = c.get('user');
   const prisma = c.get('prisma');
   const userId = user.userId;
-  const { baseURL, apiKey, model } = await c.req.json();
+  const { baseURL, apiKey, model: rawModel } = await c.req.json();
+  const model = typeof rawModel === 'string' ? rawModel.trim() : '';
 
   if (!baseURL) {
     return c.json({ error: 'API地址不能为空' }, 400);
   }
   if (!model) {
-    return c.json({ error: '请选择模型' }, 400);
+    return c.json({ error: '请输入模型 ID' }, 400);
   }
 
   const urlCheck = checkPublicHttpsBaseUrl(baseURL);
@@ -80,7 +81,7 @@ router.put('/api-setting', viewerBlockMiddleware, asyncHandler('保存API设置�
   const setting = await prisma.userApiSetting.upsert({
     where: { userId },
     update: { baseURL: safeBaseURL, apiKey: finalApiKey, model },
-    create: { userId, baseURL: safeBaseURL || '', apiKey: finalApiKey, model: model || '' }
+    create: { userId, baseURL: safeBaseURL, apiKey: finalApiKey, model }
   });
 
   return c.json({
@@ -113,8 +114,12 @@ router.post('/api-setting/test', viewerBlockMiddleware, async (c) => {
       model = model || saved.model;
     }
 
-    if (!baseURL || !apiKey || !model) {
+    if (!baseURL || !apiKey) {
       return c.json({ error: '请先填写完整的API配置' }, 400);
+    }
+    const modelId = typeof model === 'string' ? model.trim() : '';
+    if (!modelId) {
+      return c.json({ error: '请输入模型 ID' }, 400);
     }
 
     // Guard against SSRF, including historical dirty data already in the DB.
@@ -137,7 +142,7 @@ router.post('/api-setting/test', viewerBlockMiddleware, async (c) => {
         'Authorization': `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
-        model,
+        model: modelId,
         messages: [
           { role: 'user', content: 'Say hello in one word' }
         ],
