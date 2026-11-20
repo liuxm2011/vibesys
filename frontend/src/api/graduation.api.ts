@@ -3,6 +3,8 @@ import { requestDocumentStream } from '@/utils/document-stream';
 import type { GenerateDocumentStreamProgress } from '@/types/document';
 import type {
   GraduationDocType,
+  GraduationHandbookData,
+  HandbookProfile,
   GraduationDocumentsResponse,
   CreateGraduationDocumentResponse,
   UpdateGraduationDocumentResponse,
@@ -53,4 +55,14 @@ export async function generateGraduationDocumentStreamApi(
   options: GenerateGraduationStreamOptions = {}
 ): Promise<GenerateGraduationDocumentResponse> {
   return requestDocumentStream<GenerateGraduationDocumentResponse>('/api/graduation/generate/stream', projectId, docType, options);
+}
+
+export function fetchGraduationHandbookApi(projectId: number): Promise<GraduationHandbookData> {
+  return api.get(`/api/graduation/${projectId}/handbook`);
+}
+
+export function updateGraduationHandbookApi(
+  projectId: number, profile: HandbookProfile,
+): Promise<Pick<GraduationHandbookData, 'profile' | 'calendar'>> {
+  return api.put(`/api/graduation/${projectId}/handbook`, profile);
 }

@@ -1,14 +1,7 @@
 import { test, expect } from 'vitest';
 import { GraduationService } from '../src/services/graduation.service.js';
 
-/**
- * postProcess 是私有方法，这里通过类型断言直接调用，以覆盖生成后的清洗逻辑。
- *
- * 契约来源：src/prompts/task-book.template.ts 与 proposal.template.ts 均要求
- * 模型「只输出最终 Markdown 文档」，且首行必须是 `# 任务书` / `# 毕业设计开题报告`，
- * 并明确禁止 HTML 标签。因此清洗策略是「从第一个 Markdown 一级标题处截断」，
- * 把模型可能泄漏的思考过程、过渡语丢弃。
- */
+// 此处覆盖模型 Markdown 的清洗。固定栏目装配由手册测试覆盖。
 function createService(): { postProcess(content: string, docType?: string): string } {
   return new GraduationService() as unknown as {
     postProcess(content: string, docType?: string): string;

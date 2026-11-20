@@ -30,7 +30,7 @@ export const useGraduationDocumentStore = defineStore('graduationDocument', () =
   const allDocsGenerated = computed(() => {
     return GRAD_DOC_GENERATION_ORDER.every(docType => {
       const document = documents.value.find(d => d.docType === docType);
-      return document && document.content.length > 0;
+      return Boolean(document?.content.trim());
     });
   });
 

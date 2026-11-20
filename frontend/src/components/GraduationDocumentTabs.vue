@@ -1,152 +1,59 @@
 <script setup lang="ts">
-import { ref, watch } from 'vue';
-import {
-  Notebook,
-  EditPen,
-  TrendCharts,
-  Edit,
-  Checked,
-  Finished
-} from '@element-plus/icons-vue';
-import type { GraduationDocType } from '@/types/graduation-document';
+import { Notebook, EditPen, TrendCharts, Edit, Checked, Finished, Document } from '@element-plus/icons-vue';
+import type { GraduationDocType, GraduationDocument } from '@/types/graduation-document';
+import { GRAD_DOC_GENERATION_ORDER, GRAD_DOC_TYPE_LABELS } from '@/utils/graduation-document-generation';
 
-interface Props {
-  documents: GraduationDocument[];
-  activeDocType: GraduationDocType;
-  generating?: boolean;
-}
+const props = defineProps<{ documents: GraduationDocument[] }>();
+const activeTab = defineModel<GraduationDocType>('activeDocType', { required: true });
 
-interface GraduationDocument {
-  id: number;
-  projectId: number;
-  docType: GraduationDocType;
-  content: string;
-  createdAt: string;
-  updatedAt: string;
-}
+const icons = {
+  TASK_BOOK: Notebook, PROPOSAL: EditPen, PREPARATION: TrendCharts, DRAFTING: Edit,
+  MIDTERM_CHECK: Checked, REFINEMENT: Finished, SUMMARY: Document,
+};
 
-const props = withDefaults(defineProps<Props>(), {
-  generating: false
-});
-
-const emit = defineEmits<{
-  'update:activeDocType': [docType: GraduationDocType];
-}>();
-
-const activeTab = ref<string>(props.activeDocType);
-
-watch(() => props.activeDocType, (newType) => {
-  activeTab.value = newType;
-});
-
-function getDocument(docType: GraduationDocType): GraduationDocument | undefined {
-  return props.documents.find(d => d.docType === docType);
-}
-
-function hasContent(docType: GraduationDocType): boolean {
-  const doc = getDocument(docType);
-  return !!(doc && doc.content.length > 0);
-}
-
-function handleTabChange(tabName: any): void {
-  emit('update:activeDocType', tabName as GraduationDocType);
+function getDocument(type: GraduationDocType): GraduationDocument | undefined {
+  return props.documents.find(document => document.docType === type && document.content.trim());
 }
 </script>
 
 <template>
   <div class="custom-tabs-container">
-    <el-tabs v-model="activeTab" @tab-change="handleTabChange" class="modern-tabs">
-      <el-tab-pane name="TASK_BOOK">
+    <el-tabs v-model="activeTab" class="modern-tabs">
+      <el-tab-pane v-for="type in GRAD_DOC_GENERATION_ORDER" :key="type" :name="type" lazy>
         <template #label>
           <div class="tab-label">
-            <el-icon><Notebook /></el-icon>
-            <span>任务书</span>
-            <div v-if="!hasContent('TASK_BOOK')" class="status-dot empty"></div>
-            <div v-else class="status-dot success"></div>
+            <el-icon><component :is="icons[type]" /></el-icon>
+            <span>{{ GRAD_DOC_TYPE_LABELS[type] }}</span>
+            <span class="status-dot" :class="getDocument(type) ? 'success' : 'empty'"></span>
           </div>
         </template>
         <div class="tab-content">
-          <slot name="taskBook" :document="getDocument('TASK_BOOK')" />
+          <slot :type="type" :document="getDocument(type)" />
         </div>
       </el-tab-pane>
-
-      <el-tab-pane name="PROPOSAL">
-        <template #label>
-          <div class="tab-label">
-            <el-icon><EditPen /></el-icon>
-            <span>开题报告</span>
-            <div v-if="!hasContent('PROPOSAL')" class="status-dot empty"></div>
-            <div v-else class="status-dot success"></div>
-          </div>
-        </template>
-        <div class="tab-content">
-          <slot name="proposal" :document="getDocument('PROPOSAL')" />
-        </div>
-      </el-tab-pane>
-
-      <el-tab-pane name="PREPARATION">
-        <template #label>
-          <div class="tab-label">
-            <el-icon><TrendCharts /></el-icon>
-            <span>前期准备</span>
-            <div v-if="!hasContent('PREPARATION')" class="status-dot empty"></div>
-            <div v-else class="status-dot success"></div>
-          </div>
-        </template>
-        <div class="tab-content">
-          <slot name="preparation" :document="getDocument('PREPARATION')" />
-        </div>
-      </el-tab-pane>
-
-      <el-tab-pane name="DRAFTING">
-        <template #label>
-          <div class="tab-label">
-            <el-icon><Edit /></el-icon>
-            <span>撰写</span>
-            <div v-if="!hasContent('DRAFTING')" class="status-dot empty"></div>
-            <div v-else class="status-dot success"></div>
-          </div>
-        </template>
-        <div class="tab-content">
-          <slot name="drafting" :document="getDocument('DRAFTING')" />
-        </div>
-      </el-tab-pane>
-
-      <el-tab-pane name="MIDTERM_CHECK">
-        <template #label>
-          <div class="tab-label">
-            <el-icon><Checked /></el-icon>
-            <span>中期检查</span>
-            <div v-if="!hasContent('MIDTERM_CHECK')" class="status-dot empty"></div>
-            <div v-else class="status-dot success"></div>
-          </div>
-        </template>
-        <div class="tab-content">
-          <slot name="midtermCheck" :document="getDocument('MIDTERM_CHECK')" />
-        </div>
-      </el-tab-pane>
-
-      <el-tab-pane name="REFINEMENT">
-        <template #label>
-          <div class="tab-label">
-            <el-icon><Finished /></el-icon>
-            <span>完善</span>
-            <div v-if="!hasContent('REFINEMENT')" class="status-dot empty"></div>
-            <div v-else class="status-dot success"></div>
-          </div>
-        </template>
-        <div class="tab-content">
-          <slot name="refinement" :document="getDocument('REFINEMENT')" />
-        </div>
-      </el-tab-pane>
-
     </el-tabs>
   </div>
 </template>
 
 <style scoped>
 .custom-tabs-container {
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+}
+
+.modern-tabs :deep(.el-tabs__content),
+.modern-tabs :deep(.el-tab-pane) {
   height: 100%;
+  min-height: 0;
+}
+
+.modern-tabs :deep(.el-tabs__content) {
+  flex: 1;
+}
+
+.modern-tabs :deep(.el-tabs__header) {
+  flex: none;
 }
 
 .modern-tabs {

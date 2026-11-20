@@ -1,4 +1,5 @@
 import { Hono } from 'hono';
+import { defaultGraduationCalendars, GRADUATION_CALENDAR_KEY, validateGraduationCalendars } from '../services/graduation-handbook.js';
 import { Role, Status, Domain, Platform, TopicType, ProjectStatus } from '../generated/prisma';
 import { authMiddleware, adminOnlyMiddleware, viewerBlockMiddleware } from '../middleware/auth.middleware.js';
 import { parseExcelTopics, validateTopicRow, generateTemplateBuffer, parseExcelStudents, validateStudentRow, generateStudentTemplateBuffer, deriveMajorFromStudentId, deriveGradeFromStudentId, validateStudentId } from '../utils/excel-import.utils.js';
@@ -834,6 +835,13 @@ const CONFIG_KEYS: Record<string, ConfigKeyDef> = {
       typeof v !== 'string' ? '无效的配置值' : v.length > 10000 ? '指南内容不能超过10000字符' : null,
     getErrorLabel: '获取指南信息失败',
     putErrorLabel: '更新指南信息失败',
+  },
+  [GRADUATION_CALENDAR_KEY]: {
+    default: defaultGraduationCalendars,
+    description: '毕业设计届别日历',
+    validate: validateGraduationCalendars,
+    getErrorLabel: '获取毕业设计日历失败',
+    putErrorLabel: '更新毕业设计日历失败',
   },
   graduationEnabled: {
     default: 'false',

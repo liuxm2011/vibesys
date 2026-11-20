@@ -10,7 +10,7 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-async function startGeneration(upstream: Response) {
+async function startGeneration(upstream: Response, docType = 'TASK_BOOK', existingContent = '', viaStream = true) {
   vi.stubEnv('MOCK_AI', 'false');
   const fetchModel = vi.fn().mockResolvedValue(upstream);
   vi.stubGlobal('fetch', fetchModel);
@@ -20,13 +20,13 @@ async function startGeneration(upstream: Response) {
     userApiSetting: {
       findUnique: async () => ({ baseURL: 'https://provider.example.test/v1', apiKey: 'test-key', model: 'test-model' }),
     },
-    systemConfig: { findUnique: async () => ({ value: 'true' }) },
+    systemConfig: { findUnique: async ({ where: { key } }: { where: { key: string } }) => key === 'graduationEnabled' ? { value: 'true' } : null },
     project: {
       findFirst: async () => ({
         topic: { title: '图书管理', description: '图书借阅系统', platform: 'WEB' },
         user: { studentId: '1', name: '测试学生', major: '大数据' },
         documents: [],
-        graduationDocuments: [],
+        graduationDocuments: existingContent ? [{ docType, content: existingContent }] : [],
       }),
     },
     graduationDocument: { upsert: saveDocument },
@@ -42,10 +42,10 @@ async function startGeneration(upstream: Response) {
 
   const secret = 'test-secret-for-document-streaming';
   const token = await signToken({ userId: 1, studentId: '1', name: '测试学生', role: 'STUDENT' }, secret);
-  const response = await app.request('/api/graduation/generate/stream', {
+  const response = await app.request(viaStream ? '/api/graduation/generate/stream' : '/api/graduation/generate', {
     method: 'POST',
     headers: { Cookie: `token=${token}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ projectId: 1, docType: 'TASK_BOOK' }),
+    body: JSON.stringify({ projectId: 1, docType }),
   }, { JWT_SECRET: secret });
   return { response, fetchModel, saveDocument };
 }
@@ -54,8 +54,8 @@ test('任务书在上游结束前转发生成阶段和正文片段', async () =>
   let upstream!: ReadableStreamDefaultController<Uint8Array>;
   const body = new ReadableStream<Uint8Array>({ start: controller => { upstream = controller; } });
   const encoder = new TextEncoder();
-  const content = '# 任务书\n\n正文第一段。';
-  const finalText = '\n\n正文第二段。';
+  const content = '# 正文草稿\n\n## 主要研究内容\n\n正文第一段。';
+  const finalText = '\n\n## 基本要求\n\n正文第二段。';
   const { response, fetchModel, saveDocument } = await startGeneration(
     new Response(body, { headers: { 'Content-Type': 'text/event-stream' } }),
   );
@@ -80,7 +80,7 @@ test('任务书在上游结束前转发生成阶段和正文片段', async () =>
     }));
 
     const firstDelta = encoder.encode(`data:${JSON.stringify({ choices: [{ delta: { content } }] })}\r\n\r\n`);
-    const split = firstDelta.indexOf(encoder.encode('任')[0]) + 1;
+    const split = firstDelta.indexOf(encoder.encode('正')[0]) + 1;
     upstream.enqueue(firstDelta.slice(0, split));
     upstream.enqueue(firstDelta.slice(split));
     expect((await readEvent()).data).toMatchObject({ phase: 'writing', contentText: content });
@@ -90,12 +90,19 @@ test('任务书在上游结束前转发生成阶段和正文片段', async () =>
     upstream.enqueue(encoder.encode(`data: ${JSON.stringify({ choices: [{ delta: { content: finalText }, finish_reason: 'stop' }] })}`));
     upstream.close();
     expect((await readEvent()).data).toMatchObject({ phase: 'writing', contentText: content + finalText });
-    expect((await readEvent()).data.phase).toBe('finalizing');
+    const final = await readEvent();
+    expect(final.data.phase).toBe('finalizing');
+    expect(final.data.contentText).toContain('# 萍乡学院本科生毕业设计任务书');
+    expect(final.data.contentText).toContain('## 进程计划');
+    expect(final.data.contentText).toContain('2026 年 11 月 20 日');
+    expect(final.data.contentText).toContain('正文第一段。');
+    expect(final.data.contentText).toContain('正文第二段。');
     expect(await readEvent()).toMatchObject({
       name: 'event: complete',
-      data: { document: { content: content + finalText } },
+      data: { document: { content: final.data.contentText } },
     });
   } finally {
+    expect(saveDocument).toHaveBeenCalledOnce();
     await reader.cancel();
   }
 });
@@ -125,5 +132,37 @@ test('模型未发送结束标志就关闭连接时报告错误且保留已有�
   expect(events).toContain('AI 服务在文档生成完毕前关闭了连接');
   expect(events).not.toContain('event: complete');
   expect(fetchModel).toHaveBeenCalledTimes(1);
+  expect(saveDocument).not.toHaveBeenCalled();
+});
+
+test('无阶段事实时普通与流式生成同一份中期空表且不请求模型', async () => {
+  const streaming = await startGeneration(new Response(null), 'MIDTERM_CHECK');
+  const event = (await streaming.response.text()).split('\n').find(line => line.includes('"document"'))!;
+  const streamDoc = JSON.parse(event.slice(6)).document;
+  expect(streamDoc.content).toContain('自 2027 年 2 月 22 日 至 2027 年 4 月 2 日');
+  expect(streamDoc.content).toContain('论文查重 ＜30%，AIGC 检测 ＜40%');
+  expect(streamDoc.content).toContain('待学生填写');
+  expect(streaming.fetchModel).not.toHaveBeenCalled();
+
+  const plain = await startGeneration(new Response(null), 'MIDTERM_CHECK', '', false);
+  expect(await plain.response.json()).toEqual({ document: streamDoc });
+  expect(plain.fetchModel).not.toHaveBeenCalled();
+});
+
+test('批量补齐请求遇到已编辑文档时返回原文，不重新生成', async () => {
+  const { response, fetchModel, saveDocument } = await startGeneration(new Response(null), 'TASK_BOOK', '学生已编辑');
+  const events = await response.text();
+  expect(events).toContain('event: complete');
+  expect(events).toContain('学生已编辑');
+  expect(saveDocument).not.toHaveBeenCalled();
+  expect(fetchModel).not.toHaveBeenCalled();
+});
+
+test('模型缺少必需手册栏目时提示重试并保留原文', async () => {
+  const partial = { choices: [{ delta: { content: '# 正文草稿\n\n## 主要研究内容\n\n一段内容。' }, finish_reason: 'stop' }] };
+  const { response, saveDocument } = await startGeneration(new Response(`data: ${JSON.stringify(partial)}\n\n`, {
+    headers: { 'Content-Type': 'text/event-stream' },
+  }));
+  expect(await response.text()).toContain('AI 返回的手册栏目不完整');
   expect(saveDocument).not.toHaveBeenCalled();
 });

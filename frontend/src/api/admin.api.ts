@@ -249,6 +249,14 @@ export async function updateGuideApi(value: string): Promise<SystemConfig> {
 // GRADUATION CONFIG
 // ============================================================
 
+export function fetchGraduationCalendarsApi(): Promise<SystemConfig> {
+  return api.get('/api/admin/config/graduationCalendars');
+}
+
+export function updateGraduationCalendarsApi(value: string): Promise<SystemConfig> {
+  return api.put('/api/admin/config/graduationCalendars', { value });
+}
+
 export async function fetchGraduationEnabledApi(): Promise<SystemConfig> {
   return api.get('/api/admin/config/graduationEnabled');
 }

@@ -96,6 +96,8 @@ enum GraduationDocType {
   DRAFTING      // 撰写阶段
   MIDTERM_CHECK // 中期检查阶段
   REFINEMENT    // 完善阶段
+  SUMMARY       // 个人学习工作总结
+  HANDBOOK_PROFILE // 手册资料，独立访问
 }
 
 // Phase 2: Topic model (D-01, D-04)

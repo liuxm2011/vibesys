@@ -376,7 +376,9 @@ exports.GraduationDocType = exports.$Enums.GraduationDocType = {
   PREPARATION: 'PREPARATION',
   DRAFTING: 'DRAFTING',
   MIDTERM_CHECK: 'MIDTERM_CHECK',
-  REFINEMENT: 'REFINEMENT'
+  REFINEMENT: 'REFINEMENT',
+  SUMMARY: 'SUMMARY',
+  HANDBOOK_PROFILE: 'HANDBOOK_PROFILE'
 };
 
 exports.Prisma.ModelName = {

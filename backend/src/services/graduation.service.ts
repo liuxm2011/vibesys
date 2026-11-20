@@ -1,8 +1,10 @@
-import { GraduationDocType, Domain, Platform, PrismaClient } from '../generated/prisma';
+import type { PrismaClient } from '../generated/prisma';
 import { apiProviderService, assertPublicHttpsBaseUrl } from './apiProvider.service.js';
-import { getTaskBookSystemPrompt, buildTaskBookUserPrompt } from '../prompts/task-book.template.js';
-import { getProposalSystemPrompt, buildProposalUserPrompt } from '../prompts/proposal.template.js';
-import { getProgressRecordSystemPrompt, buildProgressRecordUserPrompt } from '../prompts/progress-record.template.js';
+import type { HandbookDocumentType } from './graduation-handbook.js';
+import {
+  buildHandbookPrompts, canRenderEmptyHandbookDraft, renderHandbookDocument,
+  type HandbookTopicContext, type HandbookPreviousDocs,
+} from './graduation-handbook-document.js';
 import type { AppEnv } from '../types.js';
 import { DocumentStreamError } from '../lib/document-stream.js';
 
@@ -19,30 +21,6 @@ export interface GenerationProgress {
   tokenCount?: number;
   tokensPerSecond?: number;
   elapsedSeconds?: number;
-}
-
-interface TopicContext {
-  title: string;
-  description: string;
-  domain: Domain;
-  platform: Platform;
-  objectives: string | null;
-  techStack: string[];
-  studentId: string;
-  studentName: string;
-  major: string;
-  className: string;
-  grade: string;
-  datasetName?: string;
-  datasetCategory?: string;
-}
-
-interface PreviousDocs {
-  prdContent: string;
-  frontendContent: string;
-  backendContent: string;
-  taskBookContent: string;
-  proposalContent: string;
 }
 
 interface ChatCompletionResponse {
@@ -74,15 +52,8 @@ interface GraduationStreamOptions {
 
 export class GraduationService {
   private readonly REQUEST_TIMEOUT = 600_000;
-  private _prisma?: PrismaClient;
-  private _env?: ProviderEnv;
 
-  setContext(prisma: PrismaClient, env?: ProviderEnv) {
-    this._prisma = prisma;
-    this._env = env;
-  }
-
-  private async getConfig(userId?: number, prisma = this._prisma, env = this._env) {
+  private async getConfig(userId?: number, prisma?: PrismaClient, env?: ProviderEnv) {
     const providerConfig = prisma
       ? (userId
         ? await apiProviderService.getConfigForUser(prisma, userId, env)
@@ -106,18 +77,16 @@ export class GraduationService {
   }
 
   async generateDocument(
-    docType: GraduationDocType,
-    topicContext: TopicContext,
-    previousDocs: PreviousDocs,
-    userId?: number
+    docType: HandbookDocumentType,
+    topicContext: HandbookTopicContext,
+    previousDocs: HandbookPreviousDocs,
+    options: Omit<GraduationStreamOptions, 'signal'> = {},
   ): Promise<{ content: string; usage: TokenUsage }> {
-    const config = await this.getConfig(userId);
+    if (canRenderEmptyHandbookDraft(docType, topicContext)) return this.generateDraft(docType, topicContext);
+    const config = await this.getConfig(options.userId, options.prisma, options.env);
+    if (config.mockMode) return this.generateDraft(docType, topicContext);
 
-    if (config.mockMode) {
-      return this.generateMockDocument(docType, topicContext);
-    }
-
-    const { systemPrompt, userPrompt } = this.buildPrompts(docType, topicContext, previousDocs);
+    const { systemPrompt, userPrompt } = buildHandbookPrompts(docType, topicContext, previousDocs);
     const messages = [
       { role: 'system' as const, content: systemPrompt },
       { role: 'user' as const, content: userPrompt }
@@ -131,27 +100,28 @@ export class GraduationService {
       totalTokens: response.usage?.total_tokens ?? 0
     };
 
-    return { content: this.postProcess(content, docType), usage };
+    return { content: this.finalizeHandbookContent(docType, topicContext, content), usage };
   }
 
   async generateDocumentStream(
-    docType: GraduationDocType,
-    topicContext: TopicContext,
-    previousDocs: PreviousDocs,
+    docType: HandbookDocumentType,
+    topicContext: HandbookTopicContext,
+    previousDocs: HandbookPreviousDocs,
     onProgress: (progress: GenerationProgress) => void | Promise<void>,
     options: GraduationStreamOptions = {}
   ): Promise<{ content: string; usage: TokenUsage }> {
     const { signal } = options;
     signal?.throwIfAborted();
-    const config = await this.getConfig(options.userId, options.prisma, options.env);
+    const needsModel = !canRenderEmptyHandbookDraft(docType, topicContext);
+    const config = needsModel ? await this.getConfig(options.userId, options.prisma, options.env) : null;
 
-    if (config.mockMode) {
-      const result = await this.generateMockDocument(docType, topicContext);
+    if (!config || config.mockMode) {
+      const result = this.generateDraft(docType, topicContext);
       await onProgress({ phase: 'finalizing', reasoningText: '', contentText: result.content });
       return result;
     }
 
-    const { systemPrompt, userPrompt } = this.buildPrompts(docType, topicContext, previousDocs);
+    const { systemPrompt, userPrompt } = buildHandbookPrompts(docType, topicContext, previousDocs);
     let messages: Array<{ role: 'system' | 'user'; content: string }> = [
       { role: 'system' as const, content: systemPrompt },
       { role: 'user' as const, content: userPrompt }
@@ -198,80 +168,18 @@ export class GraduationService {
       }
     }
 
-    const content = this.postProcess(this.mergeContentParts(contentParts), docType);
-    if (!content) {
-      throw new DocumentStreamError('AI 服务未返回文档正文，请重试或更换模型');
-    }
+    const content = this.finalizeHandbookContent(docType, topicContext, this.mergeContentParts(contentParts));
     await onProgress({ phase: 'finalizing', reasoningText: '', contentText: content });
     return { content, usage: totalUsage };
   }
 
-  private buildPrompts(
-    docType: GraduationDocType,
-    topicContext: TopicContext,
-    previousDocs: PreviousDocs
-  ): { systemPrompt: string; userPrompt: string } {
-    switch (docType) {
-      case 'TASK_BOOK':
-        return {
-          systemPrompt: getTaskBookSystemPrompt(),
-          userPrompt: buildTaskBookUserPrompt({
-            title: topicContext.title,
-            description: topicContext.description,
-            objectives: topicContext.objectives,
-            platform: topicContext.platform,
-            techStack: topicContext.techStack,
-            prdContent: previousDocs.prdContent,
-            frontendContent: previousDocs.frontendContent,
-            backendContent: previousDocs.backendContent,
-            datasetName: topicContext.datasetName,
-            datasetCategory: topicContext.datasetCategory
-          })
-        };
-      case 'PROPOSAL':
-        return {
-          systemPrompt: getProposalSystemPrompt(),
-          userPrompt: buildProposalUserPrompt({
-            title: topicContext.title,
-            description: topicContext.description,
-            objectives: topicContext.objectives,
-            platform: topicContext.platform,
-            techStack: topicContext.techStack,
-            prdContent: previousDocs.prdContent,
-            frontendContent: previousDocs.frontendContent,
-            backendContent: previousDocs.backendContent,
-            datasetName: topicContext.datasetName,
-            datasetCategory: topicContext.datasetCategory
-          })
-        };
-      case 'PREPARATION':
-      case 'DRAFTING':
-      case 'MIDTERM_CHECK':
-      case 'REFINEMENT':
-        return {
-          systemPrompt: getProgressRecordSystemPrompt(),
-          userPrompt: buildProgressRecordUserPrompt({
-            docType,
-            title: topicContext.title,
-            description: topicContext.description,
-            objectives: topicContext.objectives,
-            platform: topicContext.platform,
-            techStack: topicContext.techStack,
-            studentId: topicContext.studentId,
-            studentName: topicContext.studentName,
-            major: topicContext.major,
-            className: topicContext.className,
-            grade: topicContext.grade,
-            prdContent: previousDocs.prdContent,
-            frontendContent: previousDocs.frontendContent,
-            backendContent: previousDocs.backendContent,
-            taskBookContent: previousDocs.taskBookContent,
-            proposalContent: previousDocs.proposalContent,
-            domain: topicContext.domain,
-            datasetName: topicContext.datasetName,
-            datasetCategory: topicContext.datasetCategory
-          })
-        };
+  private finalizeHandbookContent(type: HandbookDocumentType, topic: HandbookTopicContext, modelContent: string): string {
+    const content = this.postProcess(modelContent, type);
+    if (!content) throw new DocumentStreamError('AI 服务未返回文档正文，请重试或更换模型');
+    try {
+      return renderHandbookDocument(type, topic, content);
+    } catch (error) {
+      throw new DocumentStreamError('AI 返回的手册栏目不完整，请重试或更换模型', { cause: error });
     }
   }
 
@@ -281,7 +189,7 @@ export class GraduationService {
    * 2. 从第一个 `# ` 一级标题处截取，前面的任何思考、过渡语、提示词复述全部丢弃。
    * 3. 重复出现的一级标题只保留首个，避免中途“重启”。
    */
-  private postProcess(content: string, _docType?: GraduationDocType): string {
+  private postProcess(content: string, _docType?: HandbookDocumentType): string {
     let clean = content.trim();
 
     const codeFenceMatch = clean.match(/```(?:\w+)?\s*\n?([\s\S]*?)```/);
@@ -585,28 +493,13 @@ export class GraduationService {
     };
   }
 
-  private async generateMockDocument(
-    docType: GraduationDocType,
-    topicContext: TopicContext
-  ): Promise<{ content: string; usage: TokenUsage }> {
-    const labels: Record<string, string> = {
-      TASK_BOOK: '任务书',
-      PROPOSAL: '开题报告',
-      PREPARATION: '前期准备',
-      DRAFTING: '撰写阶段',
-      MIDTERM_CHECK: '中期检查',
-      REFINEMENT: '完善'
-    };
-
-    const content = `# ${labels[docType]}
-
-## 选题：${topicContext.title}
-
-（模拟数据）此文档为 ${labels[docType]} 模板内容。请配置 MINIMAX_API_KEY 环境变量后生成正式文档。`;
-
+  private generateDraft(
+    type: HandbookDocumentType,
+    topic: HandbookTopicContext,
+  ): { content: string; usage: TokenUsage } {
     return {
-      content,
-      usage: { promptTokens: 0, completionTokens: 0, totalTokens: 0 }
+      content: renderHandbookDocument(type, topic),
+      usage: { promptTokens: 0, completionTokens: 0, totalTokens: 0 },
     };
   }
 

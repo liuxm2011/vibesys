@@ -66,7 +66,6 @@ router.get('/project', asyncHandler('获取项目信息失败', async (c) => {
 router.post('/project/init-docs', asyncHandler('初始化文档失败，请重试', async (c) => {
   const prisma = c.get('prisma');
   const user = c.get('user');
-  const db = c.env.DB;
 
   const thesisProject = await prisma.thesisProject.findUnique({
     where: { userId: user.userId },
@@ -132,17 +131,18 @@ router.post('/project/init-docs', asyncHandler('初始化文档失败，请重�
   });
 
   // Atomically link: only update if projectId is still NULL (handles race conditions)
-  const [updateResult] = await db.batch([
-    db.prepare(`UPDATE "ThesisProject" SET "projectId"=?, "updatedAt"=? WHERE "userId"=? AND "projectId" IS NULL`)
-      .bind(newProject.id, new Date().toISOString(), user.userId),
-  ]);
+  const update = await prisma.thesisProject.updateMany({
+    where: { id: thesisProject.id, userId: user.userId, projectId: null },
+    data: { projectId: newProject.id },
+  });
 
-  if ((updateResult as any).meta.changes === 0) {
+  if (update.count === 0) {
     // Concurrent request already linked — clean up the project we just created and return the winner
     await prisma.project.delete({ where: { id: newProject.id } });
     await prisma.topic.delete({ where: { id: newTopic.id } });
     const current = await prisma.thesisProject.findUnique({ where: { userId: user.userId } });
-    return c.json({ projectId: current!.projectId });
+    if (!current?.projectId) return c.json({ error: '选题已变更，请重新进入毕业设计页面' }, 409);
+    return c.json({ projectId: current.projectId });
   }
 
   return c.json({ projectId: newProject.id });
