@@ -14,6 +14,7 @@ import {
 } from '../prompts/review.template.js';
 import { getAgentsPromptTemplate } from '../prompts/agents.template.js';
 import { logger } from '../lib/logger.js';
+import { DocumentStreamError } from '../lib/document-stream.js';
 import { generateMockDocument, generateMockReviewResult } from './ai/mock.js';
 
 /**
@@ -568,7 +569,7 @@ These guidelines are working if: fewer unnecessary changes in diffs, fewer rewri
           { role: 'user', content: this.buildContinuationUserPrompt(cleanedContent) }
         ];
       } catch (error) {
-        if (signal?.aborted || attempt === maxAttempts - 1) throw error;
+        if (signal?.aborted || error instanceof DocumentStreamError || attempt === maxAttempts - 1) throw error;
         await new Promise(resolve => setTimeout(resolve, 1000 * (attempt + 1)));
       }
     }
@@ -740,6 +741,7 @@ ${baseInfo}${contextSection}${bdConstraint}
     let reasoningText = '';
     let contentText = '';
     let finishReason: string | null = null;
+    let streamDone = false;
     let tokenCount = 0;
     const startTime = Date.now();
 
@@ -798,6 +800,7 @@ ${baseInfo}${contextSection}${bdConstraint}
 
       const payload = dataLines.join('\n');
       if (payload === '[DONE]') {
+        streamDone = true;
         return false;
       }
 
@@ -830,12 +833,12 @@ ${baseInfo}${contextSection}${bdConstraint}
     };
 
     try {
-      while (true) {
+      while (!streamDone) {
         const { value, done } = await reader.read();
         buffer += done ? decoder.decode() : decoder.decode(value, { stream: true });
         let changed = false;
         let block = extractNextEventBlock();
-        while (block !== null) {
+        while (block !== null && !streamDone) {
           changed = processEventBlock(block) || changed;
           block = extractNextEventBlock();
         }
@@ -847,6 +850,10 @@ ${baseInfo}${contextSection}${bdConstraint}
     } finally {
       await reader.cancel().catch(() => {});
       reader.releaseLock();
+    }
+
+    if (!streamDone && !finishReason) {
+      throw new DocumentStreamError('AI 服务在文档生成完毕前关闭了连接，请稍后重试');
     }
 
     // Build usage from accumulated token count and estimate prompt tokens

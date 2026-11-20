@@ -1,14 +1,14 @@
 import { Hono } from 'hono';
-import { streamSSE } from 'hono/streaming';
 import { GraduationDocType, PrismaClient } from '../generated/prisma'
 import { authMiddleware, viewerBlockMiddleware } from '../middleware/auth.middleware.js';
 import { graduationAccessMiddleware } from '../middleware/graduation.middleware.js';
 import { aiLimiter, documentUpdateLimiter } from '../middleware/rate-limit.middleware.js';
-import { GenerationStreamFormatError, graduationService, type GenerationProgress, type TokenUsage } from '../services/graduation.service.js';
+import { graduationService, type GenerationProgress, type TokenUsage } from '../services/graduation.service.js';
 import { getLinkedGraduationAccessError } from '../services/graduation-gate.js';
 import { asyncHandler } from '../lib/handler.js';
 import type { AppEnv } from '../types.js';
 import { logger } from '../lib/logger.js';
+import { DocumentStreamError, streamDocumentResponse } from '../lib/document-stream.js';
 
 const router = new Hono<AppEnv>();
 
@@ -300,7 +300,7 @@ router.post('/generate', authMiddleware, graduationAccessMiddleware, aiLimiter, 
 });
 
 router.post('/generate/stream', authMiddleware, graduationAccessMiddleware, aiLimiter, async (c) => {
-  const { projectId, docType, forceRegenerate } = await c.req.json();
+  const { projectId, docType } = await c.req.json();
 
   if (!projectId) {
     return c.json({ error: '请提供项目ID' }, 400);
@@ -321,14 +321,28 @@ router.post('/generate/stream', authMiddleware, graduationAccessMiddleware, aiLi
 
   const project = await prisma.project.findFirst({
     where: { id: parsedProjectId, userId },
-    include: { topic: true, user: true, documents: true, graduationDocuments: true, thesisProject: { include: { topic: true } } }
+    select: {
+      topic: {
+        select: { title: true, description: true, domain: true, platform: true, objectives: true, techStack: true },
+      },
+      user: { select: { studentId: true, name: true, major: true, class: true, grade: true } },
+      documents: {
+        where: { docType: { in: ['PRD', 'FRONTEND', 'BACKEND'] } },
+        select: { docType: true, content: true },
+      },
+      graduationDocuments: {
+        where: { docType: { in: ['TASK_BOOK', 'PROPOSAL'] } },
+        select: { docType: true, content: true },
+      },
+      thesisProject: { select: { topic: { select: { datasetName: true, category: true } } } },
+    },
   });
 
   if (!project) {
     return c.json({ error: '项目不存在或无权限访问' }, 404);
   }
 
-  const thesisTopic = (project as any).thesisProject?.topic;
+  const thesisTopic = project.thesisProject?.topic;
   const topicInfo = {
     title: project.topic.title,
     description: project.topic.description,
@@ -359,13 +373,7 @@ router.post('/generate/stream', authMiddleware, graduationAccessMiddleware, aiLi
     proposalContent: proposalDoc?.content || ''
   };
 
-  const clientAbortController = new AbortController();
-
-  const response = streamSSE(c, async (stream) => {
-    stream.onAbort(() => {
-      clientAbortController.abort();
-    });
-
+  return streamDocumentResponse(c, async (stream, signal) => {
     const sendProgress = (progress: GenerationProgress) =>
       stream.writeSSE({ event: 'progress', data: JSON.stringify(progress) });
 
@@ -376,55 +384,38 @@ router.post('/generate/stream', authMiddleware, graduationAccessMiddleware, aiLi
         topicInfo,
         previousDocs,
         sendProgress,
-        { signal: clientAbortController.signal, userId, prisma, env: c.env }
+        { signal, userId, prisma, env: c.env }
       );
 
-      clientAbortController.signal.throwIfAborted();
+      signal.throwIfAborted();
       const content = result.content;
 
-      const existing = await prisma.graduationDocument.findUnique({
+      const document = await prisma.graduationDocument.upsert({
         where: {
           projectId_docType: {
             projectId: parsedProjectId,
             docType: docType as GraduationDocType
           }
-        }
+        },
+        update: { content },
+        create: { projectId: parsedProjectId, docType: docType as GraduationDocType, content }
       });
-
-      let document;
-      if (existing) {
-        document = await prisma.graduationDocument.update({
-          where: { id: existing.id },
-          data: { content }
-        });
-      } else {
-        document = await prisma.graduationDocument.create({
-          data: {
-            projectId: parsedProjectId,
-            docType: docType as GraduationDocType,
-            content
-          }
-        });
-      }
 
       await recordAiUsage(prisma, userId, parsedProjectId, docType, 'generate_stream', result.usage, 'success');
 
       await stream.writeSSE({ event: 'complete', data: JSON.stringify({ document }) });
     } catch (error) {
-      if (clientAbortController.signal.aborted) {
+      if (signal.aborted) {
         return;
       }
 
       logger.error('Graduation document stream error:', error);
-      const message = error instanceof GenerationStreamFormatError
+      const message = error instanceof DocumentStreamError
         ? error.message
         : '生成失败，请稍后重试';
       await stream.writeSSE({ event: 'error', data: JSON.stringify({ message }) });
     }
   });
-  response.headers.set('Cache-Control', 'no-cache, no-transform');
-  response.headers.set('X-Accel-Buffering', 'no');
-  return response;
 });
 
 export default router;

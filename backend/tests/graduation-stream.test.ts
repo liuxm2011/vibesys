@@ -14,7 +14,7 @@ async function startGeneration(upstream: Response) {
   vi.stubEnv('MOCK_AI', 'false');
   const fetchModel = vi.fn().mockResolvedValue(upstream);
   vi.stubGlobal('fetch', fetchModel);
-  const saveDocument = vi.fn(async ({ data }) => data);
+  const saveDocument = vi.fn(async ({ create }) => create);
   const prisma = {
     user: { findUnique: async () => ({ status: 'ACTIVE', role: 'STUDENT', major: '大数据' }) },
     userApiSetting: {
@@ -29,7 +29,7 @@ async function startGeneration(upstream: Response) {
         graduationDocuments: [],
       }),
     },
-    graduationDocument: { findUnique: async () => null, create: saveDocument },
+    graduationDocument: { upsert: saveDocument },
     aiUsageLog: { create: async () => ({}) },
   } as unknown as PrismaClient;
 
@@ -108,6 +108,22 @@ test('任务书流收到普通 JSON 时提示服务商返回格式且不保存�
   const events = await response.text();
   expect(events).toContain('event: error');
   expect(events).toContain('AI 服务返回了非流式响应');
+  expect(fetchModel).toHaveBeenCalledTimes(1);
+  expect(saveDocument).not.toHaveBeenCalled();
+});
+
+test('模型未发送结束标志就关闭连接时报告错误且保留已有任务书', async () => {
+  const partial = { choices: [{ delta: { content: '# 任务书\n\n第一段。' } }] };
+  const { response, fetchModel, saveDocument } = await startGeneration(
+    new Response(`data: ${JSON.stringify(partial)}\n\n`, {
+      headers: { 'Content-Type': 'text/event-stream' },
+    }),
+  );
+
+  const events = await response.text();
+  expect(events).toContain('event: progress');
+  expect(events).toContain('AI 服务在文档生成完毕前关闭了连接');
+  expect(events).not.toContain('event: complete');
   expect(fetchModel).toHaveBeenCalledTimes(1);
   expect(saveDocument).not.toHaveBeenCalled();
 });

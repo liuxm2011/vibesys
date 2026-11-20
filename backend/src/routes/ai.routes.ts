@@ -8,6 +8,7 @@ import { DOC_GENERATION_ORDER, getContextDependencies, getGenerationBlockedReaso
 import { getLinkedGraduationAccessError } from '../services/graduation-gate.js';
 import type { AppEnv } from '../types.js';
 import { logger } from '../lib/logger.js';
+import { DocumentStreamError, streamDocumentResponse } from '../lib/document-stream.js';
 
 async function recordAiUsage(
   prisma: PrismaClient,
@@ -284,13 +285,7 @@ router.post('/generate/stream', authMiddleware, aiLimiter, viewerBlockMiddleware
     }
   }
 
-  const clientAbortController = new AbortController();
-
-  const response = streamSSE(c, async (stream) => {
-    stream.onAbort(() => {
-      clientAbortController.abort();
-    });
-
+  return streamDocumentResponse(c, async (stream, signal) => {
     try {
       await stream.writeSSE({
         event: 'progress',
@@ -301,12 +296,12 @@ router.post('/generate/stream', authMiddleware, aiLimiter, viewerBlockMiddleware
         previousDocs
       }, progress => stream.writeSSE({ event: 'progress', data: JSON.stringify(progress) }), {
         bypassCache: forceRegenerate === true,
-        signal: clientAbortController.signal,
+        signal,
         userId,
         prisma,
         env: c.env
       });
-      clientAbortController.signal.throwIfAborted();
+      signal.throwIfAborted();
       const content = result.content;
 
       await recordAiUsage(prisma, userId, parsedProjectId, docType, 'generate_stream', result.usage, 'success');
@@ -349,7 +344,7 @@ router.post('/generate/stream', authMiddleware, aiLimiter, viewerBlockMiddleware
 
       await stream.writeSSE({ event: 'complete', data: JSON.stringify({ document }) });
     } catch (error) {
-      if (clientAbortController.signal.aborted) {
+      if (signal.aborted) {
         return;
       }
 
@@ -371,16 +366,13 @@ router.post('/generate/stream', authMiddleware, aiLimiter, viewerBlockMiddleware
       await stream.writeSSE({
         event: 'error',
         data: JSON.stringify({
-          error: isTimeout
-            ? '文档生成超时，请稍后重试'
-            : '文档生成失败，请稍后重试'
+          error: error instanceof DocumentStreamError ? error.message : (
+            isTimeout ? '文档生成超时，请稍后重试' : '文档生成失败，请稍后重试'
+          )
         })
       });
     }
   });
-  response.headers.set('Cache-Control', 'no-cache, no-transform');
-  response.headers.set('X-Accel-Buffering', 'no');
-  return response;
 });
 
 router.post('/review', authMiddleware, aiLimiter, viewerBlockMiddleware, async (c) => {

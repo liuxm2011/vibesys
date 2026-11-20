@@ -4,6 +4,7 @@ import { getTaskBookSystemPrompt, buildTaskBookUserPrompt } from '../prompts/tas
 import { getProposalSystemPrompt, buildProposalUserPrompt } from '../prompts/proposal.template.js';
 import { getProgressRecordSystemPrompt, buildProgressRecordUserPrompt } from '../prompts/progress-record.template.js';
 import type { AppEnv } from '../types.js';
+import { DocumentStreamError } from '../lib/document-stream.js';
 
 export interface TokenUsage {
   promptTokens: number;
@@ -61,8 +62,6 @@ interface StreamChunkResponse {
   usage?: ChatCompletionResponse['usage'];
   error?: { message?: string };
 }
-
-export class GenerationStreamFormatError extends Error {}
 
 type ProviderEnv = Pick<AppEnv['Bindings'], 'MINIMAX_BASE_URL' | 'MINIMAX_API_KEY' | 'MINIMAX_MODEL'>;
 
@@ -190,16 +189,18 @@ export class GraduationService {
           { role: 'user', content: this.buildContinuationUserPrompt(result.content) }
         ];
       } catch (error) {
-        if (signal?.aborted || error instanceof GenerationStreamFormatError || attempt === maxAttempts - 1) {
-          throw error;
+        signal?.throwIfAborted();
+        if (error instanceof Error && error.name === 'TimeoutError') {
+          throw new DocumentStreamError('等待 AI 服务响应超时，请稍后重试', { cause: error });
         }
+        if (error instanceof DocumentStreamError || attempt === maxAttempts - 1) throw error;
         await new Promise(resolve => setTimeout(resolve, 1000 * (attempt + 1)));
       }
     }
 
     const content = this.postProcess(this.mergeContentParts(contentParts), docType);
     if (!content) {
-      throw new GenerationStreamFormatError('AI 服务未返回文档正文，请重试或更换模型');
+      throw new DocumentStreamError('AI 服务未返回文档正文，请重试或更换模型');
     }
     await onProgress({ phase: 'finalizing', reasoningText: '', contentText: content });
     return { content, usage: totalUsage };
@@ -453,16 +454,22 @@ export class GraduationService {
     });
 
     if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`API stream request failed: ${response.status} ${errorText}`);
+      await response.body?.cancel().catch(() => {});
+      const status = response.status;
+      if (status === 429) throw new DocumentStreamError('AI 服务请求过于频繁，请稍后重试');
+      if (status === 401 || status === 403) {
+        throw new DocumentStreamError('AI 服务拒绝了请求，请检查模型权限和 API 密钥配置');
+      }
+      if (status >= 500) throw new DocumentStreamError(`AI 服务暂时不可用（HTTP ${status}），请稍后重试`);
+      throw new DocumentStreamError(`AI 服务拒绝了生成请求（HTTP ${status}），请检查模型配置`);
     }
 
     if (response.headers.get('content-type')?.includes('application/json')) {
       await response.body?.cancel().catch(() => {});
-      throw new GenerationStreamFormatError('AI 服务返回了非流式响应，请检查所选模型或 API 网关是否支持流式输出');
+      throw new DocumentStreamError('AI 服务返回了非流式响应，请检查所选模型或 API 网关是否支持流式输出');
     }
     if (!response.body) {
-      throw new GenerationStreamFormatError('AI 服务未返回流式响应，请稍后重试');
+      throw new DocumentStreamError('AI 服务未返回流式响应，请稍后重试');
     }
 
     const reader = response.body.getReader();
@@ -473,6 +480,8 @@ export class GraduationService {
     let finishReason: string | null = null;
     let streamDone = false;
     const startTime = Date.now();
+    let lastProgressAt = 0;
+    let lastPhase: GenerationProgress['phase'] | undefined;
 
     const estimateTokensFromText = (text: string): number => {
       const chineseChars = (text.match(/[\u4e00-\u9fff]/g) || []).length;
@@ -496,7 +505,9 @@ export class GraduationService {
       } catch {
         return false;
       }
-      if (chunk?.error) throw new Error(chunk.error.message || 'AI stream failed');
+      if (chunk?.error) {
+        throw new DocumentStreamError('AI 服务在生成过程中返回错误，请稍后重试');
+      }
 
       const choice = chunk?.choices?.[0];
       const delta = choice?.delta;
@@ -510,7 +521,13 @@ export class GraduationService {
 
     try {
       while (!streamDone) {
-        const { done, value } = await reader.read();
+        const { done, value } = await reader.read().catch((error: unknown) => {
+          signal?.throwIfAborted();
+          if (error instanceof Error && error.name === 'TimeoutError') {
+            throw new DocumentStreamError('等待 AI 服务响应超时，请稍后重试', { cause: error });
+          }
+          throw new DocumentStreamError('AI 服务的流式连接中断，请稍后重试', { cause: error });
+        });
         buffer += done ? decoder.decode() : decoder.decode(value, { stream: true });
         const lines = buffer.split(/\r\n|\r|\n/);
         buffer = done ? '' : lines.pop() ?? '';
@@ -522,16 +539,24 @@ export class GraduationService {
         }
 
         if (changed) {
-          const displayContent = this.cleanStreamingMarkdown(this.getDocumentText(contentText));
-          const tokenCount = usage?.completion_tokens ?? estimateTokensFromText(displayContent);
-          const elapsedMs = Date.now() - startTime;
-          await onProgress({
-            phase: displayContent ? 'writing' : 'reasoning',
-            reasoningText: '',
-            contentText: displayContent,
-            tokenCount,
-            tokensPerSecond: elapsedMs >= 1000 ? tokenCount / (elapsedMs / 1000) : 0,
-          });
+          const documentText = this.getDocumentText(contentText);
+          const phase = documentText.trim() ? 'writing' : 'reasoning';
+          const now = Date.now();
+          // Display the first text immediately and limit repeated full Markdown snapshots.
+          if (phase !== lastPhase || done || streamDone || now - lastProgressAt >= 100) {
+            const displayContent = this.cleanStreamingMarkdown(documentText);
+            const tokenCount = usage?.completion_tokens ?? estimateTokensFromText(displayContent);
+            const elapsedMs = now - startTime;
+            await onProgress({
+              phase,
+              reasoningText: '',
+              contentText: displayContent,
+              tokenCount,
+              tokensPerSecond: elapsedMs >= 1000 ? tokenCount / (elapsedMs / 1000) : 0,
+            });
+            lastProgressAt = now;
+            lastPhase = phase;
+          }
         }
 
         if (done) break;
@@ -539,6 +564,10 @@ export class GraduationService {
     } finally {
       await reader.cancel().catch(() => {});
       reader.releaseLock();
+    }
+
+    if (!streamDone && !finishReason) {
+      throw new DocumentStreamError('AI 服务在文档生成完毕前关闭了连接，请稍后重试');
     }
 
     const content = this.getDocumentText(contentText);

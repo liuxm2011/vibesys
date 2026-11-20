@@ -9,7 +9,11 @@ afterEach(() => vi.unstubAllGlobals());
 
 test('任务书弹窗在完成事件前显示准备进度和每段正文', async () => {
   let controller!: ReadableStreamDefaultController<Uint8Array>;
-  const stream = new ReadableStream<Uint8Array>({ start: value => { controller = value; } });
+  const cancel = vi.fn();
+  const stream = new ReadableStream<Uint8Array>({
+    start: value => { controller = value; },
+    cancel,
+  });
   vi.stubGlobal('fetch', vi.fn().mockResolvedValue(
     new Response(stream, { headers: { 'Content-Type': 'text/event-stream' } }),
   ));
@@ -45,11 +49,27 @@ test('任务书弹窗在完成事件前显示准备进度和每段正文', async
     expect(store.documents).toHaveLength(0);
 
     send('complete', { document: { id: 1, projectId: 1, docType: 'TASK_BOOK', content: full } });
+    await expect(finished).resolves.toBe(true);
   } finally {
-    controller.close();
     wrapper.unmount();
-    await finished;
+    if (!cancel.mock.calls.length) controller.close();
   }
-  expect(await finished).toBe(true);
+  expect(cancel).toHaveBeenCalledOnce();
   expect(store.documents[0]?.content).toContain('第二段');
+});
+
+test('服务端结束连接但未发送完成事件时保留现有文档', async () => {
+  const store = useGraduationDocumentStore(createPinia());
+  const prior = { id: 1, projectId: 1, docType: 'TASK_BOOK' as const, content: '原任务书', createdAt: '', updatedAt: '' };
+  store.documents = [prior];
+  const progress = { phase: 'writing', contentText: '未完成的正文', reasoningText: '' };
+  vi.stubGlobal('fetch', vi.fn().mockResolvedValue(
+    new Response(`event: progress\ndata: ${JSON.stringify(progress)}\n\n`, {
+      headers: { 'Content-Type': 'text/event-stream' },
+    }),
+  ));
+
+  expect(await store.generateDocument(1, 'TASK_BOOK')).toBe(false);
+  expect(store.error).toContain('未收到文档生成完成通知');
+  expect(store.documents).toEqual([prior]);
 });
