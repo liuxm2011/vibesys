@@ -1,4 +1,5 @@
 import { createRouter, createWebHistory, type RouteRecordRaw } from 'vue-router';
+import type { AppMode } from '@/stores/appMode.store';
 
 // Route definitions
 const routes: RouteRecordRaw[] = [
@@ -12,19 +13,19 @@ const routes: RouteRecordRaw[] = [
     path: '/dashboard',
     name: 'Dashboard',
     component: () => import('@/views/Dashboard.vue'),  // Created in Plan 05
-    meta: { requiresAuth: true }
+    meta: { requiresAuth: true, appMode: 'project' }
   },
   {
     path: '/topics',
     name: 'TopicPool',
     component: () => import('@/views/TopicPool.vue'),  // Created in Wave 5
-    meta: { requiresAuth: true }
+    meta: { requiresAuth: true, appMode: 'project' }
   },
   {
     path: '/projects/:id',
     name: 'ProjectDetail',
     component: () => import('@/views/ProjectDetail.vue'),  // Phase 3: Document editing
-    meta: { requiresAuth: true }
+    meta: { requiresAuth: true, appMode: 'project' }
   },
   {
     path: '/mode-select',
@@ -36,19 +37,19 @@ const routes: RouteRecordRaw[] = [
     path: '/graduation',
     name: 'GraduationDashboard',
     component: () => import('@/views/graduation/GraduationDashboard.vue'),
-    meta: { requiresAuth: true, skipModeCheck: true }
+    meta: { requiresAuth: true, appMode: 'graduation' }
   },
   {
     path: '/graduation/topics',
     name: 'GraduationTopicPool',
     component: () => import('@/views/graduation/GraduationTopicPool.vue'),
-    meta: { requiresAuth: true, skipModeCheck: true }
+    meta: { requiresAuth: true, appMode: 'graduation' }
   },
   {
     path: '/graduation/dataset',
     name: 'DatasetPreview',
     component: () => import('@/views/graduation/DatasetPreview.vue'),
-    meta: { requiresAuth: true, skipModeCheck: true }
+    meta: { requiresAuth: true, appMode: 'graduation' }
   },
   {
     path: '/admin',
@@ -90,5 +91,6 @@ declare module 'vue-router' {
     requiresAuth?: boolean;
     requiresAdmin?: boolean;
     skipModeCheck?: boolean;
+    appMode?: AppMode;
   }
 }

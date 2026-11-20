@@ -837,17 +837,10 @@ const CONFIG_KEYS: Record<string, ConfigKeyDef> = {
   },
   graduationEnabled: {
     default: 'false',
-    description: '毕业设计选题开关',
+    description: '毕业设计模块开关',
     validate: (v) => (v !== 'true' && v !== 'false') ? '值必须为 true 或 false' : null,
     getErrorLabel: '获取毕业设计开关状态失败',
     putErrorLabel: '更新毕业设计开关状态失败',
-  },
-  graduationWhitelist: {
-    default: '231311111',
-    description: '毕业设计白名单（逗号分隔学号）',
-    validate: (v) => typeof v !== 'string' ? '无效的白名单值' : null,
-    getErrorLabel: '获取毕业设计白名单失败',
-    putErrorLabel: '更新毕业设计白名单失败',
   },
 };
 

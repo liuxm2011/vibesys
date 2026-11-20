@@ -1,5 +1,7 @@
 import { watch } from 'vue';
 import type { Router, RouteLocationNormalized, RouteLocationRaw } from 'vue-router';
+import { ElMessage } from 'element-plus';
+import { getGraduationStatus } from '@/api/thesis.api';
 import { useAuthStore } from '@/stores/auth.store';
 import { useAppModeStore } from '@/stores/appMode.store';
 
@@ -9,6 +11,7 @@ import { useAppModeStore } from '@/stores/appMode.store';
  */
 export function setupRouterGuards(router: Router): void {
   const authStore = useAuthStore();
+  const appModeStore = useAppModeStore();
 
   watch(() => authStore.user, (newUser) => {
     if (!newUser && router.currentRoute.value.meta?.requiresAuth) {
@@ -16,7 +19,7 @@ export function setupRouterGuards(router: Router): void {
     }
   });
 
-  router.beforeEach(async (to: RouteLocationNormalized): Promise<RouteLocationRaw | boolean | void | undefined> => {
+  router.beforeEach(async (to: RouteLocationNormalized, from): Promise<RouteLocationRaw | boolean | void | undefined> => {
 
     // Check if route requires authentication
     const requiresAuth = to.meta.requiresAuth ?? false;
@@ -52,9 +55,28 @@ export function setupRouterGuards(router: Router): void {
       return { name: 'Admin' };
     }
 
-    // Non-admin students without a mode selected → redirect to mode selection
+    if (to.meta.appMode === 'graduation') {
+      let message = '暂时无法确认毕业设计开放状态，请稍后重试。';
+      try {
+        const { access } = await getGraduationStatus();
+        if (access === 'allowed') return;
+        if (access === 'closed') message = '毕业设计尚未开放，请先使用项目设计。';
+        if (access === 'ineligible') message = '毕业设计仅面向大数据专业学生开放。';
+      } catch {
+        if (!authStore.isAuthenticated) {
+          return { name: 'Login', query: { redirect: to.fullPath } };
+        }
+      }
+
+      ElMessage.warning(message);
+      if (from.name === 'ModeSelect' || from.meta.appMode === 'project') return false;
+
+      if (!authStore.isAdmin) appModeStore.setMode('project');
+      return { name: 'Dashboard', replace: true };
+    }
+
+    // Students without a mode selected → redirect to mode selection
     if (!authStore.isAdmin && !to.meta.skipModeCheck) {
-      const appModeStore = useAppModeStore();
       if (!appModeStore.mode) {
         return { name: 'ModeSelect' };
       }
@@ -64,8 +86,9 @@ export function setupRouterGuards(router: Router): void {
     return;
   });
 
-  // Optional: afterEach for analytics or logging
-  router.afterEach((_to) => {
-    // Could add page tracking here
+  router.afterEach((to, _from, failure) => {
+    if (!failure && to.meta.appMode && !authStore.isAdmin) {
+      appModeStore.setMode(to.meta.appMode);
+    }
   });
 }

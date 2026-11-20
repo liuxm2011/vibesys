@@ -70,7 +70,7 @@ async function fetchGiteeReadme(owner: string, repo: string): Promise<string | n
 }
 
 export async function syncRepoData(prisma: PrismaClient, projectId: number, userId: number): Promise<RepoSyncData> {
-  const project = await prisma.project.findFirst({ where: { id: projectId, userId } });
+  const project = await prisma.project.findFirst({ where: { id: projectId, userId, thesisProject: null } });
   if (!project) throw new Error('PROJECT_NOT_FOUND');
   if (!project.repoUrl) throw new Error('NO_REPO_URL');
 
@@ -98,7 +98,7 @@ export async function syncRepoData(prisma: PrismaClient, projectId: number, user
 }
 
 export async function updateRepoUrl(prisma: PrismaClient, projectId: number, userId: number, repoUrl: string | null): Promise<void> {
-  const project = await prisma.project.findFirst({ where: { id: projectId, userId } });
+  const project = await prisma.project.findFirst({ where: { id: projectId, userId, thesisProject: null } });
   if (!project) throw new Error('PROJECT_NOT_FOUND');
 
   if (repoUrl) {
@@ -117,7 +117,7 @@ export async function updateRepoUrl(prisma: PrismaClient, projectId: number, use
 
 export async function getProjectRepoInfo(prisma: PrismaClient, projectId: number, userId: number) {
   const project = await prisma.project.findFirst({
-    where: { id: projectId, userId },
+    where: { id: projectId, userId, thesisProject: null },
     select: { repoUrl: true, repoSyncData: true, deployUrl: true },
   });
   if (!project) throw new Error('PROJECT_NOT_FOUND');
@@ -130,7 +130,7 @@ export async function updateDeployUrl(
   userId: number,
   deployUrl: string | null
 ): Promise<void> {
-  const project = await prisma.project.findFirst({ where: { id: projectId, userId } });
+  const project = await prisma.project.findFirst({ where: { id: projectId, userId, thesisProject: null } });
   if (!project) throw new Error('PROJECT_NOT_FOUND');
   await prisma.project.update({
     where: { id: projectId },

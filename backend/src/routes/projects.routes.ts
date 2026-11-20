@@ -3,6 +3,7 @@ import { PrismaClient, ProjectStatus } from '../generated/prisma';
 import { authMiddleware } from '../middleware/auth.middleware.js';
 import { viewerBlockMiddleware } from '../middleware/auth.middleware.js';
 import { updateRepoUrl, syncRepoData, getProjectRepoInfo, updateDeployUrl } from '../services/repo.service.js';
+import { getLinkedGraduationAccessError } from '../services/graduation-gate.js';
 import { asyncHandler } from '../lib/handler.js';
 import type { AppEnv } from '../types.js';
 import { logger } from '../lib/logger.js';
@@ -26,7 +27,7 @@ router.post('/', authMiddleware, viewerBlockMiddleware, asyncHandler('服务器�
   const userId = user.userId;
 
   const existingCount = await prisma.project.count({
-    where: { userId }
+    where: { userId, thesisProject: null }
   });
 
   if (existingCount >= 10) {
@@ -36,6 +37,7 @@ router.post('/', authMiddleware, viewerBlockMiddleware, asyncHandler('服务器�
   const topic = await prisma.topic.findFirst({
     where: {
       id: parsedTopicId,
+      projects: { none: { thesisProject: { isNot: null } } },
       OR: [
         { type: 'SYSTEM' },
         { creatorId: userId }
@@ -75,7 +77,7 @@ router.get('/', authMiddleware, asyncHandler('获取项目列表失败', async (
   const userId = user.userId;
 
   const projects = await prisma.project.findMany({
-    where: { userId },
+    where: { userId, thesisProject: null },
     include: {
       topic: {
         select: {
@@ -114,7 +116,7 @@ router.delete('/:id', authMiddleware, viewerBlockMiddleware, asyncHandler('服�
   }
 
   const project = await prisma.project.findFirst({
-    where: { id: projectId, userId }
+    where: { id: projectId, userId, thesisProject: null }
   });
 
   if (!project) {
@@ -139,7 +141,7 @@ router.get('/:id', authMiddleware, asyncHandler('获取项目详情失败', asyn
   }
 
   const project = await prisma.project.findFirst({
-    where: { id: projectId, userId },
+    where: { id: projectId, userId, thesisProject: null },
     include: {
       topic: {
         select: {
@@ -183,12 +185,16 @@ router.put('/:id/techStack', authMiddleware, viewerBlockMiddleware, asyncHandler
   }
 
   const project = await prisma.project.findFirst({
-    where: { id: projectId, userId }
+    where: { id: projectId, userId },
+    select: { thesisProject: { select: { id: true } } }
   });
 
   if (!project) {
     return c.json({ error: '项目不存在或无权限访问' }, 404);
   }
+
+  const accessError = await getLinkedGraduationAccessError(prisma, user, project.thesisProject);
+  if (accessError) return c.json({ error: accessError }, 403);
 
   const updated = await prisma.project.update({
     where: { id: projectId },

@@ -35,8 +35,8 @@
               <el-icon><Download /></el-icon>导出全部文档
             </el-button>
           </template>
-          <el-button v-if="!isViewer" plain @click="switchMode">
-            <el-icon><Refresh /></el-icon>切换模式
+          <el-button plain @click="router.push({ name: 'Dashboard' })">
+            <el-icon><Switch /></el-icon>返回项目设计
           </el-button>
           <el-button v-if="!isViewer" type="success" @click="router.push('/graduation/topics')">
             <el-icon><Collection /></el-icon>选题管理
@@ -443,7 +443,7 @@ import { buildGraduationDownloadHtml } from '../../utils/graduation-download';
 import JSZip from 'jszip';
 import { saveAs } from 'file-saver';
 import {
-  Collection, ArrowDown, Key, SwitchButton, Plus, Refresh,
+  Collection, ArrowDown, Key, SwitchButton, Plus, Switch,
   Loading, MagicStick, Download, Notebook, Files, Cpu, RefreshRight, InfoFilled
 } from '@element-plus/icons-vue';
 import { useAuthStore } from '@/stores/auth.store';
@@ -534,11 +534,6 @@ const currentGeneratingLabel = computed(() => {
   const docType = documentStore.generatingDocType;
   return docType ? DOC_TYPE_LABELS[docType] : '当前';
 });
-
-function switchMode() {
-  appModeStore.clearMode();
-  router.push('/mode-select');
-}
 
 async function handleLogout() {
   await authStore.logout();

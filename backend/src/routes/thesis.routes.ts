@@ -1,28 +1,26 @@
 import { Hono } from 'hono';
-import { authMiddleware, viewerBlockMiddleware } from '../middleware/auth.middleware.js';
+import { authMiddleware } from '../middleware/auth.middleware.js';
+import { graduationAccessMiddleware } from '../middleware/graduation.middleware.js';
 import { asyncHandler } from '../lib/handler.js';
-import { isGraduationEnabledForUser } from '../services/graduation-gate.js';
+import { getGraduationAccess } from '../services/graduation-gate.js';
 import type { AppEnv } from '../types.js';
 import { logger } from '../lib/logger.js';
 
 const router = new Hono<AppEnv>();
 
-// GET /api/thesis/status — check if graduation mode is enabled for current user
-router.get('/status', authMiddleware, async (c) => {
-  try {
-    const prisma = c.get('prisma');
-    const user = c.get('user');
+router.use('*', authMiddleware);
 
-    const enabled = await isGraduationEnabledForUser(prisma, user.studentId);
-    return c.json({ enabled });
-  } catch (error) {
-    logger.error('Graduation status check error:', error);
-    return c.json({ enabled: false });
-  }
-});
+// GET /api/thesis/status — check if graduation mode is enabled for current user
+router.get('/status', asyncHandler('暂时无法确认毕业设计开放状态，请稍后重试。', async (c) => {
+  c.header('Cache-Control', 'no-store');
+  const access = await getGraduationAccess(c.get('prisma'), c.get('user'));
+  return c.json({ enabled: access === 'allowed', access });
+}));
+
+router.use('*', graduationAccessMiddleware);
 
 // GET /api/thesis/topics — list all topics with lock status
-router.get('/topics', authMiddleware, asyncHandler('获取题目列表失败', async (c) => {
+router.get('/topics', asyncHandler('获取题目列表失败', async (c) => {
   const prisma = c.get('prisma');
   const user = c.get('user');
 
@@ -52,7 +50,7 @@ router.get('/topics', authMiddleware, asyncHandler('获取题目列表失败', a
 }));
 
 // GET /api/thesis/project — get current student's thesis project
-router.get('/project', authMiddleware, asyncHandler('获取项目信息失败', async (c) => {
+router.get('/project', asyncHandler('获取项目信息失败', async (c) => {
   const prisma = c.get('prisma');
   const user = c.get('user');
 
@@ -65,7 +63,7 @@ router.get('/project', authMiddleware, asyncHandler('获取项目信息失败', 
 }));
 
 // POST /api/thesis/project/init-docs — lazily create a linked Project for document generation
-router.post('/project/init-docs', authMiddleware, viewerBlockMiddleware, asyncHandler('初始化文档失败，请重试', async (c) => {
+router.post('/project/init-docs', asyncHandler('初始化文档失败，请重试', async (c) => {
   const prisma = c.get('prisma');
   const user = c.get('user');
   const db = c.env.DB;
@@ -151,7 +149,7 @@ router.post('/project/init-docs', authMiddleware, viewerBlockMiddleware, asyncHa
 }));
 
 // POST /api/thesis/select — exclusive topic selection (D1 native batch for atomicity)
-router.post('/select', authMiddleware, viewerBlockMiddleware, async (c) => {
+router.post('/select', async (c) => {
   const body = await c.req.json().catch(() => null);
   const topicId = typeof body?.topicId === 'number' && body.topicId > 0 ? body.topicId : null;
   if (!topicId) {
@@ -161,17 +159,6 @@ router.post('/select', authMiddleware, viewerBlockMiddleware, async (c) => {
   const prisma = c.get('prisma');
   const user = c.get('user');
   const db = c.env.DB; // D1 binding
-
-  // Only students may select topics
-  if (user.role !== 'STUDENT') {
-    return c.json({ error: '仅学生可以选择毕业设计题目' }, 403);
-  }
-
-  // Server-side graduation gate (P0-3): same check as GET /status — never trust UI alone
-  const graduationEnabled = await isGraduationEnabledForUser(prisma, user.studentId);
-  if (!graduationEnabled) {
-    return c.json({ error: '毕业设计功能未开放' }, 403);
-  }
 
   const now = new Date().toISOString();
 
@@ -216,7 +203,7 @@ router.post('/select', authMiddleware, viewerBlockMiddleware, async (c) => {
 });
 
 // DELETE /api/thesis/release — release topic back to pool
-router.delete('/release', authMiddleware, viewerBlockMiddleware, asyncHandler('操作失败，请重试', async (c) => {
+router.delete('/release', asyncHandler('操作失败，请重试', async (c) => {
   const prisma = c.get('prisma');
   const user = c.get('user');
   const db = c.env.DB;
@@ -250,7 +237,7 @@ router.delete('/release', authMiddleware, viewerBlockMiddleware, asyncHandler('�
 }));
 
 // PUT /api/thesis/project — update repo/deploy URL
-router.put('/project', authMiddleware, viewerBlockMiddleware, asyncHandler('保存失败，请重试', async (c) => {
+router.put('/project', asyncHandler('保存失败，请重试', async (c) => {
   const body = await c.req.json().catch(() => ({}));
   const { repoUrl, deployUrl } = body;
 

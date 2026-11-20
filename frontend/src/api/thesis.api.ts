@@ -36,6 +36,8 @@ export async function initThesisProjectDocsApi(): Promise<{ projectId: number }>
   return request<{ projectId: number }>('/api/thesis/project/init-docs', { method: 'POST', body: {} });
 }
 
-export async function getGraduationStatus(): Promise<{ enabled: boolean }> {
-  return request<{ enabled: boolean }>('/api/thesis/status');
+export type GraduationAccess = 'allowed' | 'closed' | 'ineligible';
+
+export async function getGraduationStatus(): Promise<{ access: GraduationAccess }> {
+  return request<{ access: GraduationAccess }>('/api/thesis/status');
 }

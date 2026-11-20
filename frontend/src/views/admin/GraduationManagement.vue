@@ -3,8 +3,8 @@
     <div class="config-card">
       <div class="config-row">
         <div class="config-label">
-          <span class="config-title">毕业设计选题开关</span>
-          <span class="config-desc">关闭后，学生将无法进入毕业设计模块（管理员不受影响）</span>
+          <span class="config-title">毕业设计模块开关</span>
+          <span class="config-desc">开启后，大数据专业学生可以进入毕业设计模块。</span>
         </div>
         <el-switch
           v-model="graduationEnabled"
@@ -13,21 +13,6 @@
           :loading="switchLoading"
           @change="handleToggleGraduation"
         />
-      </div>
-      <div class="config-row" style="margin-top: 12px">
-        <div class="config-label">
-          <span class="config-title">白名单学号</span>
-          <span class="config-desc">不受开关影响的学号，多个学号用英文逗号分隔</span>
-        </div>
-        <div class="config-input-group">
-          <el-input
-            v-model="whitelistText"
-            placeholder="如: 231311111,231312222"
-            style="width: 320px"
-            :disabled="switchLoading"
-          />
-          <el-button type="primary" :loading="whitelistSaving" @click="handleSaveWhitelist">保存白名单</el-button>
-        </div>
       </div>
     </div>
 
@@ -155,8 +140,6 @@ const activeTab = ref('topics');
 // Graduation config
 const graduationEnabled = ref(false);
 const switchLoading = ref(false);
-const whitelistText = ref('');
-const whitelistSaving = ref(false);
 
 async function loadGraduationConfig() {
   switchLoading.value = true;
@@ -166,36 +149,18 @@ async function loadGraduationConfig() {
   } finally {
     switchLoading.value = false;
   }
-  try {
-    await adminStore.loadGraduationWhitelist();
-    whitelistText.value = adminStore.graduationWhitelist?.value || '';
-  } catch {
-    // ignore whitelist load error
-  }
 }
 
 async function handleToggleGraduation(val: boolean) {
   switchLoading.value = true;
   try {
     await adminStore.saveGraduationEnabled(val ? 'true' : 'false');
-    ElMessage.success(val ? '毕业设计选题已开放' : '毕业设计选题已关闭');
+    ElMessage.success(val ? '毕业设计模块已开放' : '毕业设计模块已关闭');
   } catch (e: any) {
     graduationEnabled.value = !val;
     ElMessage.error(e?.message || '操作失败');
   } finally {
     switchLoading.value = false;
-  }
-}
-
-async function handleSaveWhitelist() {
-  whitelistSaving.value = true;
-  try {
-    await adminStore.saveGraduationWhitelist(whitelistText.value);
-    ElMessage.success('白名单已保存');
-  } catch (e: any) {
-    ElMessage.error(e?.message || '保存白名单失败');
-  } finally {
-    whitelistSaving.value = false;
   }
 }
 
@@ -324,9 +289,4 @@ onMounted(() => {
   color: #94a3b8;
 }
 
-.config-input-group {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-}
 </style>

@@ -7,6 +7,8 @@ export type JwtPayload = {
   role: 'STUDENT' | 'ADMIN' | 'VIEWER';
 };
 
+export type AuthenticatedUser = JwtPayload & { major: string };
+
 export type AppEnv = {
   Bindings: {
     DB: D1Database;
@@ -18,7 +20,7 @@ export type AppEnv = {
     NODE_ENV?: string;
   };
   Variables: {
-    user: JwtPayload;
+    user: AuthenticatedUser;
     prisma: PrismaClient;
   };
 };

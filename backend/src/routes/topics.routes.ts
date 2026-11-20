@@ -17,6 +17,7 @@ router.get('/', authMiddleware, asyncHandler('获取选题失败，请刷新页�
   const platform = q.platform as Platform | undefined;
 
   const whereClause: any = {
+    projects: { none: { thesisProject: { isNot: null } } },
     OR: [
       { type: TopicType.SYSTEM },
       { creatorId: userId }
@@ -77,6 +78,7 @@ router.get('/:id', authMiddleware, asyncHandler('获取选题详情失败', asyn
   const topic = await prisma.topic.findFirst({
     where: {
       id: topicId,
+      projects: { none: { thesisProject: { isNot: null } } },
       OR: [
         { type: TopicType.SYSTEM },
         { creatorId: userId }

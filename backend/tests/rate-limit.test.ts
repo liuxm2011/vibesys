@@ -39,7 +39,7 @@ class FakeD1 {
 function buildApp(): Hono<AppEnv> {
   const app = new Hono<AppEnv>();
   app.use('/ai', async (c, next) => {
-    c.set('user', { userId: 1, studentId: 'test', name: 'test', role: 'STUDENT' });
+    c.set('user', { userId: 1, studentId: 'test', name: 'test', role: 'STUDENT', major: '大数据' });
     await next();
   });
   app.use('/ai', aiLimiter);

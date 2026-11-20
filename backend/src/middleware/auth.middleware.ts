@@ -24,18 +24,24 @@ export const authMiddleware = createMiddleware<AppEnv>(async (c, next) => {
     const prisma = c.get('prisma');
     const dbUser = await prisma.user.findUnique({
       where: { id: payload.userId },
-      select: { status: true }
+      select: { status: true, role: true, major: true }
     });
 
-    if (dbUser?.status === 'BANNED') {
+    if (!dbUser) {
+      return c.json({ error: '账号不存在，请重新登录' }, 401);
+    }
+
+    if (dbUser.status === 'BANNED') {
       return c.json({ error: '账号已被封禁，无法执行此操作' }, 403);
     }
+
+    // 毕业设计资格使用账号档案中的角色和专业。
+    c.set('user', { ...payload, role: dbUser.role, major: dbUser.major });
   } catch (error) {
     logger.error('Ban check error:', error);
     return c.json({ error: '服务器错误' }, 500);
   }
 
-  c.set('user', payload);
   await next();
 });
 

@@ -5,6 +5,7 @@ import { authMiddleware, viewerBlockMiddleware } from '../middleware/auth.middle
 import { aiLimiter } from '../middleware/rate-limit.middleware.js';
 import { aiService, type TokenUsage } from '../services/ai.service.js';
 import { DOC_GENERATION_ORDER, getContextDependencies, getGenerationBlockedReason } from '../constants/document-generation.js';
+import { getLinkedGraduationAccessError } from '../services/graduation-gate.js';
 import type { AppEnv } from '../types.js';
 import { logger } from '../lib/logger.js';
 
@@ -93,7 +94,10 @@ router.post('/generate', authMiddleware, aiLimiter, viewerBlockMiddleware, async
       return c.json({ error: '项目不存在或无权限访问' }, 404);
     }
 
-    const thesisTopic1 = (project as any).thesisProject?.topic;
+    const accessError = await getLinkedGraduationAccessError(prisma, user, project.thesisProject);
+    if (accessError) return c.json({ error: accessError }, 403);
+
+    const thesisTopic1 = project.thesisProject?.topic;
     const topicInfo = {
       title: project.topic.title,
       description: project.topic.description,
@@ -243,7 +247,10 @@ router.post('/generate/stream', authMiddleware, aiLimiter, viewerBlockMiddleware
     return c.json({ error: '项目不存在或无权限访问' }, 404);
   }
 
-  const thesisTopic2 = (project as any).thesisProject?.topic;
+  const accessError = await getLinkedGraduationAccessError(prisma, user, project.thesisProject);
+  if (accessError) return c.json({ error: accessError }, 403);
+
+  const thesisTopic2 = project.thesisProject?.topic;
   const topicInfo = {
     title: project.topic.title,
     description: project.topic.description,
@@ -411,7 +418,10 @@ router.post('/review', authMiddleware, aiLimiter, viewerBlockMiddleware, async (
       return c.json({ error: '项目不存在或无权限访问' }, 404);
     }
 
-    const thesisTopic3 = (project as any).thesisProject?.topic;
+    const accessError = await getLinkedGraduationAccessError(prisma, user, project.thesisProject);
+    if (accessError) return c.json({ error: accessError }, 403);
+
+    const thesisTopic3 = project.thesisProject?.topic;
     const topicInfo = {
       title: project.topic.title,
       description: project.topic.description,
@@ -575,7 +585,10 @@ router.post('/review/stream', authMiddleware, aiLimiter, viewerBlockMiddleware, 
     return c.json({ error: '项目不存在或无权限访问' }, 404);
   }
 
-  const thesisTopic4 = (project as any).thesisProject?.topic;
+  const accessError = await getLinkedGraduationAccessError(prisma, user, project.thesisProject);
+  if (accessError) return c.json({ error: accessError }, 403);
+
+  const thesisTopic4 = project.thesisProject?.topic;
   const topicInfo = {
     title: project.topic.title,
     description: project.topic.description,

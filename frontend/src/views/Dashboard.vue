@@ -39,6 +39,15 @@
             >
               <el-icon><FolderAdd /></el-icon>选题管理
             </el-button>
+            <el-button
+              v-if="user?.role === 'STUDENT'"
+              type="success"
+              plain
+              class="nav-item graduation-switch"
+              @click="router.push({ name: 'GraduationDashboard' })"
+            >
+              <el-icon><Switch /></el-icon>切换到毕业设计
+            </el-button>
           </div>
           <el-divider direction="vertical" class="header-divider" />
           <div class="user-profile">
@@ -354,6 +363,7 @@ import {
   Reading,
   ArrowDown,
   Calendar,
+  Switch,
   SwitchButton,
   Delete,
   Connection
@@ -713,6 +723,10 @@ async function handleDeleteProject(projectId: number): Promise<void> {
 .nav-actions {
   display: flex;
   align-items: center;
+}
+
+.graduation-switch {
+  height: 40px;
 }
 
 .action-btn-pro {
@@ -1133,6 +1147,39 @@ async function handleDeleteProject(projectId: number): Promise<void> {
 @media (max-width: 1200px) {
   .project-grid-pro {
     grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 760px) {
+  .dashboard-header {
+    height: auto;
+  }
+
+  .header-content {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 12px;
+    padding: 12px 16px;
+  }
+
+  .header-right {
+    display: contents;
+  }
+
+  .header-divider {
+    display: none;
+  }
+
+  .nav-actions {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .nav-actions .nav-item {
+    margin: 0;
+    padding-inline: 10px;
   }
 }
 </style>

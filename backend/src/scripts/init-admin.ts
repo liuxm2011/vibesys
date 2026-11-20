@@ -84,21 +84,11 @@ async function initAdmin() {
 
   if (!graduationEnabled) {
     await prisma.systemConfig.create({
-      data: { key: 'graduationEnabled', value: 'false', description: '毕业设计选题开关' }
+      data: { key: 'graduationEnabled', value: 'false', description: '毕业设计模块开关' }
     });
     console.log('Default graduationEnabled config created (disabled)');
   }
 
-  const graduationWhitelist = await prisma.systemConfig.findUnique({
-    where: { key: 'graduationWhitelist' }
-  });
-
-  if (!graduationWhitelist) {
-    await prisma.systemConfig.create({
-      data: { key: 'graduationWhitelist', value: '231311111', description: '毕业设计白名单（逗号分隔学号）' }
-    });
-    console.log('Default graduationWhitelist config created (231311111)');
-  }
 }
 
 initAdmin()

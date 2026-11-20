@@ -2,9 +2,10 @@ import { Hono } from 'hono';
 import { streamSSE } from 'hono/streaming';
 import { GraduationDocType, PrismaClient } from '../generated/prisma'
 import { authMiddleware, viewerBlockMiddleware } from '../middleware/auth.middleware.js';
+import { graduationAccessMiddleware } from '../middleware/graduation.middleware.js';
 import { aiLimiter, documentUpdateLimiter } from '../middleware/rate-limit.middleware.js';
 import { graduationService, type TokenUsage } from '../services/graduation.service.js';
-import { isGraduationEnabledForUser } from '../services/graduation-gate.js';
+import { getLinkedGraduationAccessError } from '../services/graduation-gate.js';
 import { asyncHandler } from '../lib/handler.js';
 import type { AppEnv } from '../types.js';
 import { logger } from '../lib/logger.js';
@@ -70,12 +71,16 @@ router.get('/:projectId', authMiddleware, asyncHandler('获取毕设文档失败
   const userId = user.userId;
 
   const project = await prisma.project.findFirst({
-    where: { id: projectId, userId }
+    where: { id: projectId, userId },
+    select: { thesisProject: { select: { id: true } } }
   });
 
   if (!project) {
     return c.json({ error: '项目不存在或无权限访问' }, 404);
   }
+
+  const accessError = await getLinkedGraduationAccessError(prisma, user, project.thesisProject);
+  if (accessError) return c.json({ error: accessError }, 403);
 
   const documents = await prisma.graduationDocument.findMany({
     where: { projectId },
@@ -107,7 +112,7 @@ router.put('/:id', authMiddleware, documentUpdateLimiter, viewerBlockMiddleware,
 
   const document = await prisma.graduationDocument.findFirst({
     where: { id: documentId },
-    include: { project: true }
+    include: { project: { select: { userId: true, thesisProject: { select: { id: true } } } } }
   });
 
   if (!document) {
@@ -117,6 +122,9 @@ router.put('/:id', authMiddleware, documentUpdateLimiter, viewerBlockMiddleware,
   if (document.project.userId !== user.userId) {
     return c.json({ error: '文档不存在或无权限访问' }, 404);
   }
+
+  const accessError = await getLinkedGraduationAccessError(prisma, user, document.project.thesisProject);
+  if (accessError) return c.json({ error: accessError }, 403);
 
   const updated = await prisma.graduationDocument.update({
     where: { id: documentId },
@@ -147,12 +155,16 @@ router.post('/', authMiddleware, viewerBlockMiddleware, asyncHandler('创建文�
   const userId = user.userId;
 
   const project = await prisma.project.findFirst({
-    where: { id: parsedProjectId, userId }
+    where: { id: parsedProjectId, userId },
+    select: { thesisProject: { select: { id: true } } }
   });
 
   if (!project) {
     return c.json({ error: '项目不存在或无权限访问' }, 404);
   }
+
+  const accessError = await getLinkedGraduationAccessError(prisma, user, project.thesisProject);
+  if (accessError) return c.json({ error: accessError }, 403);
 
   // Inner try/catch handles the unique-constraint race (P2002): return the
   // existing doc instead of failing. Other errors bubble up to asyncHandler.
@@ -183,7 +195,7 @@ router.post('/', authMiddleware, viewerBlockMiddleware, asyncHandler('创建文�
   }
 }));
 
-router.post('/generate', authMiddleware, aiLimiter, viewerBlockMiddleware, async (c) => {
+router.post('/generate', authMiddleware, graduationAccessMiddleware, aiLimiter, async (c) => {
   const { projectId, docType, forceRegenerate } = await c.req.json();
 
   if (!projectId) {
@@ -203,12 +215,6 @@ router.post('/generate', authMiddleware, aiLimiter, viewerBlockMiddleware, async
     const user = c.get('user');
     const prisma = c.get('prisma');
     const userId = user.userId;
-
-    // Server-side graduation gate (P0-3): same check as GET /thesis/status
-    const graduationEnabled = await isGraduationEnabledForUser(prisma, user.studentId);
-    if (!graduationEnabled) {
-      return c.json({ error: '毕业设计功能未开放' }, 403);
-    }
 
     const project = await prisma.project.findFirst({
       where: { id: parsedProjectId, userId },
@@ -293,7 +299,7 @@ router.post('/generate', authMiddleware, aiLimiter, viewerBlockMiddleware, async
   }
 });
 
-router.post('/generate/stream', authMiddleware, aiLimiter, viewerBlockMiddleware, async (c) => {
+router.post('/generate/stream', authMiddleware, graduationAccessMiddleware, aiLimiter, async (c) => {
   const { projectId, docType, forceRegenerate } = await c.req.json();
 
   if (!projectId) {
@@ -312,12 +318,6 @@ router.post('/generate/stream', authMiddleware, aiLimiter, viewerBlockMiddleware
   const user = c.get('user');
   const prisma = c.get('prisma');
   const userId = user.userId;
-
-  // Server-side graduation gate (P0-3): same check as GET /thesis/status
-  const graduationEnabled = await isGraduationEnabledForUser(prisma, user.studentId);
-  if (!graduationEnabled) {
-    return c.json({ error: '毕业设计功能未开放' }, 403);
-  }
 
   const project = await prisma.project.findFirst({
     where: { id: parsedProjectId, userId },

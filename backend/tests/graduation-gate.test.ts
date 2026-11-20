@@ -1,64 +1,76 @@
-/**
- * 集成测试：毕业设计白名单门槛（P0-3 服务端校验）
- *
- * isGraduationEnabledForUser 是 /thesis/status（UI 判断）与 /thesis/select、
- * /graduation/generate、/graduation/generate/stream（服务端门槛）共用的逻辑：
- * graduationEnabled=true 时全员开放；否则仅 graduationWhitelist 中的学号可用。
- */
-import { test, beforeAll, afterAll, expect } from 'vitest';
-import { PrismaClient } from '../src/generated/prisma';
-import { isGraduationEnabledForUser } from '../src/services/graduation-gate.js';
+import { Hono } from 'hono';
+import { expect, test, vi } from 'vitest';
+import type { PrismaClient } from '../src/generated/prisma';
+import thesisRouter from '../src/routes/thesis.routes.js';
+import graduationRouter from '../src/routes/graduation.routes.js';
+import type { AppEnv, AuthenticatedUser } from '../src/types.js';
+import { signToken } from '../src/utils/jwt.utils.js';
 
-let prisma: PrismaClient;
+async function setup({ major = '大数据', role = 'STUDENT', enabled }: {
+  major?: string;
+  role?: AuthenticatedUser['role'];
+  enabled?: boolean;
+}) {
+  const studentId = '231311111';
+  const secret = 'graduation-test-secret';
+  const config = vi.fn(({ where }: { where: { key: string } }) => {
+    if (where.key === 'graduationWhitelist') return { value: studentId };
+    return enabled === undefined ? null : { value: String(enabled) };
+  });
+  const prisma = {
+    user: { findUnique: vi.fn().mockResolvedValue({ status: 'ACTIVE', role, major }) },
+    systemConfig: { findUnique: config },
+    thesisTopic: { findMany: vi.fn().mockResolvedValue([]) },
+    project: { findFirst: vi.fn().mockResolvedValue({ thesisProject: { id: 1 } }) },
+    graduationDocument: { findMany: vi.fn().mockResolvedValue([]) },
+  };
 
-const createdConfigKeys = new Set<string>();
+  const app = new Hono<AppEnv>();
+  app.use('*', async (c, next) => {
+    c.set('prisma', prisma as unknown as PrismaClient);
+    await next();
+  });
+  app.route('/thesis', thesisRouter);
+  app.route('/graduation', graduationRouter);
 
-beforeAll(async () => {
-  const indexModule = await import('../src/index.js');
-  prisma = indexModule.prisma;
-});
-
-afterAll(async () => {
-  const keys = Array.from(createdConfigKeys);
-  if (keys.length > 0) {
-    await prisma.systemConfig.deleteMany({ where: { key: { in: keys } } });
-    createdConfigKeys.clear();
-  }
-});
-
-async function setConfig(key: string, value: string): Promise<void> {
-  const existing = await prisma.systemConfig.findUnique({ where: { key } });
-  if (existing) {
-    await prisma.systemConfig.update({ where: { key }, data: { value } });
-  } else {
-    await prisma.systemConfig.create({ data: { key, value } });
-    createdConfigKeys.add(key);
-  }
+  // The database role and major are authoritative, even with an old student token.
+  const token = await signToken({ userId: 1, studentId, name: '学生', role: 'STUDENT' }, secret);
+  const request = (path: string, method = 'GET') => app.request(path, {
+    method,
+    headers: { cookie: `token=${token}` },
+  }, { JWT_SECRET: secret });
+  return { config, request };
 }
 
-test('graduationEnabled=true → all students pass', async () => {
-  await setConfig('graduationEnabled', 'true');
-  await setConfig('graduationWhitelist', '');
-
-  expect(await isGraduationEnabledForUser(prisma, '231300001')).toBe(true);
-  expect(await isGraduationEnabledForUser(prisma, 'anyone')).toBe(true);
+test('已开放时，大数据专业学生可以查看毕业设计选题和文档', async () => {
+  const { request } = await setup({ enabled: true, major: ' 大数据 ' });
+  expect(await (await request('/thesis/status')).json()).toEqual({ enabled: true, access: 'allowed' });
+  expect(await (await request('/thesis/topics')).json()).toEqual({ topics: [] });
+  expect(await (await request('/graduation/1')).json()).toEqual({ documents: [] });
 });
 
-test('graduationEnabled=false → only whitelisted studentIds pass', async () => {
-  await setConfig('graduationEnabled', 'false');
-  await setConfig('graduationWhitelist', '231311111, 231322222 ');
-
-  expect(await isGraduationEnabledForUser(prisma, '231311111')).toBe(true);
-  expect(await isGraduationEnabledForUser(prisma, '231322222')).toBe(true);
-  // Not in whitelist
-  expect(await isGraduationEnabledForUser(prisma, '231333333')).toBe(false);
-  // Whitelist entries must match fully — prefix must not pass
-  expect(await isGraduationEnabledForUser(prisma, '23131')).toBe(false);
+test.each([false, undefined])('关闭或缺少开关配置时，旧白名单无法放行（%s）', async (enabled) => {
+  const { config, request } = await setup({ enabled });
+  expect(await (await request('/thesis/status')).json()).toEqual({ enabled: false, access: 'closed' });
+  expect((await request('/thesis/topics')).status).toBe(403);
+  expect((await request('/thesis/project')).status).toBe(403);
+  expect((await request('/thesis/project/init-docs', 'POST')).status).toBe(403);
+  expect((await request('/thesis/select', 'POST')).status).toBe(403);
+  expect((await request('/thesis/project', 'PUT')).status).toBe(403);
+  expect((await request('/thesis/release', 'DELETE')).status).toBe(403);
+  expect((await request('/graduation/1')).status).toBe(403);
+  expect((await request('/graduation/generate', 'POST')).status).toBe(403);
+  expect((await request('/graduation/generate/stream', 'POST')).status).toBe(403);
+  expect(config.mock.calls.every(([args]) => args.where.key === 'graduationEnabled')).toBe(true);
 });
 
-test('config missing entirely → disabled (fail closed)', async () => {
-  await setConfig('graduationEnabled', 'false');
-  await setConfig('graduationWhitelist', '');
-
-  expect(await isGraduationEnabledForUser(prisma, '231300001')).toBe(false);
+test.each([
+  { major: '软件工程', role: 'STUDENT' },
+  { major: '大数据', role: 'VIEWER' },
+  { major: '大数据', role: 'ADMIN' },
+] as const)('开放时仍校验专业和学生身份（$major, $role）', async (user) => {
+  const { request } = await setup({ ...user, enabled: true });
+  expect(await (await request('/thesis/status')).json()).toEqual({ enabled: false, access: 'ineligible' });
+  expect((await request('/thesis/topics')).status).toBe(403);
+  expect((await request('/thesis/select', 'POST')).status).toBe(403);
 });

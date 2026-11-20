@@ -4,6 +4,7 @@ import { authMiddleware, viewerBlockMiddleware } from '../middleware/auth.middle
 import { documentUpdateLimiter } from '../middleware/rate-limit.middleware.js';
 import { getGenerationBlockedReason } from '../constants/document-generation.js';
 import { asyncHandler } from '../lib/handler.js';
+import { getLinkedGraduationAccessError } from '../services/graduation-gate.js';
 import type { AppEnv } from '../types.js';
 
 const router = new Hono<AppEnv>();
@@ -24,6 +25,7 @@ router.get('/:projectId', authMiddleware, asyncHandler('获取文档失败', asy
   const project = await prisma.project.findFirst({
     where: { id: projectId, userId },
     include: {
+      thesisProject: { select: { id: true } },
       topic: {
         select: {
           techStack: true,
@@ -37,6 +39,9 @@ router.get('/:projectId', authMiddleware, asyncHandler('获取文档失败', asy
   if (!project) {
     return c.json({ error: '项目不存在或无权限访问' }, 404);
   }
+
+  const accessError = await getLinkedGraduationAccessError(prisma, user, project.thesisProject);
+  if (accessError) return c.json({ error: accessError }, 403);
 
   const documents = await prisma.document.findMany({
     where: { projectId },
@@ -72,7 +77,7 @@ router.put('/:id', authMiddleware, documentUpdateLimiter, viewerBlockMiddleware,
 
   const document = await prisma.document.findFirst({
     where: { id: documentId },
-    include: { project: true }
+    include: { project: { select: { userId: true, thesisProject: { select: { id: true } } } } }
   });
 
   if (!document) {
@@ -82,6 +87,9 @@ router.put('/:id', authMiddleware, documentUpdateLimiter, viewerBlockMiddleware,
   if (document.project.userId !== user.userId) {
     return c.json({ error: '文档不存在或无权限访问' }, 404);
   }
+
+  const accessError = await getLinkedGraduationAccessError(prisma, user, document.project.thesisProject);
+  if (accessError) return c.json({ error: accessError }, 403);
 
   const updated = await prisma.document.update({
     where: { id: documentId },
@@ -112,12 +120,16 @@ router.post('/', authMiddleware, viewerBlockMiddleware, asyncHandler('创建文�
   const userId = user.userId;
 
   const project = await prisma.project.findFirst({
-    where: { id: parsedProjectId, userId }
+    where: { id: parsedProjectId, userId },
+    select: { thesisProject: { select: { id: true } } }
   });
 
   if (!project) {
     return c.json({ error: '项目不存在或无权限访问' }, 404);
   }
+
+  const accessError = await getLinkedGraduationAccessError(prisma, user, project.thesisProject);
+  if (accessError) return c.json({ error: accessError }, 403);
 
   const allDocs = await prisma.document.findMany({
     where: { projectId: parsedProjectId }
