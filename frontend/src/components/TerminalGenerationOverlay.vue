@@ -1,16 +1,13 @@
 <script setup lang="ts">
-import { ref, watch, nextTick, computed, onUnmounted } from 'vue'
+import { ref, watch, nextTick, computed } from 'vue'
+import type { GenerationStats } from '@/types/document'
 
 interface Props {
   visible: boolean
   title?: string
   content: string
   status: 'generating' | 'complete' | 'idle' | 'error'
-  stats?: {
-    tokenCount: number
-    tokensPerSecond: number
-    elapsedSeconds: number
-  }
+  stats?: GenerationStats
   /** When true, renders the review-branded variant with expert panel styling */
   mode?: 'review' | 'generation'
 }
@@ -31,48 +28,24 @@ const emit = defineEmits<{
   close: []
 }>()
 
-// --- 逐字显示逻辑 ---
-// SSE 流式内容已经是逐段到达的，直接同步显示即可，无需额外的 setInterval 模拟打字。
-const displayLength = ref(0)
+const localElapsedSeconds = ref(0)
+watch(() => props.visible && props.status === 'generating' && props.mode === 'generation',
+  (isGenerating, _, onCleanup) => {
+    if (!isGenerating) return
+    localElapsedSeconds.value = 0
+    const startedAt = performance.now()
+    const timer = setInterval(() => {
+      localElapsedSeconds.value = Math.floor((performance.now() - startedAt) / 1000)
+    }, 1000)
+    onCleanup(() => clearInterval(timer))
+  }, { immediate: true })
 
-const displayContent = computed(() => props.content.slice(0, displayLength.value))
-
-function resetDisplay() {
-  displayLength.value = 0
-}
-
-function syncDisplayToContent() {
-  displayLength.value = props.content.length
-}
-
-// content 变化时立即同步显示全部
-watch(() => props.content, () => {
-  if (props.visible && props.status === 'generating') {
-    syncDisplayToContent()
-  }
-})
-
-// visible 变化时重置显示
-watch(() => props.visible, (isVisible) => {
-  if (isVisible) {
-    displayLength.value = 0
-    if (props.content.length > 0) {
-      syncDisplayToContent()
-    }
-  } else {
-    resetDisplay()
-  }
-})
-
-// 完成时确保显示全部内容
-watch(() => props.status, (newStatus) => {
-  if (newStatus === 'complete' || newStatus === 'error') {
-    syncDisplayToContent()
-  }
-})
-
-onUnmounted(() => {
-  resetDisplay()
+const elapsedSeconds = computed(() => Math.max(props.stats.elapsedSeconds, localElapsedSeconds.value))
+const waitingMessage = computed(() => {
+  if (props.mode === 'review') return 'AI 正在启动流式生成...'
+  if (props.stats.phase === 'reasoning') return '模型正在准备文档，等待正文输出…'
+  if (props.stats.phase === 'finalizing') return '正在整理并保存文档…'
+  return '正在请求 AI 服务，等待响应…'
 })
 
 // --- 自动滚动 ---
@@ -86,7 +59,8 @@ function scrollToBottom() {
   })
 }
 
-watch(() => displayContent.value, scrollToBottom)
+watch(() => props.content, scrollToBottom)
+watch(() => props.visible, scrollToBottom, { immediate: true })
 watch(() => props.status, scrollToBottom)
 
 // --- 状态显示 ---
@@ -156,26 +130,26 @@ function formatTime(seconds: number): string {
             <span class="stat-divider">│</span>
             <span class="stat-item">
               <span class="stat-label">elapsed</span>
-              <span class="stat-value">{{ formatTime(stats.elapsedSeconds) }}</span>
+              <span class="stat-value">{{ formatTime(elapsedSeconds) }}</span>
             </span>
           </div>
         </div>
 
         <!-- 终端内容区 -->
         <div ref="terminalBodyRef" class="terminal-body">
-          <div v-if="displayContent" class="terminal-text" v-text="displayContent"></div>
+          <div v-if="content" class="terminal-text" v-text="content"></div>
           <div v-else-if="status === 'generating'" class="terminal-placeholder">
             <span class="prompt">❯ </span>
-            <span>AI 正在启动流式生成...</span>
+            <span>{{ waitingMessage }}</span>
           </div>
-          <div v-if="status === 'generating' && displayContent" class="typing-indicator">
+          <div v-if="status === 'generating' && content && stats.phase !== 'finalizing'" class="typing-indicator">
             <span class="cursor">█</span>
           </div>
-          <div v-if="!displayContent && status === 'idle'" class="terminal-placeholder">
+          <div v-if="!content && status === 'idle'" class="terminal-placeholder">
             <span class="prompt">❯ </span>
             <span>Waiting for AI response...</span>
           </div>
-          <div v-if="status === 'complete' && displayContent" class="complete-marker">
+          <div v-if="status === 'complete' && content" class="complete-marker">
             <span class="prompt">❯ </span>
             <span class="success-text">Generation complete. Document ready.</span>
           </div>
@@ -188,7 +162,8 @@ function formatTime(seconds: number): string {
         <!-- 底部输入行（装饰） -->
         <div class="terminal-footer">
           <span class="prompt">❯ </span>
-          <span class="footer-text" v-if="status === 'generating'">AI is writing...</span>
+          <span class="footer-text" v-if="status === 'generating' && stats.phase === 'finalizing'">正在整理并保存文档…</span>
+          <span class="footer-text" v-else-if="status === 'generating' && content">AI is writing...</span>
           <span class="footer-text" v-else-if="status === 'complete'">Done</span>
           <span class="footer-text" v-else></span>
         </div>

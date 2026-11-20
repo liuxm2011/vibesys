@@ -3,6 +3,7 @@ import { apiProviderService, assertPublicHttpsBaseUrl } from './apiProvider.serv
 import { getTaskBookSystemPrompt, buildTaskBookUserPrompt } from '../prompts/task-book.template.js';
 import { getProposalSystemPrompt, buildProposalUserPrompt } from '../prompts/proposal.template.js';
 import { getProgressRecordSystemPrompt, buildProgressRecordUserPrompt } from '../prompts/progress-record.template.js';
+import type { AppEnv } from '../types.js';
 
 export interface TokenUsage {
   promptTokens: number;
@@ -11,7 +12,7 @@ export interface TokenUsage {
 }
 
 export interface GenerationProgress {
-  phase: 'reasoning' | 'writing' | 'finalizing';
+  phase: 'connecting' | 'reasoning' | 'writing' | 'finalizing';
   reasoningText: string;
   contentText: string;
   tokenCount?: number;
@@ -50,27 +51,43 @@ interface ChatCompletionResponse {
 
 interface StreamChunkResponse {
   choices?: Array<{
-    delta?: { content?: string; reasoning_content?: string };
+    delta?: {
+      content?: string;
+      reasoning_content?: string;
+      reasoning_details?: Array<{ text?: string }>;
+    };
     finish_reason?: string | null;
   }>;
-  usage?: { prompt_tokens?: number; completion_tokens?: number; total_tokens?: number };
+  usage?: ChatCompletionResponse['usage'];
+  error?: { message?: string };
+}
+
+export class GenerationStreamFormatError extends Error {}
+
+type ProviderEnv = Pick<AppEnv['Bindings'], 'MINIMAX_BASE_URL' | 'MINIMAX_API_KEY' | 'MINIMAX_MODEL'>;
+
+interface GraduationStreamOptions {
+  signal?: AbortSignal;
+  userId?: number;
+  prisma?: PrismaClient;
+  env?: ProviderEnv;
 }
 
 export class GraduationService {
   private readonly REQUEST_TIMEOUT = 600_000;
   private _prisma?: PrismaClient;
-  private _env?: { MINIMAX_BASE_URL?: string; MINIMAX_API_KEY?: string; MINIMAX_MODEL?: string };
+  private _env?: ProviderEnv;
 
-  setContext(prisma: PrismaClient, env?: { MINIMAX_BASE_URL?: string; MINIMAX_API_KEY?: string; MINIMAX_MODEL?: string }) {
+  setContext(prisma: PrismaClient, env?: ProviderEnv) {
     this._prisma = prisma;
     this._env = env;
   }
 
-  private async getConfig(userId?: number) {
-    const providerConfig = this._prisma
+  private async getConfig(userId?: number, prisma = this._prisma, env = this._env) {
+    const providerConfig = prisma
       ? (userId
-        ? await apiProviderService.getConfigForUser(this._prisma, userId, this._env)
-        : await apiProviderService.getEffectiveConfig(this._prisma, this._env))
+        ? await apiProviderService.getConfigForUser(prisma, userId, env)
+        : await apiProviderService.getEffectiveConfig(prisma, env))
       : (userId
         ? await apiProviderService.getConfigForUser(userId)
         : await apiProviderService.getEffectiveConfig());
@@ -122,14 +139,17 @@ export class GraduationService {
     docType: GraduationDocType,
     topicContext: TopicContext,
     previousDocs: PreviousDocs,
-    onProgress: (progress: GenerationProgress) => void,
-    signal?: AbortSignal,
-    userId?: number
+    onProgress: (progress: GenerationProgress) => void | Promise<void>,
+    options: GraduationStreamOptions = {}
   ): Promise<{ content: string; usage: TokenUsage }> {
-    const config = await this.getConfig(userId);
+    const { signal } = options;
+    signal?.throwIfAborted();
+    const config = await this.getConfig(options.userId, options.prisma, options.env);
 
     if (config.mockMode) {
-      return this.generateMockDocument(docType, topicContext);
+      const result = await this.generateMockDocument(docType, topicContext);
+      await onProgress({ phase: 'finalizing', reasoningText: '', contentText: result.content });
+      return result;
     }
 
     const { systemPrompt, userPrompt } = this.buildPrompts(docType, topicContext, previousDocs);
@@ -139,14 +159,21 @@ export class GraduationService {
     ];
 
     const contentParts: string[] = [];
-    let totalUsage: TokenUsage = { promptTokens: 0, completionTokens: 0, totalTokens: 0 };
+    const totalUsage: TokenUsage = { promptTokens: 0, completionTokens: 0, totalTokens: 0 };
     const maxAttempts = 3;
+    const startedAt = Date.now();
 
     for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
+      signal?.throwIfAborted();
       try {
-        const isContinuation = attempt > 0;
         const result = await this.requestCompletionStream(
-          config.baseURL, config.apiKey, config.model, messages, onProgress, signal, isContinuation
+          config.baseURL, config.apiKey, config.model, messages, progress => onProgress({
+            ...progress,
+            contentText: contentParts.length && progress.contentText
+              ? this.mergeContentParts([...contentParts, progress.contentText])
+              : progress.contentText,
+            elapsedSeconds: Math.floor((Date.now() - startedAt) / 1000),
+          }), signal
         );
 
         if (!result.content.trim()) break;
@@ -163,13 +190,19 @@ export class GraduationService {
           { role: 'user', content: this.buildContinuationUserPrompt(result.content) }
         ];
       } catch (error) {
-        if (attempt === maxAttempts - 1) throw error;
+        if (signal?.aborted || error instanceof GenerationStreamFormatError || attempt === maxAttempts - 1) {
+          throw error;
+        }
         await new Promise(resolve => setTimeout(resolve, 1000 * (attempt + 1)));
       }
     }
 
-    const mergedContent = this.mergeContentParts(contentParts);
-    return { content: this.postProcess(mergedContent, docType), usage: totalUsage };
+    const content = this.postProcess(this.mergeContentParts(contentParts), docType);
+    if (!content) {
+      throw new GenerationStreamFormatError('AI 服务未返回文档正文，请重试或更换模型');
+    }
+    await onProgress({ phase: 'finalizing', reasoningText: '', contentText: content });
+    return { content, usage: totalUsage };
   }
 
   private buildPrompts(
@@ -285,6 +318,17 @@ export class GraduationService {
     return trimmed;
   }
 
+  private getDocumentText(text: string): string {
+    const trimmed = text.trimStart();
+    const openingTag = '<think>';
+    if (openingTag.startsWith(trimmed)) return '';
+    if (!trimmed.startsWith(openingTag)) return text;
+
+    const closingTag = '</think>';
+    const end = trimmed.indexOf(closingTag);
+    return end === -1 ? '' : trimmed.slice(end + closingTag.length);
+  }
+
   private removeRepeatedTitle(text: string): string {
     const matches = [...text.matchAll(/^#\s+.+$/gm)];
     if (matches.length <= 1) return text;
@@ -386,9 +430,8 @@ export class GraduationService {
     apiKey: string,
     model: string,
     messages: Array<{ role: 'system' | 'user'; content: string }>,
-    onProgress: (progress: GenerationProgress) => void,
-    signal?: AbortSignal,
-    isContinuation = false
+    onProgress: (progress: GenerationProgress) => void | Promise<void>,
+    signal?: AbortSignal
   ): Promise<{ content: string; usage: TokenUsage; finishReason: string | null }> {
     assertPublicHttpsBaseUrl(baseURL);
     const response = await fetch(`${baseURL}/chat/completions`, {
@@ -396,6 +439,7 @@ export class GraduationService {
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${apiKey}`,
+        'Accept': 'text/event-stream',
       },
       body: JSON.stringify({
         model,
@@ -413,17 +457,21 @@ export class GraduationService {
       throw new Error(`API stream request failed: ${response.status} ${errorText}`);
     }
 
-    const reader = response.body!.getReader();
+    if (response.headers.get('content-type')?.includes('application/json')) {
+      await response.body?.cancel().catch(() => {});
+      throw new GenerationStreamFormatError('AI 服务返回了非流式响应，请检查所选模型或 API 网关是否支持流式输出');
+    }
+    if (!response.body) {
+      throw new GenerationStreamFormatError('AI 服务未返回流式响应，请稍后重试');
+    }
+
+    const reader = response.body.getReader();
     const decoder = new TextDecoder();
     let buffer = '';
     let contentText = '';
-    let reasoningText = '';
-    let rawContentChars = 0;
-    let apiReportedCompletionTokens = 0;
-    let apiReportedTotalTokens = 0;
+    let usage: StreamChunkResponse['usage'];
     let finishReason: string | null = null;
-    let lastStreamCleanLength = 0;
-    const STREAM_CLEAN_INTERVAL = 300;
+    let streamDone = false;
     const startTime = Date.now();
 
     const estimateTokensFromText = (text: string): number => {
@@ -433,84 +481,76 @@ export class GraduationService {
       return Math.ceil(chineseChars + englishWords * 1.3 + otherChars * 0.5);
     };
 
+    const processDataLine = (line: string): boolean => {
+      if (!line.startsWith('data:')) return false;
+      const data = line.slice(5).trim();
+      if (data === '[DONE]') {
+        streamDone = true;
+        return false;
+      }
+      if (!data) return false;
+
+      let chunk: StreamChunkResponse;
+      try {
+        chunk = JSON.parse(data);
+      } catch {
+        return false;
+      }
+      if (chunk?.error) throw new Error(chunk.error.message || 'AI stream failed');
+
+      const choice = chunk?.choices?.[0];
+      const delta = choice?.delta;
+      if (delta?.content) contentText += delta.content;
+      finishReason = choice?.finish_reason ?? finishReason;
+      usage = chunk?.usage ?? usage;
+
+      return Boolean(delta?.content || delta?.reasoning_content
+        || delta?.reasoning_details?.some(detail => detail.text) || chunk?.usage);
+    };
+
     try {
-      while (true) {
+      while (!streamDone) {
         const { done, value } = await reader.read();
-        if (done) break;
+        buffer += done ? decoder.decode() : decoder.decode(value, { stream: true });
+        const lines = buffer.split(/\r\n|\r|\n/);
+        buffer = done ? '' : lines.pop() ?? '';
 
-        buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split('\n');
-        buffer = lines.pop() || '';
-
+        let changed = false;
         for (const line of lines) {
-          const trimmed = line.trim();
-          if (!trimmed || !trimmed.startsWith('data: ')) continue;
-          const data = trimmed.slice(6);
-          if (data === '[DONE]') continue;
-
-          try {
-            const parsed: StreamChunkResponse = JSON.parse(data);
-            const delta = parsed.choices?.[0]?.delta;
-            if (delta) {
-              if (delta.reasoning_content) {
-                reasoningText += delta.reasoning_content;
-              }
-              if (delta.content) {
-                contentText += delta.content;
-                rawContentChars += delta.content.length;
-              }
-            }
-            const choiceFinishReason = parsed.choices?.[0]?.finish_reason;
-            if (choiceFinishReason) {
-              finishReason = choiceFinishReason;
-            }
-            if (parsed.usage) {
-              apiReportedCompletionTokens = parsed.usage.completion_tokens ?? 0;
-              apiReportedTotalTokens = parsed.usage.total_tokens ?? 0;
-            }
-
-            const elapsedSeconds = Math.round((Date.now() - startTime) / 1000);
-            const estimatedTokens = estimateTokensFromText(contentText);
-            const displayTokens = apiReportedTotalTokens > 0 ? apiReportedTotalTokens : estimatedTokens;
-            const displayCompletion = apiReportedCompletionTokens > 0 ? apiReportedCompletionTokens : estimatedTokens;
-
-            let displayContent = this.cleanStreamingMarkdown(contentText);
-            if (isContinuation) {
-              displayContent = this.removeRepeatedTitle(displayContent);
-            }
-            if (contentText.length - lastStreamCleanLength >= STREAM_CLEAN_INTERVAL) {
-              lastStreamCleanLength = contentText.length;
-            }
-
-            onProgress({
-              phase: contentText.length > 0 ? 'writing' : 'reasoning',
-              reasoningText,
-              contentText: displayContent,
-              tokenCount: displayTokens,
-              tokensPerSecond: elapsedSeconds > 0 ? Math.round(displayTokens / elapsedSeconds) : 0,
-              elapsedSeconds
-            });
-          } catch {
-            // Skip unparseable chunks
-          }
+          changed = processDataLine(line) || changed;
+          if (streamDone) break;
         }
+
+        if (changed) {
+          const displayContent = this.cleanStreamingMarkdown(this.getDocumentText(contentText));
+          const tokenCount = usage?.completion_tokens ?? estimateTokensFromText(displayContent);
+          const elapsedMs = Date.now() - startTime;
+          await onProgress({
+            phase: displayContent ? 'writing' : 'reasoning',
+            reasoningText: '',
+            contentText: displayContent,
+            tokenCount,
+            tokensPerSecond: elapsedMs >= 1000 ? tokenCount / (elapsedMs / 1000) : 0,
+          });
+        }
+
+        if (done) break;
       }
     } finally {
+      await reader.cancel().catch(() => {});
       reader.releaseLock();
     }
 
-    const elapsedSeconds = Math.round((Date.now() - startTime) / 1000);
-    const finalEstimatedTokens = estimateTokensFromText(contentText);
-    const finalTokens = apiReportedTotalTokens > 0 ? apiReportedTotalTokens : finalEstimatedTokens;
-    const finalCompletion = apiReportedCompletionTokens > 0 ? apiReportedCompletionTokens : finalEstimatedTokens;
-    const finalPrompt = finalTokens - finalCompletion;
+    const content = this.getDocumentText(contentText);
+    const finalCompletion = usage?.completion_tokens ?? estimateTokensFromText(content);
+    const finalPrompt = usage?.prompt_tokens ?? Math.max(0, (usage?.total_tokens ?? finalCompletion) - finalCompletion);
 
     return {
-      content: contentText,
+      content,
       usage: {
-        promptTokens: Math.max(0, finalPrompt),
+        promptTokens: finalPrompt,
         completionTokens: finalCompletion,
-        totalTokens: finalTokens
+        totalTokens: usage?.total_tokens ?? finalPrompt + finalCompletion,
       },
       finishReason
     };

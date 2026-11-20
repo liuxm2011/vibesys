@@ -3,7 +3,7 @@ import { ref, computed } from 'vue';
 import { fetchDocumentsApi, updateDocumentApi, createDocumentApi } from '@/api/document.api';
 import { generateDocumentStreamApi } from '@/api/ai.api';
 import { reviewDocumentsStreamApi, reviewDocumentsApi } from '@/api/review.api';
-import type { Document, DocType, GenerateDocumentStreamProgress, ReviewResult, ReviewStatus, ReviewUnresolvedFix } from '@/types/document';
+import type { Document, DocType, GenerateDocumentStreamProgress, GenerationStats, ReviewResult, ReviewStatus, ReviewUnresolvedFix } from '@/types/document';
 import type { PersistedReviewStatus } from '@/types/project';
 
 /**
@@ -20,11 +20,7 @@ export const useDocumentStore = defineStore('document', () => {
   const generatingDocType = ref<DocType | null>(null);
   const generationPreviewLines = ref<string[]>([]);
   const generationContent = ref<string>('');       // Full streaming content for terminal display
-  const generationStats = ref<{                   // Real-time generation stats
-    tokenCount: number;
-    tokensPerSecond: number;
-    elapsedSeconds: number;
-  }>({
+  const generationStats = ref<GenerationStats>({
     tokenCount: 0,
     tokensPerSecond: 0,
     elapsedSeconds: 0
@@ -215,14 +211,12 @@ export const useDocumentStore = defineStore('document', () => {
           if (event.contentText) {
             generationContent.value = event.contentText;
           }
-          // Update stats if backend provides them
-          if (event.tokenCount !== undefined) {
-            generationStats.value = {
-              tokenCount: event.tokenCount,
-              tokensPerSecond: event.tokensPerSecond ?? 0,
-              elapsedSeconds: event.elapsedSeconds ?? 0
-            };
-          }
+          generationStats.value = {
+            phase: event.phase,
+            tokenCount: event.tokenCount ?? generationStats.value.tokenCount,
+            tokensPerSecond: event.tokensPerSecond ?? generationStats.value.tokensPerSecond,
+            elapsedSeconds: event.elapsedSeconds ?? generationStats.value.elapsedSeconds,
+          };
         }
       });
       // Update local state

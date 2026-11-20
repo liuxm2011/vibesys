@@ -46,13 +46,17 @@ export interface GenerateDocumentResponse {
   document: Document;
 }
 
-export interface GenerateDocumentStreamProgress {
-  phase: 'reasoning' | 'writing' | 'finalizing';
+export interface GenerationStats {
+  phase?: 'connecting' | 'reasoning' | 'writing' | 'finalizing';
+  tokenCount: number;
+  tokensPerSecond: number;
+  elapsedSeconds: number;
+}
+
+export interface GenerateDocumentStreamProgress extends Partial<GenerationStats> {
+  phase: NonNullable<GenerationStats['phase']>;
   reasoningText: string;
   contentText: string;
-  tokenCount?: number;
-  tokensPerSecond?: number;
-  elapsedSeconds?: number;
 }
 
 export interface UpdateTechStackRequest {

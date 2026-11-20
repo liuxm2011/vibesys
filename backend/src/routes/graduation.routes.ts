@@ -4,7 +4,7 @@ import { GraduationDocType, PrismaClient } from '../generated/prisma'
 import { authMiddleware, viewerBlockMiddleware } from '../middleware/auth.middleware.js';
 import { graduationAccessMiddleware } from '../middleware/graduation.middleware.js';
 import { aiLimiter, documentUpdateLimiter } from '../middleware/rate-limit.middleware.js';
-import { graduationService, type TokenUsage } from '../services/graduation.service.js';
+import { GenerationStreamFormatError, graduationService, type GenerationProgress, type TokenUsage } from '../services/graduation.service.js';
 import { getLinkedGraduationAccessError } from '../services/graduation-gate.js';
 import { asyncHandler } from '../lib/handler.js';
 import type { AppEnv } from '../types.js';
@@ -361,23 +361,25 @@ router.post('/generate/stream', authMiddleware, graduationAccessMiddleware, aiLi
 
   const clientAbortController = new AbortController();
 
-  return streamSSE(c, async (stream) => {
+  const response = streamSSE(c, async (stream) => {
     stream.onAbort(() => {
       clientAbortController.abort();
     });
 
+    const sendProgress = (progress: GenerationProgress) =>
+      stream.writeSSE({ event: 'progress', data: JSON.stringify(progress) });
+
     try {
+      await sendProgress({ phase: 'connecting', reasoningText: '', contentText: '' });
       const result = await graduationService.generateDocumentStream(
         docType as GraduationDocType,
         topicInfo,
         previousDocs,
-        (progress) => {
-          stream.writeSSE({ event: 'progress', data: JSON.stringify(progress) });
-        },
-        clientAbortController.signal,
-        userId
+        sendProgress,
+        { signal: clientAbortController.signal, userId, prisma, env: c.env }
       );
 
+      clientAbortController.signal.throwIfAborted();
       const content = result.content;
 
       const existing = await prisma.graduationDocument.findUnique({
@@ -414,11 +416,15 @@ router.post('/generate/stream', authMiddleware, graduationAccessMiddleware, aiLi
       }
 
       logger.error('Graduation document stream error:', error);
-      // Same convention as ai.routes stream endpoints: log the detail, send a
-      // generic message over SSE.
-      await stream.writeSSE({ event: 'error', data: JSON.stringify({ message: '生成失败，请稍后重试' }) });
+      const message = error instanceof GenerationStreamFormatError
+        ? error.message
+        : '生成失败，请稍后重试';
+      await stream.writeSSE({ event: 'error', data: JSON.stringify({ message }) });
     }
   });
+  response.headers.set('Cache-Control', 'no-cache, no-transform');
+  response.headers.set('X-Accel-Buffering', 'no');
+  return response;
 });
 
 export default router;

@@ -1,4 +1,5 @@
 import { api, resolveApiUrl } from '@/utils/request';
+import type { GenerateDocumentStreamProgress } from '@/types/document';
 import type {
   GraduationDocType,
   GraduationDocumentsResponse,
@@ -39,17 +40,8 @@ export async function generateGraduationDocumentApi(
   });
 }
 
-export interface GenerateGraduationStreamProgress {
-  phase: 'reasoning' | 'writing' | 'finalizing';
-  reasoningText: string;
-  contentText: string;
-  tokenCount?: number;
-  tokensPerSecond?: number;
-  elapsedSeconds?: number;
-}
-
 export interface GenerateGraduationStreamOptions {
-  onProgress?: (event: GenerateGraduationStreamProgress) => void;
+  onProgress?: (event: GenerateDocumentStreamProgress) => void;
   forceRegenerate?: boolean;
   signal?: AbortSignal;
 }
@@ -62,7 +54,8 @@ export async function generateGraduationDocumentStreamApi(
   const response = await fetch(resolveApiUrl('/api/graduation/generate/stream'), {
     method: 'POST',
     headers: {
-      'Content-Type': 'application/json'
+      'Content-Type': 'application/json',
+      Accept: 'text/event-stream',
     },
     credentials: 'include',
     signal: options.signal,
@@ -127,7 +120,7 @@ export async function generateGraduationDocumentStreamApi(
     const payload = JSON.parse(payloadText);
 
     if (eventName === 'progress') {
-      options.onProgress?.(payload as GenerateGraduationStreamProgress);
+      options.onProgress?.(payload as GenerateDocumentStreamProgress);
       return;
     }
 

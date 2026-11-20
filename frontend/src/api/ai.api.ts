@@ -39,7 +39,8 @@ export async function generateDocumentStreamApi(
   const response = await fetch(resolveApiUrl('/api/ai/generate/stream'), {
     method: 'POST',
     headers: {
-      'Content-Type': 'application/json'
+      'Content-Type': 'application/json',
+      Accept: 'text/event-stream',
     },
     credentials: 'include',
     signal: options.signal,

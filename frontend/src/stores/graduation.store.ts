@@ -7,6 +7,7 @@ import {
   generateGraduationDocumentStreamApi
 } from '@/api/graduation.api';
 import { GRAD_DOC_GENERATION_ORDER } from '@/utils/graduation-document-generation';
+import type { GenerationStats } from '@/types/document';
 import type { GraduationDocType, GraduationDocument } from '@/types/graduation-document';
 
 export const useGraduationDocumentStore = defineStore('graduationDocument', () => {
@@ -16,11 +17,7 @@ export const useGraduationDocumentStore = defineStore('graduationDocument', () =
   const generating = ref(false);
   const generatingDocType = ref<GraduationDocType | null>(null);
   const generationContent = ref<string>('');
-  const generationStats = ref<{
-    tokenCount: number;
-    tokensPerSecond: number;
-    elapsedSeconds: number;
-  }>({
+  const generationStats = ref<GenerationStats>({
     tokenCount: 0,
     tokensPerSecond: 0,
     elapsedSeconds: 0
@@ -115,13 +112,12 @@ export const useGraduationDocumentStore = defineStore('graduationDocument', () =
           if (event.contentText) {
             generationContent.value = event.contentText;
           }
-          if (event.tokenCount !== undefined) {
-            generationStats.value = {
-              tokenCount: event.tokenCount,
-              tokensPerSecond: event.tokensPerSecond ?? 0,
-              elapsedSeconds: event.elapsedSeconds ?? 0
-            };
-          }
+          generationStats.value = {
+            phase: event.phase,
+            tokenCount: event.tokenCount ?? generationStats.value.tokenCount,
+            tokensPerSecond: event.tokensPerSecond ?? generationStats.value.tokensPerSecond,
+            elapsedSeconds: event.elapsedSeconds ?? generationStats.value.elapsedSeconds,
+          };
         }
       });
 

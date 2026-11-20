@@ -286,22 +286,27 @@ router.post('/generate/stream', authMiddleware, aiLimiter, viewerBlockMiddleware
 
   const clientAbortController = new AbortController();
 
-  return streamSSE(c, async (stream) => {
+  const response = streamSSE(c, async (stream) => {
     stream.onAbort(() => {
       clientAbortController.abort();
     });
 
     try {
+      await stream.writeSSE({
+        event: 'progress',
+        data: JSON.stringify({ phase: 'connecting', reasoningText: '', contentText: '' }),
+      });
       const result = await aiService.generateDocumentStream(docType as DocType, {
         ...topicInfo,
         previousDocs
-      }, progress => {
-        stream.writeSSE({ event: 'progress', data: JSON.stringify(progress) });
-      }, {
+      }, progress => stream.writeSSE({ event: 'progress', data: JSON.stringify(progress) }), {
         bypassCache: forceRegenerate === true,
         signal: clientAbortController.signal,
-        userId
+        userId,
+        prisma,
+        env: c.env
       });
+      clientAbortController.signal.throwIfAborted();
       const content = result.content;
 
       await recordAiUsage(prisma, userId, parsedProjectId, docType, 'generate_stream', result.usage, 'success');
@@ -373,6 +378,9 @@ router.post('/generate/stream', authMiddleware, aiLimiter, viewerBlockMiddleware
       });
     }
   });
+  response.headers.set('Cache-Control', 'no-cache, no-transform');
+  response.headers.set('X-Accel-Buffering', 'no');
+  return response;
 });
 
 router.post('/review', authMiddleware, aiLimiter, viewerBlockMiddleware, async (c) => {

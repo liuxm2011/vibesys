@@ -413,7 +413,7 @@ These guidelines are working if: fewer unnecessary changes in diffs, fewer rewri
   async generateDocumentStream(
     docType: DocType,
     topicInfo: TopicInfo,
-    onProgress: (progress: GenerationProgress) => void,
+    onProgress: (progress: GenerationProgress) => void | Promise<void>,
     options: GenerationOptions = {}
   ): Promise<{ content: string; usage: TokenUsage }> {
     const config = await this.getConfig(options.userId, options.prisma, options.env);
@@ -422,7 +422,7 @@ These guidelines are working if: fewer unnecessary changes in diffs, fewer rewri
       const content = await this.streamMockDocument(docType, topicInfo, onProgress);
       const finalized = this.postProcessGeneratedContent(docType, content);
       if (finalized !== content) {
-        onProgress({
+        await onProgress({
           phase: 'finalizing',
           reasoningText: this.buildPreviewReasoningText('finalizing'),
           contentText: finalized
@@ -439,7 +439,7 @@ These guidelines are working if: fewer unnecessary changes in diffs, fewer rewri
       const cached = this.resultCache.get(cacheKey);
       if (cached && Date.now() - cached.timestamp < this.CACHE_TTL) {
         const finalizedCached = this.postProcessGeneratedContent(docType, cached.content);
-        onProgress({
+        await onProgress({
           phase: 'finalizing',
           reasoningText: this.buildPreviewReasoningText('finalizing'),
           contentText: finalizedCached
@@ -456,16 +456,14 @@ These guidelines are working if: fewer unnecessary changes in diffs, fewer rewri
       { role: 'user', content: userPrompt }
     ];
 
-    const result = await this.executeStreamWithRetry(messages, onProgress, options.signal, false, options.userId);
+    const result = await this.executeStreamWithRetry(config, messages, onProgress, options.signal);
     const finalized = this.postProcessGeneratedContent(docType, result.content);
 
-    if (finalized !== result.content) {
-      onProgress({
-        phase: 'finalizing',
-        reasoningText: this.buildPreviewReasoningText('finalizing'),
-        contentText: finalized
-      });
-    }
+    await onProgress({
+      phase: 'finalizing',
+      reasoningText: this.buildPreviewReasoningText('finalizing'),
+      contentText: finalized
+    });
 
     this.pruneExpiredCache();
     this.resultCache.set(cacheKey, {
@@ -530,21 +528,20 @@ These guidelines are working if: fewer unnecessary changes in diffs, fewer rewri
   }
 
   private async executeStreamWithRetry(
+    { baseURL, apiKey, model }: Awaited<ReturnType<AIService['getConfig']>>,
     messages: Array<{ role: 'system' | 'user' | 'assistant'; content: string }>,
-    onProgress: (progress: GenerationProgress) => void,
-    signal?: AbortSignal,
-    isContinuation = false,
-    userId?: number
+    onProgress: (progress: GenerationProgress) => void | Promise<void>,
+    signal?: AbortSignal
   ): Promise<ExecuteResult> {
-    const { baseURL, apiKey, model } = await this.getConfig(userId);
     const maxAttempts = 3;
     const contentParts: string[] = [];
     let totalUsage: TokenUsage = { promptTokens: 0, completionTokens: 0, totalTokens: 0 };
 
     for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
+      signal?.throwIfAborted();
       try {
         const result = await this.requestStreamingCompletion(
-          baseURL, apiKey, model, messages, onProgress, signal, attempt > 0
+          baseURL, apiKey, model, messages, onProgress, signal, contentParts.length > 0
         );
 
         const cleanedContent = result.contentText.trim();
@@ -571,7 +568,7 @@ These guidelines are working if: fewer unnecessary changes in diffs, fewer rewri
           { role: 'user', content: this.buildContinuationUserPrompt(cleanedContent) }
         ];
       } catch (error) {
-        if (attempt === maxAttempts - 1) throw error;
+        if (signal?.aborted || attempt === maxAttempts - 1) throw error;
         await new Promise(resolve => setTimeout(resolve, 1000 * (attempt + 1)));
       }
     }
@@ -583,13 +580,6 @@ These guidelines are working if: fewer unnecessary changes in diffs, fewer rewri
     if (totalUsage.totalTokens === 0) {
       totalUsage = this.estimateTokens(finalContent);
     }
-    onProgress({
-      phase: 'finalizing',
-      reasoningText: this.buildPreviewReasoningText('finalizing'),
-      contentText: finalContent,
-      tokenCount: contentParts.reduce((acc, part) => acc + part.split(/\s+/).length, 0),
-      elapsedSeconds: 0,
-    });
     return { content: finalContent, usage: totalUsage };
   }
 
@@ -712,7 +702,7 @@ ${baseInfo}${contextSection}${bdConstraint}
     apiKey: string,
     model: string,
     messages: Array<{ role: 'system' | 'user' | 'assistant'; content: string }>,
-    onProgress: (progress: GenerationProgress) => void,
+    onProgress: (progress: GenerationProgress) => void | Promise<void>,
     signal?: AbortSignal,
     isContinuation = false
   ): Promise<{ reasoningText: string; contentText: string; finishReason: string | null; tokenCount: number; usage: TokenUsage }> {
@@ -722,6 +712,7 @@ ${baseInfo}${contextSection}${bdConstraint}
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${apiKey}`,
+        'Accept': 'text/event-stream',
       },
       body: JSON.stringify({
         model,
@@ -749,7 +740,6 @@ ${baseInfo}${contextSection}${bdConstraint}
     let reasoningText = '';
     let contentText = '';
     let finishReason: string | null = null;
-    let lastEmitAt = 0;
     let tokenCount = 0;
     const startTime = Date.now();
 
@@ -764,11 +754,8 @@ ${baseInfo}${contextSection}${bdConstraint}
       return block;
     };
 
-    const emitProgress = (force = false): void => {
+    const emitProgress = async (): Promise<void> => {
       const now = Date.now();
-      if (!force && now - lastEmitAt < 120) {
-        return;
-      }
 
       let previewContentText = this.extractPreviewContent(contentText);
 
@@ -784,16 +771,12 @@ ${baseInfo}${contextSection}${bdConstraint}
         }
       }
 
-      const phase: GenerationProgress['phase'] = previewContentText
-        ? 'writing'
-        : reasoningText || contentText
-          ? 'reasoning'
-          : 'reasoning';
+      const phase = previewContentText ? 'writing' : 'reasoning';
 
       const elapsedSeconds = Math.floor((now - startTime) / 1000);
       const tokensPerSecond = elapsedSeconds > 0 ? tokenCount / elapsedSeconds : 0;
 
-      onProgress({
+      await onProgress({
         phase,
         reasoningText: this.buildPreviewReasoningText(phase),
         contentText: previewContentText,
@@ -801,22 +784,21 @@ ${baseInfo}${contextSection}${bdConstraint}
         tokensPerSecond,
         elapsedSeconds,
       });
-      lastEmitAt = now;
     };
 
-    const processEventBlock = (block: string): void => {
+    const processEventBlock = (block: string): boolean => {
       const dataLines = block
         .split(/\r?\n/)
         .filter(line => line.startsWith('data:'))
         .map(line => line.slice(5).trim());
 
       if (dataLines.length === 0) {
-        return;
+        return false;
       }
 
       const payload = dataLines.join('\n');
       if (payload === '[DONE]') {
-        return;
+        return false;
       }
 
       const chunk = JSON.parse(payload) as StreamChunkResponse;
@@ -824,7 +806,7 @@ ${baseInfo}${contextSection}${bdConstraint}
       const delta = choice?.delta;
 
       if (!delta) {
-        return;
+        return false;
       }
 
       const reasoningIncoming = this.extractReasoningText(delta);
@@ -844,34 +826,28 @@ ${baseInfo}${contextSection}${bdConstraint}
         finishReason = choice.finish_reason;
       }
 
-      if (reasoningDelta || contentDelta) {
-        emitProgress();
-      }
+      return Boolean(reasoningDelta || contentDelta);
     };
 
-    while (true) {
-      const { value, done } = await reader.read();
-      if (done) {
-        break;
-      }
-
-      buffer += decoder.decode(value, { stream: true });
-      let block = extractNextEventBlock();
-
-      while (block !== null) {
-        if (block) {
-          processEventBlock(block);
+    try {
+      while (true) {
+        const { value, done } = await reader.read();
+        buffer += done ? decoder.decode() : decoder.decode(value, { stream: true });
+        let changed = false;
+        let block = extractNextEventBlock();
+        while (block !== null) {
+          changed = processEventBlock(block) || changed;
+          block = extractNextEventBlock();
         }
 
-        block = extractNextEventBlock();
+        if (done && buffer.trim()) changed = processEventBlock(buffer.trim()) || changed;
+        if (changed) await emitProgress();
+        if (done) break;
       }
+    } finally {
+      await reader.cancel().catch(() => {});
+      reader.releaseLock();
     }
-
-    if (buffer.trim()) {
-      processEventBlock(buffer.trim());
-    }
-
-    emitProgress(true);
 
     // Build usage from accumulated token count and estimate prompt tokens
     const usage: TokenUsage = {
@@ -1250,7 +1226,7 @@ ${baseInfo}${contextSection}${bdConstraint}
   private async streamMockDocument(
     docType: DocType,
     topicInfo: TopicInfo,
-    onProgress: (progress: GenerationProgress) => void
+    onProgress: (progress: GenerationProgress) => void | Promise<void>
   ): Promise<string> {
     const content = generateMockDocument(docType, topicInfo);
     let streamedContent = '';
@@ -1263,7 +1239,7 @@ ${baseInfo}${contextSection}${bdConstraint}
       tokenCount += chunk.split(/\s+/).length;
       const elapsedSeconds = Math.floor((Date.now() - startTime) / 1000);
       const tokensPerSecond = elapsedSeconds > 0 ? tokenCount / elapsedSeconds : 0;
-      onProgress({
+      await onProgress({
         phase: 'writing',
         reasoningText: '',
         contentText: streamedContent,
@@ -1276,7 +1252,7 @@ ${baseInfo}${contextSection}${bdConstraint}
 
     const elapsedSeconds = Math.floor((Date.now() - startTime) / 1000);
     const tokensPerSecond = elapsedSeconds > 0 ? tokenCount / elapsedSeconds : 0;
-    onProgress({
+    await onProgress({
       phase: 'finalizing',
       reasoningText: '',
       contentText: streamedContent,
